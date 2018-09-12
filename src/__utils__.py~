@@ -114,7 +114,7 @@ def analysis_split_read(split_read, SV_size, RLength):
 	 	print i
 
 	candidate_SV["DUP"] = list()
-	# candidate_SV["INVDUP"] = list()
+	candidate_SV["INVDUP"] = list()
 	candidate_SV["INS"] = list()
 	candidate_SV["INV"] = list()
 	candidate_SV["TRA"] = list()
@@ -128,14 +128,12 @@ def analysis_split_read(split_read, SV_size, RLength):
 				# dup & INV & TRA & INS
 				if b[3] - a[2] >= SV_size and SP_list.index(a) > SP_list.index(b):
 					# dup
-					# if a[5] == b[5]:
-					# 	DUP_flag[SP_list.index(a)] = 1
-					# 	DUP_flag[SP_list.index(b)] = 1
-					# else:
-					# 	INVDUP_flag[SP_list.index(a)] = 1
-					# 	INVDUP_flag[SP_list.index(b)] = 1
-					DUP_flag[SP_list.index(a)] = 1
-					DUP_flag[SP_list.index(b)] = 1
+					if a[5] == b[5]:
+						DUP_flag[SP_list.index(a)] = 1
+						DUP_flag[SP_list.index(b)] = 1
+					else:
+						INVDUP_flag[SP_list.index(a)] = 1
+						INVDUP_flag[SP_list.index(b)] = 1
 
 				if a[0] + b[3] - a[2] - b[1] >= SV_size and b[3] <= a[2] and SP_list.index(a) == SP_list.index(b) + 1:
 					candidate_SV["INS"].append([a[4], (a[2]+b[3])/2, a[0]+b[3]-a[2]-b[1]])
@@ -184,100 +182,66 @@ def analysis_split_read(split_read, SV_size, RLength):
 			# 			local_candidate_INVDUP.append([SP_list[k][4], -1, SP_list[k][3]])
 
 	# +DUP++DUP++DUP++DUP++DUP++DUP++DUP++DUP+
-	# temp_dup_s = dict()
-	# temp_invdup_s = dict()
-	# temp_dup_e = dict()
-	# temp_invdup_e = dict()
+	temp_dup_s = dict()
+	temp_invdup_s = dict()
+	temp_dup_e = dict()
+	temp_invdup_e = dict()
 	for k in xrange(len(SP_list)):
 		if DUP_flag[k] == 1:
-			# if SP_list[k][4] not in temp_dup_e:
-			# 	temp_dup_e[SP_list[k][4]] = list()
-			# if SP_list[k][4] not in temp_dup_s:
-			# 	temp_dup_s[SP_list[k][4]] = list()
+			if SP_list[k][4] not in temp_dup_e:
+				temp_dup_e[SP_list[k][4]] = list()
+			if SP_list[k][4] not in temp_dup_s:
+				temp_dup_s[SP_list[k][4]] = list()
 			if k == 0:
-				candidate_SV["DUP"].append([SP_list[k][4], -1, SP_list[k][3]])
+				# candidate_SV["DUP"].append([SP_list[k][4], -1, SP_list[k][3]])
 				# temp_dup_e.append(SP_list[k][3])
-				# temp_dup_e[SP_list[k][4]].append(SP_list[k][3])
+				temp_dup_e[SP_list[k][4]].append(SP_list[k][3])
 			elif k == len(SP_list)-1:
-				candidate_SV["DUP"].append([SP_list[k][4], SP_list[k][2], -1])
+				# candidate_SV["DUP"].append([SP_list[k][4], SP_list[k][2], -1])
 				# temp_dup_s.append(SP_list[k][2])
-				# temp_dup_s[SP_list[k][4]].append(SP_list[k][2])
+				temp_dup_s[SP_list[k][4]].append(SP_list[k][2])
 			else:
-				candidate_SV["DUP"].append([SP_list[k][4], SP_list[k][2], SP_list[k][3]])
+				# candidate_SV["DUP"].append([SP_list[k][4], SP_list[k][2], SP_list[k][3]])
 				# temp_dup_s.append(SP_list[k][2])
-				# temp_dup_s[SP_list[k][4]].append(SP_list[k][2])
+				temp_dup_s[SP_list[k][4]].append(SP_list[k][2])
 				# temp_dup_e.append(SP_list[k][3])
-				# temp_dup_e[SP_list[k][4]].append(SP_list[k][3])
+				temp_dup_e[SP_list[k][4]].append(SP_list[k][3])
 		if INVDUP_flag[k] == 1:
-			# if SP_list[k][4] not in temp_invdup_e:
-			# 	temp_invdup_e[SP_list[k][4]] = list()
-			# if SP_list[k][4] not in temp_invdup_s:
-			# 	temp_invdup_s[SP_list[k][4]] = list()
+			if SP_list[k][4] not in temp_invdup_e:
+				temp_invdup_e[SP_list[k][4]] = list()
+			if SP_list[k][4] not in temp_invdup_s:
+				temp_invdup_s[SP_list[k][4]] = list()
 			if k == 0:
-				candidate_SV["INVDUP"].append([SP_list[k][4], -1, SP_list[k][3]])
+				# candidate_SV["INVDUP"].append([SP_list[k][4], -1, SP_list[k][3]])
 				# temp_invdup_e.append(SP_list[k][3])
-				# temp_invdup_e[SP_list[k][4]].append(SP_list[k][3])
+				temp_invdup_e[SP_list[k][4]].append(SP_list[k][3])
 			elif k == len(SP_list)-1:
-				candidate_SV["INVDUP"].append([SP_list[k][4], SP_list[k][2], -1])
+				# candidate_SV["INVDUP"].append([SP_list[k][4], SP_list[k][2], -1])
 				# temp_invdup_s.append(SP_list[k][2])
-				# temp_invdup_s[SP_list[k][4]].append(SP_list[k][2])
+				temp_invdup_s[SP_list[k][4]].append(SP_list[k][2])
 			else:
-				candidate_SV["INVDUP"].append([SP_list[k][4], SP_list[k][2], SP_list[k][3]])
+				# candidate_SV["INVDUP"].append([SP_list[k][4], SP_list[k][2], SP_list[k][3]])
 				# temp_invdup_s.append(SP_list[k][2])
-				# temp_invdup_s[SP_list[k][4]].append(SP_list[k][2])
+				temp_invdup_s[SP_list[k][4]].append(SP_list[k][2])
 				# temp_invdup_e.append(SP_list[k][3])
-				# temp_invdup_e[SP_list[k][4]].append(SP_list[k][3])
+				temp_invdup_e[SP_list[k][4]].append(SP_list[k][3])
 
-	# for key in temp_dup_s:
-	# 	candidate_SV["DUP"].append([key, int(sum(temp_dup_s[key])/len(temp_dup_s[key])), int(sum(temp_dup_e[key])/len(temp_dup_e[key])), max(len(temp_dup_e[key]), len(temp_dup_s[key]))])
-	# for key in temp_invdup_s:
-	# 	candidate_SV["INVDUP"].append([key, int(sum(temp_invdup_s[key])/len(temp_invdup_s[key])), int(sum(temp_invdup_e[key])/len(temp_invdup_e[key])), max(len(temp_invdup_e[key]), len(temp_invdup_s[key]))])
+	for key in temp_dup_s:
+		candidate_SV["DUP"].append([key, int(sum(temp_dup_s[key])/len(temp_dup_s[key])), int(sum(temp_dup_e[key])/len(temp_dup_e[key])), max(len(temp_dup_e[key]), len(temp_dup_s[key]))])
+	for key in temp_invdup_s:
+		candidate_SV["INVDUP"].append([key, int(sum(temp_invdup_s[key])/len(temp_invdup_s[key])), int(sum(temp_invdup_e[key])/len(temp_invdup_e[key])), max(len(temp_invdup_e[key]), len(temp_invdup_s[key]))])
 	# +TRA++TRA++TRA++TRA++TRA++TRA++TRA++TRA+
 
 	# +INV++INV++INV++INV++INV++INV++INV++INV+
-	temp_inv_s = dict()
-	temp_inv_e = dict()
 	call_inv = sorted(SP_list, key = lambda x:x[2])
 	if len(call_inv) >= 3:
 		for a in call_inv[:-2]:
 			if a[5] != call_inv[call_inv.index(a)+1][5] and a[5] == call_inv[call_inv.index(a)+2][5] and a[4] == call_inv[call_inv.index(a)+1][4] and a[4] == call_inv[call_inv.index(a)+2][4]:
 				if call_inv[call_inv.index(a)+1][3] - call_inv[call_inv.index(a)+1][2] >= SV_size:
-					candidate_SV["INV"].append([a[4], a[3] , call_inv[call_inv.index(a)+1][3]])
-					# if a[4] not in temp_inv_s:
-					# 	temp_inv_s[a[4]] = list()
-					# if a[4] not in temp_inv_e:
-					# 	temp_inv_e[a[4]] = list()
-					# temp_inv_s[a[4]].append(a[3])
-					# temp_inv_e[a[4]].append(call_inv[call_inv.index(a)+1][3])
+					candidate_SV["INV"].append([a[4], call_inv[call_inv.index(a)+1][2] , call_inv[call_inv.index(a)+1][3]])
 
-	if len(call_inv) == 2:
-		# if call_inv[0][4] not in temp_inv_s:
-		# 	temp_inv_s[call_inv[0][4]] = list()
-		# if call_inv[0][4] not in temp_inv_e:
-		# 	temp_inv_e[call_inv[0][4]] = list()
-		if call_inv[0][5] != call_inv[1][5] and call_inv[0][4] == call_inv[1][4]:
-			ls_1 = call_inv[0][3] - call_inv[0][2]
-			ls_2 = call_inv[1][3] - call_inv[1][2]
-			if ls_1 > ls_2:
-				if call_inv[1][2] > call_inv[0][3] and ls_2 >= SV_size:
-					# temp_inv_e[call_inv[0][4]].append(call_inv[1][3])
-					candidate_SV["INV"].append([call_inv[0][4], -1 , call_inv[1][3]])
-			else:
-				if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
-					# temp_inv_s[call_inv[0][4]].append(call_inv[0][2])
-					candidate_SV["INV"].append([call_inv[0][4], call_inv[0][2], -1])
 
-	# for key in temp_inv_s:
-	# 	try:
-	# 		candidate_SV["INV"].append([key, int(sum(temp_inv_s[key])/len(temp_inv_s[key])), int(sum(temp_inv_e[key])/len(temp_inv_e[key]))])
-	# 	except:
-	# 		# pass
-	# 		if len(temp_inv_s[key]) == 0 :
-	# 			candidate_SV["INV"].append([key, -1, int(sum(temp_inv_e[key])/len(temp_inv_e[key]))])
-	# 		if len(temp_inv_e[key]) == 0:
-	# 			candidate_SV["INV"].append([key, int(sum(temp_inv_s[key])/len(temp_inv_s[key])), -1])
-
-	print candidate_SV["DUP"]
+	print candidate_SV["INV"]
 	return candidate_SV
 
 def parse_read(read, Chr_name, SV_size, MQ_threshold):
@@ -291,11 +255,12 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold):
 		split_read = list()
 		if read.mapq > MQ_threshold:
 			if read.is_reverse:
-				strand = '-'
-			else:
 				strand = '+'
+			else:
+				strand = '-'
 			split_read.append([Chr_name, read.reference_start, strand, read.cigar])
 		Tags = read.get_tags()
+		print read.query_name
 		for tag in Tags:
 			if tag[0] == 'SA':
 				split_alignment = tag[1].split(';')[:-1]
@@ -304,9 +269,9 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold):
 					if int(parse_mapping[4]) < MQ_threshold:
 						continue
 					split_read.append([parse_mapping[0], int(parse_mapping[1]), parse_mapping[2], parse_mapping[3]])
+					print parse_mapping[2]
 				break
 
-		print read.query_name
 		# for key in split_read:
 			# print isinstance(key[3], str), key[3]
 		data = analysis_split_read(split_read, SV_size, read.query_length)
@@ -319,9 +284,84 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold):
 				candidate[key].append(i)
 				# print key, i
 
+	# pos_start = read.reference_start
+	# shift = 0
+	# _shift_read_ = 0
+	# pos_end = read.reference_end
+	# primary_clip_0 = 0
+	# primary_clip_1 = 0
+	# for element in read.cigar:
+	# 	if element[0] == 0 or element[0] == 2:
+	# 		shift += element[1]
+	# 	if element[0] != 2:
+	# 		_shift_read_ += element[1]
+	# 	if element[0] in INS_flag and element[1] > low_bandary:
+	# 		shift += 1
+	# 		# MEI_contig = read.query_sequence[_shift_read_ - element[1]:_shift_read_]
+
+	# 		# INS_ME_pos.append([pos_start + shift, element[1], MEI_contig])
+
+	# 		# [the breakpoint on reference]
+	# 		# [the insertion size]
+	# 		# [the read name] 
+	# 		# INS_ME_pos.append([pos_start + shift, element[1], read.query_name])
+	# 		store_clip_pos(pos_start + shift, Chr_name, 2, read.query_name)
+
+	# 		# print read.query_name, "I", pos_start + shift
+	# 		# print MEI_contig
+
+	# 	if element[0] in clip_flag:
+
+	# 		if shift == 0:
+	# 			primary_clip_0 = element[1]
+	# 		else:
+	# 			primary_clip_1 = element[1]
+
+	# 		if element[1] > low_bandary:
+	# 			if shift == 0:
+	# 				clip_pos = pos_start - 1
+	# 				# clip_contig = read.query_sequence[:element[1]]
+	# 				store_clip_pos(clip_pos, Chr_name, 0, read.query_name)
+
+	# 				# primary_clip_0 = element[1]
+	# 				# left clip size
+
+	# 			else:
+	# 				clip_pos = pos_start + shift - 1
+	# 				# primary_clip = read.query_length - element[1]
+	# 				# clip_contig = read.query_sequence[read.query_length - element[1]:]
+	# 				store_clip_pos(clip_pos, Chr_name, 1, read.query_name)
+
+	# 				# primary_clip_1 = read.query_length - element[1]
+	# 				# right clip size
+
+	# if process_signal == 1 or process_signal == 2:
+	# 	Tags = read.get_tags()
+	# 	chr = Chr_name
+	# 	# primary_clip = pos_start
+	# 	primary_info = [pos_start, pos_end, primary_clip_0, primary_clip_1, process_signal]
+
+	# 	for i in Tags:
+	# 		if i[0] == 'SA':
+	# 			Supplementary_info = i[1].split(';')[:-1]
+	# 			# print process_signal
+	# 			# print chr, primary_info, read.query_length
+	# 			# print read.cigar
+	# 			# print i[1].split(';')[-1]
+	# 			overlap = organize_split_signal(chr, primary_info, Supplementary_info, read.query_length, low_bandary)
+	# 			for k in overlap:
+	# 				# print k
+	# 				# MEI_contig = read.query_sequence[k[0]:k[1]]
+	# 				# [the breakpoint on reference]
+	# 				# [the insertion size]
+	# 				# [the read name] 
+	# 				# INS_ME_pos.append([k[2], k[1] - k[0], read.query_name])
+	# 				store_clip_pos(k[2], Chr_name, 2, read.query_name)
+
+	# # return INS_ME_pos
 
 def show_temp_result():
 	for key in candidate:
-		candidate[key] = sorted(candidate[key], key = lambda x:x[0:3])
+		candidate[key] = sorted(candidate[key], key = lambda x:x[0:2])
 		for i in candidate[key]:
 			print key, i
