@@ -1,9 +1,22 @@
 import cigar
-import gc
+import gc, sys
 # INS_flag = {1:'I'}
 # DEL_flag = {2:'D'}
 
 candidate = dict()
+candidate["DEL"] = dict()
+candidate["INS"] = dict()
+candidate["INV"] = dict()
+candidate["DUP"] = dict()
+candidate["TRA"] = dict()
+candidate["l_DUP"] = dict()
+candidate["DUP_r"] = dict()
+candidate["l_INV"] = dict()
+candidate["INV_r"] = dict()
+
+transfer = {"Indel_Ins":"INS", "INS":"INS", "TRA":"TRA", "DUP":"DUP", "l_DUP":"l_DUP", "DUP_r":"DUP_r", "INV":"INV", "Indel_Del":"DEL", "l_INV":"l_INV", "INV_r":"INV_r"}
+
+semi_result = dict()
 
 def detect_flag(Flag):
 	# Signal
@@ -110,13 +123,17 @@ def analysis_split_read(split_read, SV_size, RLength):
 	'''
 	# split alignment
 	SP_list = sorted(SP_list, key = lambda x:x[0])
-	for i in SP_list:
-	 	print i
+	# for i in SP_list:
+	#  	print i
 
 	candidate_SV["DUP"] = list()
+	candidate_SV["l_DUP"] = list()
+	candidate_SV["DUP_r"] = list()
 	# candidate_SV["INVDUP"] = list()
 	candidate_SV["INS"] = list()
 	candidate_SV["INV"] = list()
+	candidate_SV["l_INV"] = list()
+	candidate_SV["INV_r"] = list()
 	candidate_SV["TRA"] = list()
 	DUP_flag = [0]*len(SP_list)
 	INVDUP_flag = [0]*len(SP_list)
@@ -195,11 +212,13 @@ def analysis_split_read(split_read, SV_size, RLength):
 			# if SP_list[k][4] not in temp_dup_s:
 			# 	temp_dup_s[SP_list[k][4]] = list()
 			if k == 0:
-				candidate_SV["DUP"].append([SP_list[k][4], -1, SP_list[k][3]])
+				candidate_SV["DUP_r"].append([SP_list[k][4], -1, SP_list[k][3]])
+				# pass
 				# temp_dup_e.append(SP_list[k][3])
 				# temp_dup_e[SP_list[k][4]].append(SP_list[k][3])
 			elif k == len(SP_list)-1:
-				candidate_SV["DUP"].append([SP_list[k][4], SP_list[k][2], -1])
+				candidate_SV["l_DUP"].append([SP_list[k][4], SP_list[k][2], -1])
+				# pass
 				# temp_dup_s.append(SP_list[k][2])
 				# temp_dup_s[SP_list[k][4]].append(SP_list[k][2])
 			else:
@@ -249,7 +268,7 @@ def analysis_split_read(split_read, SV_size, RLength):
 					# 	temp_inv_e[a[4]] = list()
 					# temp_inv_s[a[4]].append(a[3])
 					# temp_inv_e[a[4]].append(call_inv[call_inv.index(a)+1][3])
-
+	
 	if len(call_inv) == 2:
 		# if call_inv[0][4] not in temp_inv_s:
 		# 	temp_inv_s[call_inv[0][4]] = list()
@@ -261,11 +280,14 @@ def analysis_split_read(split_read, SV_size, RLength):
 			if ls_1 > ls_2:
 				if call_inv[1][2] > call_inv[0][3] and ls_2 >= SV_size:
 					# temp_inv_e[call_inv[0][4]].append(call_inv[1][3])
-					candidate_SV["INV"].append([call_inv[0][4], -1 , call_inv[1][3]])
+					candidate_SV["INV_r"].append([call_inv[0][4], -1 , call_inv[1][3]])
+					# pass
 			else:
 				if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
 					# temp_inv_s[call_inv[0][4]].append(call_inv[0][2])
-					candidate_SV["INV"].append([call_inv[0][4], call_inv[0][2], -1])
+					candidate_SV["l_INV"].append([call_inv[0][4], call_inv[0][2], -1])
+					# pass
+	
 
 	# for key in temp_inv_s:
 	# 	try:
@@ -277,7 +299,7 @@ def analysis_split_read(split_read, SV_size, RLength):
 	# 		if len(temp_inv_e[key]) == 0:
 	# 			candidate_SV["INV"].append([key, int(sum(temp_inv_s[key])/len(temp_inv_s[key])), -1])
 
-	print candidate_SV["DUP"]
+	# print candidate_SV["DUP"]
 	return candidate_SV
 
 def parse_read(read, Chr_name, SV_size, MQ_threshold):
@@ -306,22 +328,238 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold):
 					split_read.append([parse_mapping[0], int(parse_mapping[1]), parse_mapping[2], parse_mapping[3]])
 				break
 
-		print read.query_name
+		# print read.query_name
 		# for key in split_read:
 			# print isinstance(key[3], str), key[3]
 		data = analysis_split_read(split_read, SV_size, read.query_length)
 		gc.collect()
 
 		for key in data:
-			if key not in candidate:
-				candidate[key] = list()
+			# if key not in candidate:
+			# 	candidate[key] = list()
 			for i in data[key]:
-				candidate[key].append(i)
-				# print key, i
+				# print [key, i, transfer[key]]
+				if i[0] not in candidate[transfer[key]]:
+					candidate[transfer[key]][i[0]] = list()
+				candidate[transfer[key]][i[0]].append(i[1:])
+				# print [key, i, transfer[key]]
 
+def merge_pos_indel(pos_list, chr, evidence_read, SV_size):
+	start = list()
+	end = list()
+	max_L = -1
+	min_L = sys.maxint
+	for ele in pos_list:
+		start.append(ele[0])
+		end.append(ele[0] + ele[1])
+		if ele[1] > max_L:
+			max_L = ele[1]
+		if ele[1] < min_L:
+			min_L = ele[1]
+
+	breakpoint = sum(start)/len(start)
+	size = sum(end)/len(end) - breakpoint
+
+	result = list()
+	if len(pos_list) < evidence_read:
+		return result
+	else:
+		if size >= SV_size and max_L - min_L < int(0.5*size):
+			result.append([chr, breakpoint, size, len(pos_list)])
+
+	return result
+
+def intergrate_indel(pos_list, chr, evidence_read, SV_size, low_bandary):
+	_cluster_ = list()
+	temp = list()
+	temp.append(pos_list[0])
+	for pos in pos_list[1:]:
+		if temp[-1][0] + low_bandary < pos[0]:
+			result = merge_pos_indel(temp, chr, evidence_read, SV_size)
+			if len(result) != 0:
+				_cluster_.append(result[0])
+			temp = list()
+			temp.append(pos)
+		else:
+			temp.append(pos)
+	result = merge_pos_indel(temp, chr, evidence_read, SV_size)
+	if len(result) != 0:
+		_cluster_.append(result[0])
+	return _cluster_
+
+def acquire_locus(down, up, data_struc):
+	re = list()
+	if int(up/10000) == int(down/10000):
+		key_1 = int(down/10000)
+		if key_1 not in data_struc:
+			return re
+		for i in xrange(int((up%10000)/50)-int((down%10000)/50)+1):
+			# exist a bug ***********************************
+			key_2 = int((down%10000)/50)+i
+			if key_2 not in data_struc[key_1]:
+				continue
+			for ele in data_struc[key_1][key_2]:
+				if ele >= down and ele <= up:
+					re.append(ele)
+	else:
+		key_1 = int(down/10000)
+		if key_1 in data_struc:
+			for i in xrange(200-int((down%10000)/50)):
+				# exist a bug ***********************************
+				key_2 = int((down%10000)/50)+i
+				if key_2 not in data_struc[key_1]:
+					continue
+				for ele in data_struc[key_1][key_2]:
+					if ele >= down and ele <= up:
+						re.append(ele)
+		key_1 += 1
+		if key_1 not in data_struc:
+			return re
+		for i in xrange(int((up%10000)/50)+1):
+			# exist a bug ***********************************
+			key_2 = i
+			if key_2 not in data_struc[key_1]:
+				continue
+			for ele in data_struc[key_1][key_2]:
+				if ele >= down and ele <= up:
+					re.append(ele)
+	return re
+
+def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr):
+	start = list()
+	end = list()
+	up_B = int(len(pos_list)*0.75)
+	low_B = int(len(pos_list)*0.25)
+	for ele in pos_list:
+		start.append(ele[0])
+	for ele in pos_list[low_B:up_B+1]:
+		end.append(ele[1])
+
+	re_l = acquire_locus(min(start), max(start), ll)
+	re_r = acquire_locus(min(end), max(end), lr)
+
+	breakpoint = sum(start+re_l)/len(start+re_l)
+	size = sum(end+re_r)/len(end+re_r) - breakpoint
+
+	result = list()
+	if len(pos_list+re_l+re_r) < evidence_read:
+		# need to add some semi-signals
+		return result
+	else:
+		if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
+			result.append([chr, breakpoint, size, len(pos_list+re_l+re_r)])
+
+	return result
+
+def intergrate_dup(pos_list, chr, evidence_read, SV_size, low_bandary, ll, lr):
+	_cluster_ = list()
+	temp = list()
+	temp.append(pos_list[0])
+	for pos in pos_list[1:]:
+		if temp[-1][0] + low_bandary < pos[0]:
+			result = merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr)
+			if len(result) != 0:
+				_cluster_.append(result[0])
+			temp = list()
+			temp.append(pos)
+		else:
+			temp.append(pos)
+	result = merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr)
+	if len(result) != 0:
+		_cluster_.append(result[0])
+	return _cluster_
+
+def mkindex(data, mask):
+	data_struc = dict()
+	for i in data:
+		# if i[mask]
+		hash_1 = int(i[mask] /10000)
+		mod = i[mask] % 10000
+		hash_2 = int(mod / 50)
+		# element = [i[0], seq, flag]
+		if hash_1 not in data_struc:
+			data_struc[hash_1] = dict()
+			data_struc[hash_1][hash_2] = list()
+			data_struc[hash_1][hash_2].append(i[mask])
+		else:
+			if hash_2 not in data_struc[hash_1]:
+				data_struc[hash_1][hash_2] = list()
+				data_struc[hash_1][hash_2].append(i[mask])
+			else:
+				data_struc[hash_1][hash_2].append(i[mask])
+	return data_struc
 
 def show_temp_result():
-	for key in candidate:
-		candidate[key] = sorted(candidate[key], key = lambda x:x[0:3])
-		for i in candidate[key]:
-			print key, i
+	for key in candidate["DEL"]:
+		candidate["DEL"][key] = sorted(candidate["DEL"][key], key = lambda x:x[:])
+		# for i in candidate["DEL"][key]:
+		#	print i
+		result = intergrate_indel(candidate["DEL"][key], key, 5, 50, 10)
+		# for i in result:
+		#	print "DEL", i
+		if key not in semi_result:
+			semi_result[key] = list()
+		for i in result:
+			i.append("DEL")
+			semi_result[key].append(i)
+
+	for key in candidate["INS"]:
+		candidate["INS"][key] = sorted(candidate["INS"][key], key = lambda x:x[:])
+		# for i in candidate["INS"][key]:
+		# 	print key, i
+		result = intergrate_indel(candidate["INS"][key], key, 5, 50, 10)
+		# for i in result:
+		#	print "INS", i
+		if key not in semi_result:
+			semi_result[key] = list()
+		for i in result:
+			i.append("INS")
+			semi_result[key].append(i)
+
+	for key in candidate["DUP"]:
+		candidate["DUP"][key] = sorted(candidate["DUP"][key], key = lambda x:x[:])
+		# candidate["l_DUP"][key] = sorted(candidate["l_DUP"][key], key = lambda x:x[:])
+		# candidate["DUP_r"][key] = sorted(candidate["DUP_r"][key], key = lambda x:x[:])
+		try:
+			left_dup = mkindex(candidate["l_DUP"][key], 0)
+		except:
+			left_dup = dict()
+		try:
+			right_dup = mkindex(candidate["DUP_r"][key], 1)
+		except:
+			right_dup = dict()
+
+		# for i in candidate["l_DUP"][key]:
+		# 	print key, i
+		# for i in candidate["DUP"][key]:
+		# 	print key, i
+		# for i in candidate["DUP_r"][key]:
+		# 	print key, i
+		result = intergrate_dup(candidate['DUP'][key], key, 5, 50, 10, left_dup, right_dup)
+		if key not in semi_result:
+			semi_result[key] = list()
+		for i in result:
+			i.append("DUP")
+			semi_result[key].append(i)
+	
+	for key in candidate["INV"]:
+		candidate["INV"][key] = sorted(candidate["INV"][key], key = lambda x:x[:])
+		try:
+			left_inv = mkindex(candidate["l_INV"][key], 0)
+		except:
+			left_inv = dict()
+		try:
+			right_inv = mkindex(candidate["INV_r"][key], 1)
+		except:
+			right_inv = dict()
+		result = intergrate_dup(candidate['INV'][key], key, 5, 50, 10, left_dup, right_dup)
+		if key not in semi_result:
+			semi_result[key] = list()
+		for i in result:
+			i.append("INV")
+			semi_result[key].append(i)
+
+	for key in semi_result:
+		for i in semi_result[key]:
+			print i
+	# print candidate['DEL']
