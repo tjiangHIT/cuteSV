@@ -24,7 +24,7 @@ def main_ctrl(sam_path):
 		parse_read(read, Chr_name, 50, 0)
 	samfile.close()
 
-	show_temp_result()
+	show_temp_result(5, 50, 10)
 
 if __name__ == '__main__':
 	main_ctrl(sys.argv[1])
