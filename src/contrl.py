@@ -21,10 +21,10 @@ def main_ctrl(sam_path):
 	# print Chr_name, Chr_length
 	# logging.info("Resolving the chromsome %s."%(Chr_name))
 	for read in samfile.fetch(Chr_name):
-		parse_read(read, Chr_name, 50, 0)
+		parse_read(read, Chr_name, 50, 20, 7, 2000)
 	samfile.close()
 
-	show_temp_result(5, 50, 10)
+	show_temp_result(5, 50, 10, 1000)
 
 if __name__ == '__main__':
 	main_ctrl(sys.argv[1])

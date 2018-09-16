@@ -201,7 +201,7 @@ def analysis_split_read(split_read, SV_size, RLength):
 					store_info([[call_inv[0][4], call_inv[0][2]]], "l_INV")
 					# pass
 
-def parse_read(read, Chr_name, SV_size, MQ_threshold):
+def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_size):
 	process_signal = detect_flag(read.flag)
 	if process_signal == 0:
 		# unmapped reads
@@ -228,7 +228,8 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold):
 				break
 
 		# print read.query_name
-		analysis_split_read(split_read, SV_size, read.query_length)
+		if len(split_read) <= max_num_splits and read.query_length >= min_seq_size:
+			analysis_split_read(split_read, SV_size, read.query_length)
 		gc.collect()
 
 def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
@@ -257,20 +258,22 @@ def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 
 	# return result
 
-def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype):
+def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_distance):
 	_cluster_ = list()
 	temp = list()
 	temp.append(candidate[svtype][chr][0])
 	for pos in candidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
-			merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
+			if temp[-1][0] - temp[0][0] <= max_distance:
+				merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
 			# if len(result) != 0:
 			# 	_cluster_.append(result[0])
 			temp = list()
 			temp.append(pos)
 		else:
 			temp.append(pos)
-	merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
+	if temp[-1][0] - temp[0][0] <= max_distance:
+		merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
 	# if len(result) != 0:
 	# 	_cluster_.append(result[0])
 	# return _cluster_
@@ -331,6 +334,8 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 	breakpoint = sum(start+re_l)/len(start+re_l)
 	size = sum(end+re_r)/len(end+re_r) - breakpoint
 
+	print breakpoint, size, re_r, re_l, start, end
+
 	# result = list()
 	if len(pos_list+re_l+re_r) >= evidence_read:
 		# need to add some semi-signals
@@ -340,17 +345,21 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 				semi_result[chr] = list()
 			semi_result[chr].append([breakpoint, size, len(pos_list+re_l+re_r), svtype])
 
-def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype):
+def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max_distance):
 	temp = list()
 	temp.append(candidate[svtype][chr][0])
 	for pos in candidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
-			merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
+			if temp[-1][0] - temp[0][0] <= max_distance:
+				merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
+				# print temp
 			temp = list()
 			temp.append(pos)
 		else:
 			temp.append(pos)
-	merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
+	if temp[-1][0] - temp[0][0] <= max_distance:
+		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
+		# print temp
 
 def mkindex(data, mask):
 	data_struc = dict()
@@ -398,45 +407,49 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 				semi_result[chr] = list()
 			semi_result[chr].append([breakpoint_1, max_chr, breakpoint_2, svtype])
 
-def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype):
+def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distance):
 	temp = list()
 	temp.append(candidate[svtype][chr][0])
 	for pos in candidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
-			merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
+			if temp[-1][0] - temp[0][0] <= max_distance:
+				merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
 			temp = list()
 			temp.append(pos)
 		else:
 			temp.append(pos)
-	merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
+	if temp[-1][0] - temp[0][0] <= max_distance:
+		merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
 
-def show_temp_result(evidence_read, SV_size, low_bandary):
+def show_temp_result(evidence_read, SV_size, low_bandary, max_distance):
 	for chr in candidate["DEL"]:
 		candidate["DEL"][chr] = sorted(candidate["DEL"][chr], key = lambda x:x[0])
 		# for ele in candidate["DEL"][chr]:
 		# 	print chr, ele
-		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "DEL")
+		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "DEL", max_distance)
 
 
 	for chr in candidate["INS"]:
 		candidate["INS"][chr] = sorted(candidate["INS"][chr], key = lambda x:x[0])
 		# for i in candidate["INS"][chr]:
 		# 	print chr, i
-		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "INS")
+		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "INS", max_distance)
 
 	for chr in candidate["DUP"]:
 		candidate["DUP"][chr] = sorted(candidate["DUP"][chr], key = lambda x:x[:])
-		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_DUP", "DUP_r", "DUP")
+		for i in candidate["DUP"][chr]:
+			print chr, i
+		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_DUP", "DUP_r", "DUP", max_distance)
 	
 	for chr in candidate["INV"]:
 		candidate["INV"][chr] = sorted(candidate["INV"][chr], key = lambda x:x[:])
-		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_INV", "INV_r", "INV")
+		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_INV", "INV_r", "INV", max_distance)
 
 	for chr in candidate["TRA"]:
 		candidate["TRA"][chr] = sorted(candidate["TRA"][chr], key = lambda x:x[:])
 		# for i in candidate["TRA"][chr]:
 		# 	print chr, i
-		intergrate_tra(chr, evidence_read, SV_size, low_bandary, "TRA")
+		intergrate_tra(chr, evidence_read, SV_size, low_bandary, "TRA", max_distance)
 
 	for chr in semi_result:
 		semi_result[chr] = sorted(semi_result[chr], key = lambda x:x[0])
