@@ -239,6 +239,8 @@ def analysis_split_read(split_read, SV_size, RLength):
 					# pass
 
 def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_size):
+	# parse indel cost much time
+	# pls recode it
 	process_signal = detect_flag(read.flag)
 	if process_signal == 0:
 		# unmapped reads
@@ -269,27 +271,52 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_si
 			analysis_split_read(split_read, SV_size, read.query_length)
 		gc.collect()
 
+def acquire_length(len_list, threshold):
+	average_len = 0
+	flag = 0
+	temp = list()
+	temp.append(len_list[0])
+	for ele in len_list[1:]:
+		if temp[-1] + threshold < ele:
+			if flag < len(temp):
+				flag = len(temp)
+				average_len = int(sum(temp)/flag)
+			temp = list()
+			temp.append(ele)
+		else:
+			temp.append(ele)
+	if flag < len(temp):
+		flag = len(temp)
+		average_len = int(sum(temp)/flag)
+	return average_len
+
+
 def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 	# result = list()
 	if len(pos_list) >= evidence_read:
 		start = list()
 		size = list()
+		diff = list()
 		# max_L = -1
 		# min_L = sys.maxint
 		for ele in pos_list:
 			start.append(ele[0])
 			size.append(ele[1])
+		for k in xrange(len(pos_list[1:])):
+			diff.append(pos_list[k+1][1]-pos_list[k][1])
 			# if ele[1] > max_L:
 			# 	max_L = ele[1]
 			# if ele[1] < min_L:
 			# 	min_L = ele[1]
 		size.sort()
 		breakpoint = sum(start)/len(start)
-		SV_len = sum(size[int(0.25*len(size)):int(0.75*len(size))])/len(size[int(0.25*len(size)):int(0.75*len(size))])
+		# SV_len = sum(size[int(0.25*len(size)):int(0.75*len(size))])/len(size[int(0.25*len(size)):int(0.75*len(size))])
+		SV_len = acquire_length(size, max(int(sum(diff)/len(diff)), 50))
 		# concider the stability of data
 		# need to repair the buf!!!!!!!!
 
-		if SV_len >= SV_size and size[int(0.75*len(size))] - size[int(0.25*len(size))] < int(0.5*SV_len):
+		# if SV_len >= SV_size and size[int(0.75*len(size))] - size[int(0.25*len(size))] < int(0.5*SV_len):
+		if SV_len >= SV_size:
 			# result.append([chr, breakpoint, SV_len, len(pos_list)])
 			if chr not in semi_result:
 				semi_result[chr] = list()
@@ -361,25 +388,36 @@ def acquire_locus(down, up, keytype, chr):
 def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 	start = list()
 	end = list()
-	up_B = int(len(pos_list)*0.75)
-	low_B = int(len(pos_list)*0.25)
+	diff = list()
+	# up_B = int(len(pos_list)*0.75)
+	# low_B = int(len(pos_list)*0.25)
 	for ele in pos_list:
 		start.append(ele[0])
-	for ele in pos_list[low_B:up_B+1]:
+	# for ele in pos_list[low_B:up_B+1]:
 		end.append(ele[1])
 
 	re_l = acquire_locus(min(start), max(start), ll, chr)
 	re_r = acquire_locus(min(end), max(end), lr, chr)
 
 	breakpoint = sum(start+re_l)/len(start+re_l)
-	size = sum(end+re_r)/len(end+re_r) - breakpoint
-
+	# size = sum(end+re_r)/len(end+re_r) - breakpoint
+	end = end + re_r
+	end.sort()
+	for k in xrange(len(end)-1):
+		diff.append(end[k+1] - end[k])
+	# print end
+	# print diff
+	if len(diff) > 0:
+		size = acquire_length(end, max(int(sum(diff)/len(diff)), 50)) - breakpoint
+	else:
+		size = acquire_length(end, 50) - breakpoint
 	# print breakpoint, size, re_r, re_l, start, end
 
 	# result = list()
 	if len(pos_list+re_l+re_r) >= evidence_read:
 		# need to add some semi-signals
-		if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
+		# if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
+		if size >= SV_size:
 			# result.append([chr, breakpoint, size, len(pos_list+re_l+re_r)])
 			if chr not in semi_result:
 				semi_result[chr] = list()
@@ -488,6 +526,10 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	for chr in candidate["DUP"]:
 		candidate["DUP"][chr] = sorted(candidate["DUP"][chr], key = lambda x:x[:])
 		# for i in candidate["DUP"][chr]:
+		# 	print chr, i
+		# for i in candidate["l_DUP"][chr]:
+		# 	print chr, i
+		# for i in candidate["DUP_r"][chr]:
 		# 	print chr, i
 		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_DUP", "DUP_r", "DUP", max_distance)
 		candidate["DUP"][chr] = []
