@@ -1,6 +1,7 @@
 import cigar
 import gc, sys
 import time
+# from numba import jit
 # INS_flag = {1:'I'}
 # DEL_flag = {2:'D'}
 
@@ -19,6 +20,7 @@ transfer = {"Indel_Ins":"INS", "INS":"INS", "TRA":"TRA", "DUP":"DUP", "l_DUP":"l
 
 semi_result = dict()
 
+# @jit
 def detect_flag(Flag):
 	# Signal
 	Normal_foward = 1 >> 1
@@ -32,6 +34,7 @@ def detect_flag(Flag):
 	else:
 		return 0
 
+# @jit
 def search_indel_str(deal_cigar, pos_start, SV_size, Chr_name, RLength):
 	seq = list(cigar.Cigar(deal_cigar).items())
 	# Ins_list = list()
@@ -67,6 +70,7 @@ def search_indel_str(deal_cigar, pos_start, SV_size, Chr_name, RLength):
 
 	return clip_list
 
+# @jit
 def search_indel_list(deal_cigar, pos_start, SV_size, Chr_name, RLength):
 	# Ins_list = list()
 	# Del_list = list()
@@ -104,6 +108,7 @@ def search_indel_list(deal_cigar, pos_start, SV_size, Chr_name, RLength):
 	clip_list = [softclip_left, RLength - softclip_right, pos_start + 1, pos_start + shift_ins + 1, Chr_name]
 	return clip_list
 
+# @jit
 def store_info(pos_list, svtype):
 	for ele in pos_list:
 		if ele[0] not in candidate[svtype]:
@@ -123,6 +128,7 @@ def store_info(pos_list, svtype):
 
 			candidate[svtype][ele[0]][hash_1][hash_2].append(ele[1:])
 
+# @jit
 def store_signal(pos_list, svtype):
 	for ele in pos_list:
 		if ele[0] not in candidate[svtype]:
@@ -130,6 +136,7 @@ def store_signal(pos_list, svtype):
 
 		candidate[svtype][ele[0]].append(ele[1:])
 
+# @jit
 def analysis_split_read(split_read, SV_size, RLength):
 	# +indel++indel++indel++indel++indel++indel+
 	SP_list = list()
@@ -237,7 +244,7 @@ def analysis_split_read(split_read, SV_size, RLength):
 				if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
 					store_info([[call_inv[0][4], call_inv[0][2]]], "l_INV")
 					# pass
-
+# @jit
 def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_size):
 	# parse indel cost much time
 	# pls recode it
@@ -270,7 +277,7 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_si
 		if len(split_read) <= max_num_splits and read.query_length >= min_seq_size:
 			analysis_split_read(split_read, SV_size, read.query_length)
 		gc.collect()
-
+# @jit
 def acquire_length(len_list, threshold):
 	average_len = 0
 	flag = 0
@@ -290,7 +297,7 @@ def acquire_length(len_list, threshold):
 		average_len = int(sum(temp)/flag)
 	return average_len
 
-
+# @jit
 def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 	# result = list()
 	if len(pos_list) >= evidence_read:
@@ -324,7 +331,7 @@ def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, SV_len, len(pos_list), svtype))
 
 	# return result
-
+# @jit
 def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_distance):
 	# _cluster_ = list()
 	temp = list()
@@ -344,7 +351,7 @@ def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_dista
 	# if len(result) != 0:
 	# 	_cluster_.append(result[0])
 	# return _cluster_
-
+# @jit
 def acquire_locus(down, up, keytype, chr):
 	re = list()
 	if chr not in candidate[keytype]:
@@ -384,7 +391,7 @@ def acquire_locus(down, up, keytype, chr):
 				if ele >= down and ele <= up:
 					re.append(ele)
 	return re
-
+# @jit
 def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 	start = list()
 	end = list()
@@ -423,7 +430,7 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 				semi_result[chr] = list()
 			# semi_result[chr].append([breakpoint, size, len(pos_list+re_l+re_r), svtype])
 			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, size, len(pos_list+re_l+re_r), svtype))
-
+# @jit
 def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max_distance):
 	temp = list()
 	temp.append(candidate[svtype][chr][0])
@@ -439,7 +446,7 @@ def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
 		# print temp
-
+# @jit
 def mkindex(data, mask):
 	data_struc = dict()
 	for i in data:
@@ -459,7 +466,7 @@ def mkindex(data, mask):
 			else:
 				data_struc[hash_1][hash_2].append(i[mask])
 	return data_struc
-
+# @jit
 def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 	if len(pos_list) >= evidence_read:
 		start = list()
@@ -486,7 +493,7 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 				semi_result[chr] = list()
 			# semi_result[chr].append([breakpoint_1, max_chr, breakpoint_2, svtype])
 			semi_result[chr].append("%d\t%s\t%s\t%s\n"%(breakpoint_1, max_chr, breakpoint_2, svtype))
-
+# @jit
 def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distance):
 	temp = list()
 	temp.append(candidate[svtype][chr][0])
@@ -500,7 +507,7 @@ def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 			temp.append(pos)
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
-
+# @jit
 def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path):
 	starttime = time.time()
 	for chr in candidate["DEL"]:
