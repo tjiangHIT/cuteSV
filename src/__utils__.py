@@ -332,11 +332,11 @@ def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 
 	# return result
 # @jit
-def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_distance):
+def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_distance, MainCandidate):
 	# _cluster_ = list()
 	temp = list()
-	temp.append(candidate[svtype][chr][0])
-	for pos in candidate[svtype][chr][1:]:
+	temp.append(MainCandidate[svtype][chr][0])
+	for pos in MainCandidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
 			if temp[-1][0] - temp[0][0] <= max_distance:
 				merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
@@ -352,47 +352,47 @@ def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_dista
 	# 	_cluster_.append(result[0])
 	# return _cluster_
 # @jit
-def acquire_locus(down, up, keytype, chr):
+def acquire_locus(down, up, keytype, chr, MainCandidate):
 	re = list()
-	if chr not in candidate[keytype]:
+	if chr not in MainCandidate[keytype]:
 		return re
 	if int(up/10000) == int(down/10000):
 		key_1 = int(down/10000)
-		if key_1 not in candidate[keytype][chr]:
+		if key_1 not in MainCandidate[keytype][chr]:
 			return re
 		for i in xrange(int((up%10000)/50)-int((down%10000)/50)+1):
 			# exist a bug ***********************************
 			key_2 = int((down%10000)/50)+i
-			if key_2 not in candidate[keytype][chr][key_1]:
+			if key_2 not in MainCandidate[keytype][chr][key_1]:
 				continue
-			for ele in candidate[keytype][chr][key_1][key_2]:
+			for ele in MainCandidate[keytype][chr][key_1][key_2]:
 				if ele >= down and ele <= up:
 					re.append(ele)
 	else:
 		key_1 = int(down/10000)
-		if key_1 in candidate[keytype][chr]:
+		if key_1 in MainCandidate[keytype][chr]:
 			for i in xrange(200-int((down%10000)/50)):
 				# exist a bug ***********************************
 				key_2 = int((down%10000)/50)+i
-				if key_2 not in candidate[keytype][chr][key_1]:
+				if key_2 not in MainCandidate[keytype][chr][key_1]:
 					continue
-				for ele in candidate[keytype][chr][key_1][key_2]:
+				for ele in MainCandidate[keytype][chr][key_1][key_2]:
 					if ele >= down and ele <= up:
 						re.append(ele)
 		key_1 += 1
-		if key_1 not in candidate[keytype][chr]:
+		if key_1 not in MainCandidate[keytype][chr]:
 			return re
 		for i in xrange(int((up%10000)/50)+1):
 			# exist a bug ***********************************
 			key_2 = i
-			if key_2 not in candidate[keytype][chr][key_1]:
+			if key_2 not in MainCandidate[keytype][chr][key_1]:
 				continue
-			for ele in candidate[keytype][chr][key_1][key_2]:
+			for ele in MainCandidate[keytype][chr][key_1][key_2]:
 				if ele >= down and ele <= up:
 					re.append(ele)
 	return re
 # @jit
-def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
+def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate):
 	start = list()
 	end = list()
 	diff = list()
@@ -403,8 +403,8 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 	# for ele in pos_list[low_B:up_B+1]:
 		end.append(ele[1])
 
-	re_l = acquire_locus(min(start), max(start), ll, chr)
-	re_r = acquire_locus(min(end), max(end), lr, chr)
+	re_l = acquire_locus(min(start), max(start), ll, chr, MainCandidate)
+	re_r = acquire_locus(min(end), max(end), lr, chr, MainCandidate)
 
 	breakpoint = sum(start+re_l)/len(start+re_l)
 	# size = sum(end+re_r)/len(end+re_r) - breakpoint
@@ -431,20 +431,20 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype):
 			# semi_result[chr].append([breakpoint, size, len(pos_list+re_l+re_r), svtype])
 			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, size, len(pos_list+re_l+re_r), svtype))
 # @jit
-def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max_distance):
+def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max_distance, MainCandidate):
 	temp = list()
-	temp.append(candidate[svtype][chr][0])
-	for pos in candidate[svtype][chr][1:]:
+	temp.append(MainCandidate[svtype][chr][0])
+	for pos in MainCandidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
 			if temp[-1][0] - temp[0][0] <= max_distance:
-				merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
+				merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate)
 				# print temp
 			temp = list()
 			temp.append(pos)
 		else:
 			temp.append(pos)
 	if temp[-1][0] - temp[0][0] <= max_distance:
-		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype)
+		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate)
 		# print temp
 # @jit
 def mkindex(data, mask):
@@ -494,10 +494,10 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 			# semi_result[chr].append([breakpoint_1, max_chr, breakpoint_2, svtype])
 			semi_result[chr].append("%d\t%s\t%s\t%s\n"%(breakpoint_1, max_chr, breakpoint_2, svtype))
 # @jit
-def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distance):
+def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distance, MainCandidate):
 	temp = list()
-	temp.append(candidate[svtype][chr][0])
-	for pos in candidate[svtype][chr][1:]:
+	temp.append(MainCandidate[svtype][chr][0])
+	for pos in MainCandidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
 			if temp[-1][0] - temp[0][0] <= max_distance:
 				merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
@@ -508,62 +508,62 @@ def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
 # @jit
-def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path):
-	starttime = time.time()
-	for chr in candidate["DEL"]:
-		candidate["DEL"][chr] = sorted(candidate["DEL"][chr], key = lambda x:x[0])
-		# for ele in candidate["DEL"][chr]:
+def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path, MainCandidate):
+	# starttime = time.time()
+	for chr in MainCandidate["DEL"]:
+		MainCandidate["DEL"][chr] = sorted(MainCandidate["DEL"][chr], key = lambda x:x[0])
+		# for ele in MainCandidate["DEL"][chr]:
 		# 	print chr, ele
-		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "DEL", max_distance)
-		candidate["DEL"][chr] = []
+		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "DEL", max_distance, MainCandidate)
+		MainCandidate["DEL"][chr] = []
 		gc.collect()
-	print("[INFO]: Parse deletions used %0.2f seconds."%(time.time() - starttime))
+	# print("[INFO]: Parse deletions used %0.2f seconds."%(time.time() - starttime))
 
-	starttime = time.time()
-	for chr in candidate["INS"]:
-		candidate["INS"][chr] = sorted(candidate["INS"][chr], key = lambda x:x[0])
-		# for i in candidate["INS"][chr]:
+	# starttime = time.time()
+	for chr in MainCandidate["INS"]:
+		MainCandidate["INS"][chr] = sorted(MainCandidate["INS"][chr], key = lambda x:x[0])
+		# for i in MainCandidate["INS"][chr]:
 		# 	print chr, i
-		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "INS", max_distance)
-		candidate["INS"][chr] = []
+		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "INS", max_distance, MainCandidate)
+		MainCandidate["INS"][chr] = []
 		gc.collect()
-	print("[INFO]: Parse insertions used %0.2f seconds."%(time.time() - starttime))
+	# print("[INFO]: Parse insertions used %0.2f seconds."%(time.time() - starttime))
 
-	starttime = time.time()
-	for chr in candidate["DUP"]:
-		candidate["DUP"][chr] = sorted(candidate["DUP"][chr], key = lambda x:x[:])
-		# for i in candidate["DUP"][chr]:
+	# starttime = time.time()
+	for chr in MainCandidate["DUP"]:
+		MainCandidate["DUP"][chr] = sorted(MainCandidate["DUP"][chr], key = lambda x:x[:])
+		# for i in MainCandidate["DUP"][chr]:
 		# 	print chr, i
-		# for i in candidate["l_DUP"][chr]:
+		# for i in MainCandidate["l_DUP"][chr]:
 		# 	print chr, i
-		# for i in candidate["DUP_r"][chr]:
+		# for i in MainCandidate["DUP_r"][chr]:
 		# 	print chr, i
-		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_DUP", "DUP_r", "DUP", max_distance)
-		candidate["DUP"][chr] = []
-		candidate["l_DUP"][chr] = []
-		candidate["DUP_r"][chr] = []
+		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_DUP", "DUP_r", "DUP", max_distance, MainCandidate)
+		MainCandidate["DUP"][chr] = []
+		MainCandidate["l_DUP"][chr] = []
+		MainCandidate["DUP_r"][chr] = []
 		gc.collect()
-	print("[INFO]: Parse duplications used %0.2f seconds."%(time.time() - starttime))
+	# print("[INFO]: Parse duplications used %0.2f seconds."%(time.time() - starttime))
 	
-	starttime = time.time()
-	for chr in candidate["INV"]:
-		candidate["INV"][chr] = sorted(candidate["INV"][chr], key = lambda x:x[:])
-		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_INV", "INV_r", "INV", max_distance)
-		candidate["INV"][chr] = []
-		candidate["l_INV"][chr] = []
-		candidate["INV_r"][chr] = []
+	# starttime = time.time()
+	for chr in MainCandidate["INV"]:
+		MainCandidate["INV"][chr] = sorted(MainCandidate["INV"][chr], key = lambda x:x[:])
+		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_INV", "INV_r", "INV", max_distance, MainCandidate)
+		MainCandidate["INV"][chr] = []
+		MainCandidate["l_INV"][chr] = []
+		MainCandidate["INV_r"][chr] = []
 		gc.collect()
-	print("[INFO]: Parse inversions used %0.2f seconds."%(time.time() - starttime))
+	# print("[INFO]: Parse inversions used %0.2f seconds."%(time.time() - starttime))
 
-	starttime = time.time()
-	for chr in candidate["TRA"]:
-		candidate["TRA"][chr] = sorted(candidate["TRA"][chr], key = lambda x:x[:])
-		# for i in candidate["TRA"][chr]:
+	# starttime = time.time()
+	for chr in MainCandidate["TRA"]:
+		MainCandidate["TRA"][chr] = sorted(MainCandidate["TRA"][chr], key = lambda x:x[:])
+		# for i in MainCandidate["TRA"][chr]:
 		# 	print chr, i
-		intergrate_tra(chr, evidence_read, SV_size, low_bandary, "TRA", max_distance)
-		candidate["TRA"][chr] = []
+		intergrate_tra(chr, evidence_read, SV_size, low_bandary, "TRA", max_distance, MainCandidate)
+		MainCandidate["TRA"][chr] = []
 		gc.collect()
-	print("[INFO]: Parse translocations used %0.2f seconds."%(time.time() - starttime))
+	# print("[INFO]: Parse translocations used %0.2f seconds."%(time.time() - starttime))
 
 	file = open(out_path, 'w')
 	for chr in semi_result:
