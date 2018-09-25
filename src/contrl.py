@@ -48,7 +48,7 @@ def main_ctrl(args):
 	for i in samfile.get_index_statistics():
 		process_list.append([i[0], i[3]])
 		# #chr #read
-	process_list = sorted(process_list, key = lambda x:x-[1])
+	process_list = sorted(process_list, key = lambda x:-x[1])
 	analysis_pools = Pool(processes=int(args.threads))
 
 	result = list()

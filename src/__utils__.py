@@ -138,24 +138,26 @@ def store_signal(pos_list, svtype):
 
 # @jit
 def analysis_split_read(split_read, SV_size, RLength):
-	# +indel++indel++indel++indel++indel++indel+
-	SP_list = list()
-	for read in split_read:
-		if isinstance(read[3], str):
-			sp_list = search_indel_str(read[3], read[1], SV_size, read[0], RLength)
-		else:
-			sp_list = search_indel_list(read[3], read[1], SV_size, read[0], RLength)
-		# store_signal(Del_list, "DEL")
-		# store_signal(Ins_list, "INS")
+	# # +indel++indel++indel++indel++indel++indel+
+	# SP_list = list()
+	# for read in split_read:
+	# 	if isinstance(read[3], str):
+	# 		sp_list = search_indel_str(read[3], read[1], SV_size, read[0], RLength)
+	# 	else:
+	# 		sp_list = search_indel_list(read[3], read[1], SV_size, read[0], RLength)
+	# 	# store_signal(Del_list, "DEL")
+	# 	# store_signal(Ins_list, "INS")
+	# 	sp_list += read[2]
+	# 	SP_list.append(sp_list)
+	# # split alignment
+	# if len(SP_list) == 1:
+	# 	return 0
+	# else:
+	# 	SP_list = sorted(SP_list, key = lambda x:x[0])
+	# # for i in SP_list:
+	# #  	print i
 
-		sp_list += read[2]
-		SP_list.append(sp_list)
-
-	# split alignment
-	if len(SP_list) == 1:
-		return 0
-	else:
-		SP_list = sorted(SP_list, key = lambda x:x[0])
+	SP_list = sorted(split_read, key = lambda x:x[0])
 	# for i in SP_list:
 	#  	print i
 
@@ -244,6 +246,25 @@ def analysis_split_read(split_read, SV_size, RLength):
 				if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
 					store_info([[call_inv[0][4], call_inv[0][2]]], "l_INV")
 					# pass
+
+def acquire_clip_pos(deal_cigar):
+	seq = list(cigar.Cigar(deal_cigar).items())
+	if seq[0][1] == 'S':
+		first_pos = seq[0][0]
+	else:
+		first_pos = 0
+	if seq[-1][1] == 'S':
+		last_pos = seq[-1][0]
+	else:
+		last_pos = 0
+
+	bias = 0
+	for i in seq:
+		if i[1] == 'M' or i[1] == 'D':
+			bias += i[0]
+
+	return [first_pos, last_pos, bias]
+
 # @jit
 def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_size):
 	# parse indel cost much time
@@ -252,16 +273,54 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_si
 	if process_signal == 0:
 		# unmapped reads
 		# return INS_ME_pos
-		pass
+		# pass
+		return 0
+
+	if read.query_length < min_seq_size:
+		return 0
+
+	if read.mapq >= MQ_threshold:
+		shift_ins = 0
+		shift_del = 0
+		for element in read.cigar:
+			if element[0] == 0 or element[0] == 2:
+				shift_ins += element[1]
+			if element[0] == 1 and element[1] > SV_size:
+				shift_ins += 1
+				store_signal([[Chr_name, read.reference_start + shift_ins, element[1]]], "INS")
+			
+			if element[0] == 0:
+				shift_del += element[1]
+			if element[0] == 2 and element[1] < SV_size:
+				shift_del += element[1]
+			if element[0] == 2 and element[1] >= SV_size:
+				store_signal([[Chr_name, read.reference_start + shift_del, element[1]]], "DEL")
+				shift_del += element[1]
+		softclip_left = 0
+		softclip_right = 0
+		if read.cigar[0][0] == 4:
+			softclip_left = read.cigar[0][1]
+		if read.cigar[-1][0] == 4:
+			softclip_right = read.cigar[-1][1]
+
 	# split alignment phasing
 	if process_signal == 1 or process_signal == 2:
 		split_read = list()
-		if read.mapq > MQ_threshold:
-			if read.is_reverse:
-				strand = '-'
-			else:
-				strand = '+'
-			split_read.append([Chr_name, read.reference_start, strand, read.cigar])
+		if read.is_reverse:
+			strand = '-'
+		else:
+			strand = '+'
+		try:
+			split_read.append([softclip_left, read.query_length-softclip_right, read.reference_start, read.reference_end, Chr_name, strand])
+		except:
+			pass
+		# clip_list = [softclip_left, RLength - softclip_right, pos_start + 1, pos_start + shift_ins + 1, Chr_name]
+		# if read.mapq > MQ_threshold:
+		# 	if read.is_reverse:
+		# 		strand = '-'
+		# 	else:
+		# 		strand = '+'
+		# 	split_read.append([Chr_name, read.reference_start, strand, read.cigar])
 		Tags = read.get_tags()
 		for tag in Tags:
 			if tag[0] == 'SA':
@@ -270,11 +329,13 @@ def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_si
 					parse_mapping = mapping.split(',')
 					if int(parse_mapping[4]) < MQ_threshold:
 						continue
-					split_read.append([parse_mapping[0], int(parse_mapping[1]), parse_mapping[2], parse_mapping[3]])
+					# split_read.append([parse_mapping[0], int(parse_mapping[1]), parse_mapping[2], parse_mapping[3]])
+					local_info = acquire_clip_pos(parse_mapping[3])
+					split_read.append([local_info[0], read.query_length-local_info[1], parse_mapping[1], parse_mapping[1]+local_info[2], parse_mapping[0], parse_mapping[2]])
 				break
 
 		# print read.query_name
-		if len(split_read) <= max_num_splits and read.query_length >= min_seq_size:
+		if len(split_read) <= max_num_splits and len(split_read) > 1:
 			analysis_split_read(split_read, SV_size, read.query_length)
 		gc.collect()
 # @jit
