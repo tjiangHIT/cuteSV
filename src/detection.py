@@ -1,11 +1,33 @@
+#!/usr/bin/env python
+
+''' 
+ * All rights Reserved, Designed By HIT-Bioinformatics   
+ * @Title:  extract.py
+ * @Package: argparse, pysam, sys, Bio, os, logging
+ * @Description: Parse the ME signals from alignments
+ * @author: tjiang
+ * @date: Apr 24 2018
+ * @version V1.0     
+'''
+
+import pysam
 import cigar
-import gc, sys
-import time
-# from numba import jit
-# INS_flag = {1:'I'}
-# DEL_flag = {2:'D'}
+from multiprocessing import Pool
+import os
+import argparse
+import logging
+import sys, time
+import gc
+
+dic_starnd = {1:'+', 2: '-'}
+Normal_foward = 1 >> 1
+Abnormal = 1 << 2
+Reverse_complement = 1 << 4
+Supplementary_map = 1 << 11
+signal = {Abnormal: 0, Normal_foward: 1, Reverse_complement: 2, Supplementary_map:3, Reverse_complement | Supplementary_map:4}
 
 candidate = dict()
+semi_result = dict()
 candidate["DEL"] = dict()
 candidate["INS"] = dict()
 candidate["INV"] = dict()
@@ -16,99 +38,12 @@ candidate["DUP_r"] = dict()
 candidate["l_INV"] = dict()
 candidate["INV_r"] = dict()
 
-transfer = {"Indel_Ins":"INS", "INS":"INS", "TRA":"TRA", "DUP":"DUP", "l_DUP":"l_DUP", "DUP_r":"DUP_r", "INV":"INV", "Indel_Del":"DEL", "l_INV":"l_INV", "INV_r":"INV_r"}
-
-semi_result = dict()
-
-# @jit
 def detect_flag(Flag):
-	# Signal
-	Normal_foward = 1 >> 1
-	Abnormal = 1 << 2
-	Reverse_complement = 1 << 4
-	Supplementary_map = 1 << 11
-
-	signal = {Abnormal: 0, Normal_foward: 1, Reverse_complement: 2, Supplementary_map:3, Reverse_complement | Supplementary_map:4}
 	if Flag in signal:
 		return signal[Flag]
 	else:
 		return 0
 
-# @jit
-def search_indel_str(deal_cigar, pos_start, SV_size, Chr_name, RLength):
-	seq = list(cigar.Cigar(deal_cigar).items())
-	# Ins_list = list()
-	# Del_list = list()
-	shift_ins = 0
-	shift_del = 0
-	for element in seq:
-		if element[1] == 'M' or element[1] == 'D':
-			shift_ins += element[0]
-		if element[1] == 'I' and element[0] > SV_size:
-			shift_ins += 1
-			# Ins_list.append([Chr_name, pos_start + shift_ins, element[0]])
-			store_signal([[Chr_name, pos_start + shift_ins, element[0]]], "INS")
-
-		if element[1] == 'M':
-			shift_del += element[0]
-		if element[1] == 'D' and element[0] < SV_size:
-			shift_del += element[0]
-		if element[1] == 'D' and element[0] >= SV_size:
-			# Del_list.append([Chr_name, pos_start + shift_del, element[0]])
-			store_signal([[Chr_name, pos_start + shift_del, element[0]]], "DEL")
-			shift_del += element[0]
-
-	if seq[0][1] == 'S':
-		softclip_left = seq[0][0]
-	else:
-		softclip_left = 0
-	if seq[-1][1] == 'S':
-		softclip_right = seq[-1][0]
-	else:
-		softclip_right = 0
-	clip_list = [softclip_left, RLength - softclip_right, pos_start, pos_start + shift_ins, Chr_name]
-
-	return clip_list
-
-# @jit
-def search_indel_list(deal_cigar, pos_start, SV_size, Chr_name, RLength):
-	# Ins_list = list()
-	# Del_list = list()
-	shift_ins = 0
-	shift_del = 0
-	# _shift_read_ = 0
-	for element in deal_cigar:
-		if element[0] == 0 or element[0] == 2:
-			shift_ins += element[1]
-		# if element[0] != 2:
-		# 	_shift_read_ += element[1]
-		if element[0] == 1 and element[1] > SV_size:
-			shift_ins += 1
-			# Ins_list.append([Chr_name, pos_start + shift_ins, element[1]])
-			store_signal([[Chr_name, pos_start + shift_ins, element[1]]], "INS")
-			
-		if element[0] == 0:
-			shift_del += element[1]
-		if element[0] == 2 and element[1] < SV_size:
-			shift_del += element[1]
-		if element[0] == 2 and element[1] >= SV_size:
-			# Del_list.append([Chr_name, pos_start + shift_del, element[1]])
-			store_signal([[Chr_name, pos_start + shift_del, element[1]]], "DEL")
-			shift_del += element[1]
-
-	if deal_cigar[0][0] == 4:
-		softclip_left = deal_cigar[0][1]
-	else:
-		softclip_left = 0
-	if deal_cigar[-1][0] == 4:
-		softclip_right = deal_cigar[-1][1]
-	else:
-		softclip_right = 0
-
-	clip_list = [softclip_left, RLength - softclip_right, pos_start + 1, pos_start + shift_ins + 1, Chr_name]
-	return clip_list
-
-# @jit
 def store_info(pos_list, svtype):
 	for ele in pos_list:
 		if ele[0] not in candidate[svtype]:
@@ -128,62 +63,11 @@ def store_info(pos_list, svtype):
 
 			candidate[svtype][ele[0]][hash_1][hash_2].append(ele[1:])
 
-# @jit
-def store_signal(pos_list, svtype):
-	for ele in pos_list:
-		if ele[0] not in candidate[svtype]:
-			candidate[svtype][ele[0]] = list()
-
-		candidate[svtype][ele[0]].append(ele[1:])
-
-# @jit
 def analysis_split_read(split_read, SV_size, RLength):
-	# # +indel++indel++indel++indel++indel++indel+
-	# SP_list = list()
-	# for read in split_read:
-	# 	if isinstance(read[3], str):
-	# 		sp_list = search_indel_str(read[3], read[1], SV_size, read[0], RLength)
-	# 	else:
-	# 		sp_list = search_indel_list(read[3], read[1], SV_size, read[0], RLength)
-	# 	# store_signal(Del_list, "DEL")
-	# 	# store_signal(Ins_list, "INS")
-	# 	sp_list += read[2]
-	# 	SP_list.append(sp_list)
-	# # split alignment
-	# if len(SP_list) == 1:
-	# 	return 0
-	# else:
-	# 	SP_list = sorted(SP_list, key = lambda x:x[0])
-	# # for i in SP_list:
-	# #  	print i
-
 	SP_list = sorted(split_read, key = lambda x:x[0])
 	# for i in SP_list:
 	#  	print i
-
 	DUP_flag = [0]*len(SP_list)
-	# INVDUP_flag = [0]*len(SP_list)
-	# INS_flag = [0]*len(SP_list)
-
-	# for a in SP_list:
-	# 	for b in SP_list:
-	# 		if a[4] == b[4]:
-	# 			# dup & INV & TRA & INS & DEL
-	# 			if b[3] - a[2] >= SV_size and SP_list.index(a) > SP_list.index(b):
-	# 				DUP_flag[SP_list.index(a)] = 1
-	# 				DUP_flag[SP_list.index(b)] = 1
-	# 			if a[0] + b[3] - a[2] - b[1] >= SV_size and b[3] <= a[2] and SP_list.index(a) == SP_list.index(b) + 1:
-	# 				store_signal([[a[4], (a[2]+b[3])/2, a[0]+b[3]-a[2]-b[1]]], "INS")
-	# 			if a[2] - a[0] + b[1] - b[3] >= SV_size and b[3] <= a[2] and SP_list.index(a) == SP_list.index(b) + 1:
-	# 				store_signal([[a[4], b[3], a[2]-a[0]+b[1]-b[3]]], "DEL")
-	# 		else:
-	# 			# tra
-	# 			if SP_list.index(a) > SP_list.index(b):
-	# 				if b[4] < a[4]:
-	# 					store_signal([[b[4], b[3], a[4], a[2]]], "TRA")
-	# 				else:
-	# 					store_signal([[a[4], a[2], b[4], b[3]]], "TRA")
-
 	for a in xrange(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
 		ele_2 = SP_list[a+1]
@@ -198,41 +82,44 @@ def analysis_split_read(split_read, SV_size, RLength):
 				if a+1 == len(SP_list)-1:
 					store_info([[ele_2[4], ele_2[2]]], "l_DUP")
 				else:
-					store_signal([[ele_2[4], ele_2[2], ele_2[3]]], "DUP")
+					# store_signal([[ele_2[4], ele_2[2], ele_2[3]]], "DUP")
+					if ele_2[4] not in candidate["DUP"]:
+						candidate["DUP"][ele_2[4]] = list()
+					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_2[3]])
 
 			if ele_1[3] <= ele_2[2]:
 				if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
-					store_signal([[ele_2[4], (ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]]], "INS")
+					# store_signal([[ele_2[4], (ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]]], "INS")
+					if ele_2[4] not in candidate["INS"]:
+						candidate["INS"][ele_2[4]] = list()
+					candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]])
 				if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
-					store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
+					# store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
+					if ele_2[4] not in candidate["DEL"]:
+						candidate["DEL"][ele_2[4]] = list()
+					candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]])
 		else:
 			# tra
 			if ele_1[4] < ele_2[4]:
-				store_signal([[ele_1[4], ele_1[3], ele_2[4], ele_2[2]]], "TRA")
+				# store_signal([[ele_1[4], ele_1[3], ele_2[4], ele_2[2]]], "TRA")
+				if ele_1[4] not in candidate["TRA"]:
+					candidate["TRA"][ele_1[4]] = list()
+				candidate["TRA"][ele_1[4]].append([ele_1[3], ele_2[4], ele_2[2]])
 			else:
-				store_signal([[ele_2[4], ele_2[2], ele_1[4], ele_1[3]]], "TRA")
+				# store_signal([[ele_2[4], ele_2[2], ele_1[4], ele_1[3]]], "TRA")
+				if ele_2[4] not in candidate["TRA"]:
+					candidate["TRA"][ele_2[4]] = list()
+				candidate["TRA"][ele_2[4]].append([ele_2[2], ele_1[4], ele_1[3]])
 
-
-
-	# for k in xrange(len(SP_list)):
-	# 	if DUP_flag[k] == 1:
-	# 		if k == 0:
-	# 			store_info([[SP_list[k][4], SP_list[k][3]]], "DUP_r")
-	# 		elif k == len(SP_list)-1:
-	# 			store_info([[SP_list[k][4], SP_list[k][2]]], "l_DUP")
-	# 		else:
-	# 			store_signal([[SP_list[k][4], SP_list[k][2], SP_list[k][3]]], "DUP")
-
-	# +TRA++TRA++TRA++TRA++TRA++TRA++TRA++TRA+
-
-	# +INV++INV++INV++INV++INV++INV++INV++INV+
 	call_inv = sorted(SP_list, key = lambda x:x[2])
 	if len(call_inv) >= 3:
 		for a in call_inv[:-2]:
 			if a[5] != call_inv[call_inv.index(a)+1][5] and a[5] == call_inv[call_inv.index(a)+2][5] and a[4] == call_inv[call_inv.index(a)+1][4] and a[4] == call_inv[call_inv.index(a)+2][4]:
 				if call_inv[call_inv.index(a)+1][3] - call_inv[call_inv.index(a)+1][2] >= SV_size:
-					store_signal([[a[4], a[3] , call_inv[call_inv.index(a)+1][3]]], "INV")
-
+					# store_signal([[a[4], a[3] , call_inv[call_inv.index(a)+1][3]]], "INV")
+					if a[4] not in candidate["INV"]:
+						candidate["INV"][a[4]] = list()
+					candidate["INV"][a[4]].append([a[3] , call_inv[call_inv.index(a)+1][3]])
 	
 	if len(call_inv) == 2:
 		if call_inv[0][5] != call_inv[1][5] and call_inv[0][4] == call_inv[1][4]:
@@ -262,84 +149,78 @@ def acquire_clip_pos(deal_cigar):
 	for i in seq:
 		if i[1] == 'M' or i[1] == 'D':
 			bias += i[0]
-
 	return [first_pos, last_pos, bias]
 
-# @jit
-def parse_read(read, Chr_name, SV_size, MQ_threshold, max_num_splits, min_seq_size):
-	# parse indel cost much time
-	# pls recode it
-	process_signal = detect_flag(read.flag)
-	if process_signal == 0:
-		# unmapped reads
-		# return INS_ME_pos
-		# pass
-		return 0
+def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_bandary, min_mapq, max_split_parts):
+	split_read = list()
+	if len(primary_info) > 0:
+		split_read.append(primary_info)
+	for i in Supplementary_info:
+		seq = i.split(',')
+		local_chr = seq[0]
+		local_start = int(seq[1])
+		local_cigar = seq[3]
+		local_strand = seq[2]
+		local_mapq = int(seq[4])
+		if local_mapq >= min_mapq:
+			local_set = acquire_clip_pos(local_cigar)
+			split_read.append([local_set[0], total_L-local_set[1], local_start, local_start+local_set[2], local_chr, local_strand])
+	if len(split_read) <= max_split_parts:
+		analysis_split_read(split_read, low_bandary, total_L)
 
+# def parse_read(read, Chr_name, low_bandary):
+def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_size):
 	if read.query_length < min_seq_size:
 		return 0
 
-	if read.mapq >= MQ_threshold:
-		shift_ins = 0
+	process_signal = detect_flag(read.flag)
+	if read.mapq >= min_mapq:
+		pos_start = read.reference_start
+		pos_end = read.reference_end
 		shift_del = 0
-		for element in read.cigar:
-			if element[0] == 0 or element[0] == 2:
-				shift_ins += element[1]
-			if element[0] == 1 and element[1] >= SV_size:
-				shift_ins += 1
-				store_signal([[Chr_name, read.reference_start + shift_ins, element[1]]], "INS")
-			
-			if element[0] == 0:
-				shift_del += element[1]
-			if element[0] == 2 and element[1] < SV_size:
-				shift_del += element[1]
-			if element[0] == 2 and element[1] >= SV_size:
-				store_signal([[Chr_name, read.reference_start + shift_del, element[1]]], "DEL")
-				shift_del += element[1]
+		shift_ins = 0
 		softclip_left = 0
 		softclip_right = 0
+		for element in read.cigar:
+			if element[0] == 0:
+				shift_del += element[1]
+			if element[0] == 2 and element[1] < low_bandary:
+				shift_del += element[1]
+			if element[0] == 2 and element[1] >= low_bandary:
+				# DEL_ME_pos.append([pos_start+shift, element[1]])
+				# store_signal([Chr_name, pos_start+shift, element[1]], "DEL")
+				if Chr_name not in candidate["DEL"]:
+					candidate["DEL"][Chr_name] = list()
+				candidate["DEL"][Chr_name].append([pos_start+shift_del, element[1]])
+				shift_del += element[1]
+
+			if element[0] == 0 or element[0] == 2:
+				shift_ins += element[1]
+			if element[0] == 1 and element[1] >= low_bandary:
+				shift_ins += 1
+				# MEI_contig = read.query_sequence[_shift_read_ - element[1]:_shift_read_]
+				if Chr_name not in candidate["INS"]:
+					candidate["INS"][Chr_name] = list()
+				candidate["INS"][Chr_name].append([pos_start+shift_ins, element[1]])
+
 		if read.cigar[0][0] == 4:
 			softclip_left = read.cigar[0][1]
 		if read.cigar[-1][0] == 4:
 			softclip_right = read.cigar[-1][1]
 
-	# split alignment phasing
+
 	if process_signal == 1 or process_signal == 2:
-		split_read = list()
-		if read.is_reverse:
-			strand = '-'
-		else:
-			strand = '+'
-		try:
-			split_read.append([softclip_left, read.query_length-softclip_right, read.reference_start, read.reference_end, Chr_name, strand])
-		except:
-			pass
-		# clip_list = [softclip_left, RLength - softclip_right, pos_start + 1, pos_start + shift_ins + 1, Chr_name]
-		# if read.mapq > MQ_threshold:
-		# 	if read.is_reverse:
-		# 		strand = '-'
-		# 	else:
-		# 		strand = '+'
-		# 	split_read.append([Chr_name, read.reference_start, strand, read.cigar])
 		Tags = read.get_tags()
-		for tag in Tags:
-			if tag[0] == 'SA':
-				split_alignment = tag[1].split(';')[:-1]
-				for mapping in split_alignment:
-					parse_mapping = mapping.split(',')
-					if int(parse_mapping[4]) < MQ_threshold:
-						continue
-					# split_read.append([parse_mapping[0], int(parse_mapping[1]), parse_mapping[2], parse_mapping[3]])
-					local_info = acquire_clip_pos(parse_mapping[3])
-					split_read.append([local_info[0], read.query_length-local_info[1], int(parse_mapping[1]), int(parse_mapping[1])+local_info[2], parse_mapping[0], parse_mapping[2]])
-				break
+		if read.mapq >= min_mapq:
+			primary_info = [softclip_left, read.query_length-softclip_right, pos_start, pos_end, Chr_name, dic_starnd[process_signal]]
+		else:
+			primary_info = []
 
-		# print read.query_name
-		if len(split_read) <= max_num_splits and len(split_read) > 1:
-			analysis_split_read(split_read, SV_size, read.query_length)
-		gc.collect()
+		for i in Tags:
+			if i[0] == 'SA':
+				Supplementary_info = i[1].split(';')[:-1]
+				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, low_bandary, min_mapq, max_split_parts)
 
-# @jit
 def acquire_length(len_list, threshold):
 	average_len = 0
 	flag = 0
@@ -410,10 +291,7 @@ def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_dista
 			temp.append(pos)
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
-	# if len(result) != 0:
-	# 	_cluster_.append(result[0])
-	# return _cluster_
-# @jit
+
 def acquire_locus(down, up, keytype, chr, MainCandidate):
 	re = list()
 	if chr not in MainCandidate[keytype]:
@@ -507,28 +385,7 @@ def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max
 			temp.append(pos)
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate)
-		# print temp
-# @jit
-def mkindex(data, mask):
-	data_struc = dict()
-	for i in data:
-		# if i[mask]
-		hash_1 = int(i[mask] /10000)
-		mod = i[mask] % 10000
-		hash_2 = int(mod / 50)
-		# element = [i[0], seq, flag]
-		if hash_1 not in data_struc:
-			data_struc[hash_1] = dict()
-			data_struc[hash_1][hash_2] = list()
-			data_struc[hash_1][hash_2].append(i[mask])
-		else:
-			if hash_2 not in data_struc[hash_1]:
-				data_struc[hash_1][hash_2] = list()
-				data_struc[hash_1][hash_2].append(i[mask])
-			else:
-				data_struc[hash_1][hash_2].append(i[mask])
-	return data_struc
-# @jit
+
 def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 	if len(pos_list) >= evidence_read:
 		start = list()
@@ -569,7 +426,109 @@ def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 			temp.append(pos)
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary)
-# @jit
+
+# def load_sam(sam_path):
+# 	starttime = time.time()
+# 	samfile = pysam.AlignmentFile(sam_path)
+# 	contig_num = len(samfile.get_index_statistics())
+# 	print("The total number of chromsomes: %d"%(contig_num))
+# 	for _num_ in xrange(contig_num):
+# 		Chr_name = samfile.get_reference_name(_num_)
+# 		print("Resolving the chromsome %s."%(Chr_name))
+# 		for read in samfile.fetch(Chr_name):
+# 			parse_read(read, Chr_name, 50)
+# 	samfile.close()
+
+# 	for chr in candidate["INS"]:
+# 		candidate["INS"][chr] = sorted(candidate["INS"][chr], key = lambda x:x[0])
+# 		intergrate_indel(chr, 5, 50, 10, "INS", 50)
+# 	for chr in candidate["DEL"]:
+# 		candidate["DEL"][chr] = sorted(candidate["DEL"][chr], key = lambda x:x[0])
+# 		intergrate_indel(chr, 5, 50, 10, "DEL", 50)
+
+# 	for chr in candidate["DUP"]:
+# 		candidate["DUP"][chr] = sorted(candidate["DUP"][chr], key = lambda x:x[0])
+# 		intergrate_dup(chr, 5, 50, 10, "l_DUP", "DUP_r", "DUP", 50)
+# 	for chr in candidate["INV"]:
+# 		candidate["INV"][chr] = sorted(candidate["INV"][chr], key = lambda x:x[0])
+# 		intergrate_dup(chr, 5, 50, 10, "l_INV", "INV_r", "INV", 50)
+
+# 	for chr in candidate["TRA"]:
+# 		candidate["TRA"][chr] = sorted(candidate["TRA"][chr], key = lambda x:x[0])
+# 		intergrate_tra(chr, 5, 50, 10, "TRA", 50)
+
+# 	for chr in result:
+# 		result[chr] = sorted(result[chr], key = lambda x:x[0])
+# 		for i in result[chr]:
+# 			print i,
+# 	print("Finished in %0.2f seconds."%(time.time() - starttime))
+
+def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_seq_size, total_reads):
+	samfile = pysam.AlignmentFile(sam_path)
+	Chr_length = samfile.get_reference_length(Chr_name)
+	logging.info("Resolving the chromsome %s."%(Chr_name))
+
+	for read in samfile.fetch(Chr_name):
+		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, min_seq_size)
+
+	logging.info("%d reads on %s."%(total_reads, Chr_name))
+	samfile.close()
+	return candidate
+
+def multi_run_wrapper(args):
+   return single_pipe(*args)
+
+def main_ctrl(args):
+	MainCandidate = dict()
+	MainCandidate["DEL"] = dict()
+	MainCandidate["INS"] = dict()
+	MainCandidate["INV"] = dict()
+	MainCandidate["DUP"] = dict()
+	MainCandidate["TRA"] = dict()
+	MainCandidate["l_DUP"] = dict()
+	MainCandidate["DUP_r"] = dict()
+	MainCandidate["l_INV"] = dict()
+	MainCandidate["INV_r"] = dict()
+	
+	samfile = pysam.AlignmentFile(args.input)
+
+	process_list = list()
+	for i in samfile.get_index_statistics():
+		process_list.append([i[0], i[3]])
+		# #chr #read
+	process_list = sorted(process_list, key = lambda x:-x[1])
+	analysis_pools = Pool(processes=int(args.threads))
+
+	result = list()
+	for i in process_list:
+		para = [(args.input, i[0], args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, i[1])]
+		result.append(analysis_pools.map_async(multi_run_wrapper, para))
+	analysis_pools.close()
+	analysis_pools.join()
+	samfile.close()
+
+	for res in result:
+		temp = res.get()[0]
+
+		for sv_type in ["DEL", "INS", "INV", "DUP", "TRA"]:
+			for chr in temp[sv_type]:
+				if chr not in MainCandidate[sv_type]:
+					MainCandidate[sv_type][chr] = list()
+				MainCandidate[sv_type][chr].extend(temp[sv_type][chr])
+		for sv_type in ["l_DUP", "DUP_r", "l_INV", "INV_r"]:
+			for chr in temp[sv_type]:
+				if chr not in MainCandidate[sv_type]:
+					MainCandidate[sv_type][chr] = dict()
+				for hash_1 in temp[sv_type][chr]:
+					if hash_1 not in MainCandidate[sv_type][chr]:
+						MainCandidate[sv_type][chr][hash_1] = dict()
+					for hash_2 in temp[sv_type][chr][hash_1]:
+						if hash_2 not in MainCandidate[sv_type][chr][hash_1]:
+							MainCandidate[sv_type][chr][hash_1][hash_2] = list()
+						MainCandidate[sv_type][chr][hash_1][hash_2].extend(temp[sv_type][chr][hash_1][hash_2])
+
+	show_temp_result(args.min_support, args.min_length, 10, args.max_distance, args.output, MainCandidate)
+
 def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path, MainCandidate):
 	# starttime = time.time()
 	for chr in MainCandidate["DEL"]:
@@ -628,6 +587,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	# print("[INFO]: Parse translocations used %0.2f seconds."%(time.time() - starttime))
 
 	file = open(out_path, 'w')
+	# for chr in sorted(semi_result.keys()):
 	for chr in semi_result:
 		semi_result[chr] = sorted(semi_result[chr], key = lambda x:x[0])
 		for i in semi_result[chr]:
@@ -635,3 +595,41 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 			file.write("%s\t%s"%(chr, i))
 	file.close()
 	# print candidate['DEL']
+
+
+def setupLogging(debug=False):
+	logLevel = logging.DEBUG if debug else logging.INFO
+	logFormat = "%(asctime)s [%(levelname)s] %(message)s"
+	logging.basicConfig( stream=sys.stderr, level=logLevel, format=logFormat )
+	logging.info("Running %s" % " ".join(sys.argv))
+
+def run(argv):
+	args = parseArgs(argv)
+	setupLogging(False)
+	# print args
+	starttime = time.time()
+	main_ctrl(args)
+	logging.info("Finished in %0.2f seconds."%(time.time() - starttime))
+
+USAGE="""\
+	Detection of all types of Structural Variants.
+"""
+
+def parseArgs(argv):
+	parser = argparse.ArgumentParser(prog="cuteSV", description=USAGE, formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument("input", metavar="[BAM]", type=str, help="Sorted .bam file form NGMLR.")
+	parser.add_argument('output', type=str, help = "the prefix of novel sequence insertion pridections")
+	parser.add_argument('-s', '--min_support', help = "Minimum number of reads that support a SV to be reported.[%(default)s]", default = 5, type = int)
+	parser.add_argument('-l', '--min_length', help = "Minimum length of SV to be reported.[%(default)s]", default = 50, type = int)
+	parser.add_argument('-p', '--max_split_parts', help = "Maximum number of split segments a read may be aligned before it is ignored.[%(default)s]", default = 7, type = int)
+	# # parser.add_argument('-hom', '--homozygous', help = "The mininum score of a genotyping reported as a homozygous.[%(default)s]", default = 0.8, type = float)
+	# # parser.add_argument('-het','--heterozygous', help = "The mininum score of a genotyping reported as a heterozygous.[%(default)s]", default = 0.3, type = float)
+	parser.add_argument('-q', '--min_mapq', help = "Minimum mapping quality value of alignment to be taken into account.[%(default)s]", default = 20, type = int)
+	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", default = 50, type = int)
+	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 2000, type = int)
+	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", default = 16, type = int)
+	args = parser.parse_args(argv)
+	return args
+
+if __name__ == '__main__':
+	run(sys.argv[1:])
