@@ -65,8 +65,8 @@ def store_info(pos_list, svtype):
 
 def analysis_split_read(split_read, SV_size, RLength):
 	SP_list = sorted(split_read, key = lambda x:x[0])
-	# for i in SP_list:
-	#  	print i
+	for i in SP_list:
+	 	print i
 	DUP_flag = [0]*len(SP_list)
 	for a in xrange(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
@@ -219,6 +219,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 		for i in Tags:
 			if i[0] == 'SA':
 				Supplementary_info = i[1].split(';')[:-1]
+				print read.query_name
 				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, low_bandary, min_mapq, max_split_parts)
 
 def acquire_length(len_list, threshold):
@@ -242,6 +243,7 @@ def acquire_length(len_list, threshold):
 
 # @jit
 def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
+	# print pos_list
 	# result = list()
 	if len(pos_list) >= evidence_read:
 		start = list()
@@ -277,10 +279,12 @@ def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 # @jit
 def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_distance, MainCandidate):
 	# _cluster_ = list()
+	# print MainCandidate[svtype][chr]
 	temp = list()
 	temp.append(MainCandidate[svtype][chr][0])
 	for pos in MainCandidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
+			# print temp[-1][0] - temp[0][0]
 			if temp[-1][0] - temp[0][0] <= max_distance:
 				merge_pos_indel(temp, chr, evidence_read, SV_size, svtype)
 			# if len(result) != 0:
@@ -361,7 +365,7 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCan
 	# print breakpoint, size, re_r, re_l, start, end
 
 	# result = list()
-	if len(pos_list+re_l+re_r) >= evidence_read:
+	if len(pos_list+re_l+re_r) >= evidence_read and len(pos_list) >= 5:
 		# need to add some semi-signals
 		# if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
 		if size >= SV_size:
@@ -463,7 +467,7 @@ def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 # 			print i,
 # 	print("Finished in %0.2f seconds."%(time.time() - starttime))
 
-def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_seq_size, total_reads):
+def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_seq_size, total_reads, temp_dir):
 	samfile = pysam.AlignmentFile(sam_path)
 	Chr_length = samfile.get_reference_length(Chr_name)
 	logging.info("Resolving the chromsome %s."%(Chr_name))
@@ -473,7 +477,36 @@ def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_s
 
 	logging.info("%d reads on %s."%(total_reads, Chr_name))
 	samfile.close()
-	return candidate
+
+	# output = "%s_%s.txt"%(temp_dir, Chr_name)
+	# print candidate
+	file = open(temp_dir, 'a')
+	for sv_type in ["DEL", "INS", "INV", "DUP", 'TRA']:
+		try:
+			for chr in candidate[sv_type]:
+				# print candidate[sv_type][chr]
+				for ele in candidate[sv_type][chr]:
+					if len(ele) == 2:
+						file.write("%s\t%s\t%d\t%d\n"%(sv_type, chr, ele[0], ele[1]))
+					elif len(ele) == 3:
+						file.write("%s\t%s\t%d\t%s\t%d\n"%(sv_type, chr, ele[0], ele[1], ele[2]))
+					#print ele
+		except:
+			pass
+
+	for sv_type in ["l_DUP", "DUP_r", "l_INV", "INV_r"]:
+		try:
+			for chr in candidate[sv_type]:
+				# print candidate[sv_type][chr]
+				for key_1 in candidate[sv_type][chr]:
+					for key_2 in candidate[sv_type][chr][key_1]:
+						for ele in candidate[sv_type][chr][key_1][key_2]:
+							for i in ele:
+								file.write("%s\t%s\t%d\t%d\t%d\n"%(sv_type, chr, key_1, key_2, i))
+		except:
+			pass
+	file.close()	
+	# return candidate
 
 def multi_run_wrapper(args):
    return single_pipe(*args)
@@ -491,6 +524,8 @@ def main_ctrl(args):
 	MainCandidate["INV_r"] = dict()
 	
 	samfile = pysam.AlignmentFile(args.input)
+	contig_num = len(samfile.get_index_statistics())
+	logging.info("The total number of chromsomes: %d"%(contig_num))
 
 	process_list = list()
 	for i in samfile.get_index_statistics():
@@ -499,35 +534,78 @@ def main_ctrl(args):
 	process_list = sorted(process_list, key = lambda x:-x[1])
 	analysis_pools = Pool(processes=int(args.threads))
 
-	result = list()
+	# result = list()
+	temporary_dir = "%s_temp.txt"%(args.temp_dir)
 	for i in process_list:
-		para = [(args.input, i[0], args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, i[1])]
-		result.append(analysis_pools.map_async(multi_run_wrapper, para))
+		para = [(args.input, i[0], args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, i[1], temporary_dir)]
+		analysis_pools.map_async(multi_run_wrapper, para)
 	analysis_pools.close()
 	analysis_pools.join()
 	samfile.close()
 
-	for res in result:
-		temp = res.get()[0]
+	# for res in result:
+		# temp = res.get()[0]
 
-		for sv_type in ["DEL", "INS", "INV", "DUP", "TRA"]:
-			for chr in temp[sv_type]:
-				if chr not in MainCandidate[sv_type]:
-					MainCandidate[sv_type][chr] = list()
-				MainCandidate[sv_type][chr].extend(temp[sv_type][chr])
-		for sv_type in ["l_DUP", "DUP_r", "l_INV", "INV_r"]:
-			for chr in temp[sv_type]:
-				if chr not in MainCandidate[sv_type]:
-					MainCandidate[sv_type][chr] = dict()
-				for hash_1 in temp[sv_type][chr]:
-					if hash_1 not in MainCandidate[sv_type][chr]:
-						MainCandidate[sv_type][chr][hash_1] = dict()
-					for hash_2 in temp[sv_type][chr][hash_1]:
-						if hash_2 not in MainCandidate[sv_type][chr][hash_1]:
-							MainCandidate[sv_type][chr][hash_1][hash_2] = list()
-						MainCandidate[sv_type][chr][hash_1][hash_2].extend(temp[sv_type][chr][hash_1][hash_2])
+	load_signals(temporary_dir, MainCandidate)
 
-	show_temp_result(args.min_support, args.min_length, 10, args.max_distance, args.output, MainCandidate)
+	# 	for sv_type in ["DEL", "INS", "INV", "DUP", "TRA"]:
+	# 		for chr in temp[sv_type]:
+	# 			if chr not in MainCandidate[sv_type]:
+	# 				MainCandidate[sv_type][chr] = list()
+	# 			MainCandidate[sv_type][chr].extend(temp[sv_type][chr])
+	# 	for sv_type in ["l_DUP", "DUP_r", "l_INV", "INV_r"]:
+	# 		for chr in temp[sv_type]:
+	# 			if chr not in MainCandidate[sv_type]:
+	# 				MainCandidate[sv_type][chr] = dict()
+	# 			for hash_1 in temp[sv_type][chr]:
+	# 				if hash_1 not in MainCandidate[sv_type][chr]:
+	# 					MainCandidate[sv_type][chr][hash_1] = dict()
+	# 				for hash_2 in temp[sv_type][chr][hash_1]:
+	# 					if hash_2 not in MainCandidate[sv_type][chr][hash_1]:
+	# 						MainCandidate[sv_type][chr][hash_1][hash_2] = list()
+	# 					MainCandidate[sv_type][chr][hash_1][hash_2].extend(temp[sv_type][chr][hash_1][hash_2])
+	# logging.info("Adjusting SV candidates...")
+	show_temp_result(args.min_support, args.min_length, 30, args.max_distance, args.output, MainCandidate)
+
+def load_signals(path, candidate):
+	file = open(path, 'r')
+	for line in file:
+		seq = line.strip('\n').split('\t')
+		svtype = seq[0]
+
+		if svtype == "INS" or svtype == "DEL" or svtype == "DUP" or svtype == "INV":
+			chr = seq[1]
+			start_pos = int(seq[2])
+			sv_len = int(seq[3])
+			if chr not in candidate[svtype]:
+				candidate[svtype][chr] = list()
+			candidate[svtype][chr].append([start_pos, sv_len])
+		elif svtype == "TRA":
+			chr = seq[1]
+			start_pos = int(seq[2])
+			chr2 = seq[3]
+			pos2 = int(seq[4])
+			if chr not in candidate[svtype]:
+				candidate[svtype][chr] = list()
+			candidate[svtype][chr].append([start_pos, chr2, pos2])
+		else:
+			chr = seq[1]
+			key_1 = int(seq[2])
+			key_2 = int(seq[3])
+			pos = int(seq[4])
+			if chr not in candidate[svtype]:
+				candidate[svtype][chr] = dict()
+				candidate[svtype][chr][key_1] = dict()
+				candidate[svtype][chr][key_1][key_2] = list()
+			else:
+				if key_1 not in candidate[svtype][chr]:
+					candidate[svtype][chr][key_1] = dict()
+					candidate[svtype][chr][key_1][key_2] = list()
+				else:
+					if key_2 not in candidate[svtype][chr][key_1]:
+						candidate[svtype][chr][key_1][key_2] = list()
+
+			candidate[svtype][chr][key_1][key_2].append(pos)
 
 def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path, MainCandidate):
 	# starttime = time.time()
@@ -535,7 +613,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 		MainCandidate["DEL"][chr] = sorted(MainCandidate["DEL"][chr], key = lambda x:x[0])
 		# for ele in MainCandidate["DEL"][chr]:
 		# 	print chr, ele
-		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "DEL", max_distance, MainCandidate)
+		intergrate_indel(chr, evidence_read, SV_size, 200, "DEL", max_distance, MainCandidate)
 		MainCandidate["DEL"][chr] = []
 		gc.collect()
 	# print("[INFO]: Parse deletions used %0.2f seconds."%(time.time() - starttime))
@@ -545,7 +623,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 		MainCandidate["INS"][chr] = sorted(MainCandidate["INS"][chr], key = lambda x:x[0])
 		# for i in MainCandidate["INS"][chr]:
 		# 	print chr, i
-		intergrate_indel(chr, evidence_read, SV_size, low_bandary, "INS", max_distance, MainCandidate)
+		intergrate_indel(chr, evidence_read, SV_size, 200, "INS", max_distance, MainCandidate)
 		MainCandidate["INS"][chr] = []
 		gc.collect()
 	# print("[INFO]: Parse insertions used %0.2f seconds."%(time.time() - starttime))
@@ -553,13 +631,13 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	# starttime = time.time()
 	for chr in MainCandidate["DUP"]:
 		MainCandidate["DUP"][chr] = sorted(MainCandidate["DUP"][chr], key = lambda x:x[:])
-		# for i in MainCandidate["DUP"][chr]:
-		# 	print chr, i
+		for i in MainCandidate["DUP"][chr]:
+			print chr, i
 		# for i in MainCandidate["l_DUP"][chr]:
 		# 	print chr, i
 		# for i in MainCandidate["DUP_r"][chr]:
 		# 	print chr, i
-		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_DUP", "DUP_r", "DUP", max_distance, MainCandidate)
+		intergrate_dup(chr, evidence_read, SV_size, 10, "l_DUP", "DUP_r", "DUP", max_distance, MainCandidate)
 		MainCandidate["DUP"][chr] = []
 		MainCandidate["l_DUP"][chr] = []
 		MainCandidate["DUP_r"][chr] = []
@@ -569,7 +647,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	# starttime = time.time()
 	for chr in MainCandidate["INV"]:
 		MainCandidate["INV"][chr] = sorted(MainCandidate["INV"][chr], key = lambda x:x[:])
-		intergrate_dup(chr, evidence_read, SV_size, low_bandary, "l_INV", "INV_r", "INV", max_distance, MainCandidate)
+		intergrate_dup(chr, evidence_read, SV_size, 10, "l_INV", "INV_r", "INV", max_distance, MainCandidate)
 		MainCandidate["INV"][chr] = []
 		MainCandidate["l_INV"][chr] = []
 		MainCandidate["INV_r"][chr] = []
@@ -581,7 +659,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 		MainCandidate["TRA"][chr] = sorted(MainCandidate["TRA"][chr], key = lambda x:x[:])
 		# for i in MainCandidate["TRA"][chr]:
 		# 	print chr, i
-		intergrate_tra(chr, evidence_read, SV_size, low_bandary, "TRA", max_distance, MainCandidate)
+		intergrate_tra(chr, evidence_read, SV_size, 10, "TRA", max_distance, MainCandidate)
 		MainCandidate["TRA"][chr] = []
 		gc.collect()
 	# print("[INFO]: Parse translocations used %0.2f seconds."%(time.time() - starttime))
@@ -589,7 +667,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	file = open(out_path, 'w')
 	# for chr in sorted(semi_result.keys()):
 	for chr in semi_result:
-		semi_result[chr] = sorted(semi_result[chr], key = lambda x:x[0])
+		semi_result[chr] = sorted(semi_result[chr], key = lambda x:x[:])
 		for i in semi_result[chr]:
 			# print i
 			file.write("%s\t%s"%(chr, i))
@@ -605,7 +683,7 @@ def setupLogging(debug=False):
 
 def run(argv):
 	args = parseArgs(argv)
-	setupLogging(False)
+	# setupLogging(False)
 	# print args
 	starttime = time.time()
 	main_ctrl(args)
@@ -619,13 +697,14 @@ def parseArgs(argv):
 	parser = argparse.ArgumentParser(prog="cuteSV", description=USAGE, formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument("input", metavar="[BAM]", type=str, help="Sorted .bam file form NGMLR.")
 	parser.add_argument('output', type=str, help = "the prefix of novel sequence insertion pridections")
-	parser.add_argument('-s', '--min_support', help = "Minimum number of reads that support a SV to be reported.[%(default)s]", default = 5, type = int)
+	parser.add_argument('temp_dir', type=str, help = "temporary directory to use for distributed jobs")
+	parser.add_argument('-s', '--min_support', help = "Minimum number of reads that support a SV to be reported.[%(default)s]", default = 10, type = int)
 	parser.add_argument('-l', '--min_length', help = "Minimum length of SV to be reported.[%(default)s]", default = 50, type = int)
 	parser.add_argument('-p', '--max_split_parts', help = "Maximum number of split segments a read may be aligned before it is ignored.[%(default)s]", default = 7, type = int)
 	# # parser.add_argument('-hom', '--homozygous', help = "The mininum score of a genotyping reported as a homozygous.[%(default)s]", default = 0.8, type = float)
 	# # parser.add_argument('-het','--heterozygous', help = "The mininum score of a genotyping reported as a heterozygous.[%(default)s]", default = 0.3, type = float)
 	parser.add_argument('-q', '--min_mapq', help = "Minimum mapping quality value of alignment to be taken into account.[%(default)s]", default = 20, type = int)
-	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", default = 50, type = int)
+	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", default = 1000, type = int)
 	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 2000, type = int)
 	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", default = 16, type = int)
 	args = parser.parse_args(argv)
