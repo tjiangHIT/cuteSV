@@ -63,10 +63,10 @@ def store_info(pos_list, svtype):
 
 			candidate[svtype][ele[0]][hash_1][hash_2].append(ele[1:])
 
-def analysis_split_read(split_read, SV_size, RLength, read_name):
+def analysis_split_read(split_read, SV_size, RLength):
 	SP_list = sorted(split_read, key = lambda x:x[0])
 	# for i in SP_list:
-	# 	print i
+	#  	print i
 	DUP_flag = [0]*len(SP_list)
 	for a in xrange(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
@@ -77,39 +77,39 @@ def analysis_split_read(split_read, SV_size, RLength, read_name):
 				# DUP_flag[a] = 1
 				# DUP_flag[a+1] = 1
 				if a == 0:
-					store_info([[ele_1[4], ele_1[3], read_name]], "DUP_r")
+					store_info([[ele_1[4], ele_1[3]]], "DUP_r")
 
 				if a+1 == len(SP_list)-1:
-					store_info([[ele_2[4], ele_2[2], read_name]], "l_DUP")
+					store_info([[ele_2[4], ele_2[2]]], "l_DUP")
 				else:
 					# store_signal([[ele_2[4], ele_2[2], ele_2[3]]], "DUP")
 					if ele_2[4] not in candidate["DUP"]:
 						candidate["DUP"][ele_2[4]] = list()
-					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_2[3], read_name])
+					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_2[3]])
 
 			if ele_1[3] <= ele_2[2]:
 				if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
 					# store_signal([[ele_2[4], (ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]]], "INS")
 					if ele_2[4] not in candidate["INS"]:
 						candidate["INS"][ele_2[4]] = list()
-					candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
+					candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]])
 				if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
 					# store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
 					if ele_2[4] not in candidate["DEL"]:
 						candidate["DEL"][ele_2[4]] = list()
-					candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
+					candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]])
 		else:
 			# tra
 			if ele_1[4] < ele_2[4]:
 				# store_signal([[ele_1[4], ele_1[3], ele_2[4], ele_2[2]]], "TRA")
 				if ele_1[4] not in candidate["TRA"]:
 					candidate["TRA"][ele_1[4]] = list()
-				candidate["TRA"][ele_1[4]].append([ele_1[3], ele_2[4], ele_2[2], read_name])
+				candidate["TRA"][ele_1[4]].append([ele_1[3], ele_2[4], ele_2[2]])
 			else:
 				# store_signal([[ele_2[4], ele_2[2], ele_1[4], ele_1[3]]], "TRA")
 				if ele_2[4] not in candidate["TRA"]:
 					candidate["TRA"][ele_2[4]] = list()
-				candidate["TRA"][ele_2[4]].append([ele_2[2], ele_1[4], ele_1[3], read_name])
+				candidate["TRA"][ele_2[4]].append([ele_2[2], ele_1[4], ele_1[3]])
 
 	call_inv = sorted(SP_list, key = lambda x:x[2])
 	if len(call_inv) >= 3:
@@ -119,7 +119,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name):
 					# store_signal([[a[4], a[3] , call_inv[call_inv.index(a)+1][3]]], "INV")
 					if a[4] not in candidate["INV"]:
 						candidate["INV"][a[4]] = list()
-					candidate["INV"][a[4]].append([a[3] , call_inv[call_inv.index(a)+1][3], read_name])
+					candidate["INV"][a[4]].append([a[3] , call_inv[call_inv.index(a)+1][3]])
 	
 	if len(call_inv) == 2:
 		if call_inv[0][5] != call_inv[1][5] and call_inv[0][4] == call_inv[1][4]:
@@ -127,11 +127,11 @@ def analysis_split_read(split_read, SV_size, RLength, read_name):
 			ls_2 = call_inv[1][3] - call_inv[1][2]
 			if ls_1 > ls_2:
 				if call_inv[1][2] > call_inv[0][3] and ls_2 >= SV_size:
-					store_info([[call_inv[0][4], call_inv[1][3], read_name]], "INV_r")
+					store_info([[call_inv[0][4], call_inv[1][3]]], "INV_r")
 					# pass
 			else:
 				if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
-					store_info([[call_inv[0][4], call_inv[0][2], read_name]], "l_INV")
+					store_info([[call_inv[0][4], call_inv[0][2]]], "l_INV")
 					# pass
 
 def acquire_clip_pos(deal_cigar):
@@ -151,7 +151,7 @@ def acquire_clip_pos(deal_cigar):
 			bias += i[0]
 	return [first_pos, last_pos, bias]
 
-def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_bandary, min_mapq, max_split_parts, read_name):
+def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_bandary, min_mapq, max_split_parts):
 	split_read = list()
 	if len(primary_info) > 0:
 		split_read.append(primary_info)
@@ -166,7 +166,7 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_ba
 			local_set = acquire_clip_pos(local_cigar)
 			split_read.append([local_set[0], total_L-local_set[1], local_start, local_start+local_set[2], local_chr, local_strand])
 	if len(split_read) <= max_split_parts:
-		analysis_split_read(split_read, low_bandary, total_L, read_name)
+		analysis_split_read(split_read, low_bandary, total_L)
 
 # def parse_read(read, Chr_name, low_bandary):
 def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_size):
@@ -191,7 +191,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 				# store_signal([Chr_name, pos_start+shift, element[1]], "DEL")
 				if Chr_name not in candidate["DEL"]:
 					candidate["DEL"][Chr_name] = list()
-				candidate["DEL"][Chr_name].append([pos_start+shift_del, element[1], read.query_name])
+				candidate["DEL"][Chr_name].append([pos_start+shift_del, element[1]])
 				shift_del += element[1]
 
 			if element[0] == 0 or element[0] == 2:
@@ -201,7 +201,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 				# MEI_contig = read.query_sequence[_shift_read_ - element[1]:_shift_read_]
 				if Chr_name not in candidate["INS"]:
 					candidate["INS"][Chr_name] = list()
-				candidate["INS"][Chr_name].append([pos_start+shift_ins, element[1], read.query_name])
+				candidate["INS"][Chr_name].append([pos_start+shift_ins, element[1]])
 
 		if read.cigar[0][0] == 4:
 			softclip_left = read.cigar[0][1]
@@ -220,7 +220,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 			if i[0] == 'SA':
 				Supplementary_info = i[1].split(';')[:-1]
 				# print read.query_name
-				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, low_bandary, min_mapq, max_split_parts, read.query_name)
+				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, low_bandary, min_mapq, max_split_parts)
 
 def acquire_length(len_list, threshold):
 	average_len = 0
@@ -249,18 +249,11 @@ def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 		start = list()
 		size = list()
 		diff = list()
-		tag = dict()
 		# max_L = -1
 		# min_L = sys.maxint
 		for ele in pos_list:
 			start.append(ele[0])
 			size.append(ele[1])
-			if ele[2] not in tag:
-				tag[ele[2]] = 0
-
-		if len(tag) < evidence_read:
-			return 0
-
 		for k in xrange(len(pos_list[1:])):
 			diff.append(pos_list[k+1][1]-pos_list[k][1])
 			# if ele[1] > max_L:
@@ -280,7 +273,7 @@ def merge_pos_indel(pos_list, chr, evidence_read, SV_size, svtype):
 			if chr not in semi_result:
 				semi_result[chr] = list()
 			# semi_result[chr].append([breakpoint, SV_len, len(pos_list), svtype])
-			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, SV_len, len(tag), svtype))
+			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, SV_len, len(pos_list), svtype))
 
 	# return result
 # @jit
@@ -305,22 +298,20 @@ def intergrate_indel(chr, evidence_read, SV_size, low_bandary, svtype, max_dista
 
 def acquire_locus(down, up, keytype, chr, MainCandidate):
 	re = list()
-	re_id = list()
 	if chr not in MainCandidate[keytype]:
-		return re, re_id
+		return re
 	if int(up/10000) == int(down/10000):
 		key_1 = int(down/10000)
 		if key_1 not in MainCandidate[keytype][chr]:
-			return re, re_id
+			return re
 		for i in xrange(int((up%10000)/50)-int((down%10000)/50)+1):
 			# exist a bug ***********************************
 			key_2 = int((down%10000)/50)+i
 			if key_2 not in MainCandidate[keytype][chr][key_1]:
 				continue
 			for ele in MainCandidate[keytype][chr][key_1][key_2]:
-				if ele[0] >= down and ele[0] <= up:
-					re.append(ele[0])
-					re_id.append(ele[1])
+				if ele >= down and ele <= up:
+					re.append(ele)
 	else:
 		key_1 = int(down/10000)
 		if key_1 in MainCandidate[keytype][chr]:
@@ -330,27 +321,24 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 				if key_2 not in MainCandidate[keytype][chr][key_1]:
 					continue
 				for ele in MainCandidate[keytype][chr][key_1][key_2]:
-					if ele[0] >= down and ele[0] <= up:
-						re.append(ele[0])
-						re_id.append(ele[1])
+					if ele >= down and ele <= up:
+						re.append(ele)
 		key_1 += 1
 		if key_1 not in MainCandidate[keytype][chr]:
-			return re, re_id
+			return re
 		for i in xrange(int((up%10000)/50)+1):
 			# exist a bug ***********************************
 			key_2 = i
 			if key_2 not in MainCandidate[keytype][chr][key_1]:
 				continue
 			for ele in MainCandidate[keytype][chr][key_1][key_2]:
-				if ele[0] >= down and ele[0] <= up:
-					re.append(ele[0])
-					re_id.append(ele[1])
-	return re, re_id
+				if ele >= down and ele <= up:
+					re.append(ele)
+	return re
 # @jit
 def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate):
 	start = list()
 	end = list()
-	tag = dict()
 	diff = list()
 	# up_B = int(len(pos_list)*0.75)
 	# low_B = int(len(pos_list)*0.25)
@@ -358,22 +346,9 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCan
 		start.append(ele[0])
 	# for ele in pos_list[low_B:up_B+1]:
 		end.append(ele[1])
-		# tag.append(ele[2])
-		if ele[2] not in tag:
-			# tag.append(ele[2])
-			tag[ele[2]] = 0
 
-	re_l, rl_id = acquire_locus(min(start)-50, max(start)+50, ll, chr, MainCandidate)
-	re_r, rr_id = acquire_locus(min(end)-50, max(end)+50, lr, chr, MainCandidate)
-
-	for flag in rl_id:
-		if flag not in tag:
-			# tag.append(flag)
-			tag[flag] = 0
-	for flag in rr_id:
-		if flag not in tag:
-			# tag.append(flag)
-			tag[flag] = 0
+	re_l = acquire_locus(min(start)-50, max(start)+50, ll, chr, MainCandidate)
+	re_r = acquire_locus(min(end)-50, max(end)+50, lr, chr, MainCandidate)
 
 	# print pos_list
 	# print re_l
@@ -395,7 +370,7 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCan
 
 	# result = list()
 	# if len(pos_list+re_l+re_r) >= evidence_read and len(pos_list) >= 5:
-	if len(tag) >= evidence_read:
+	if len(pos_list+re_l+re_r) >= evidence_read:
 		# need to add some semi-signals
 		# if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
 		if size >= SV_size:
@@ -403,7 +378,7 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCan
 			if chr not in semi_result:
 				semi_result[chr] = list()
 			# semi_result[chr].append([breakpoint, size, len(pos_list+re_l+re_r), svtype])
-			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, size, len(tag), svtype))
+			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, size, len(pos_list+re_l+re_r), svtype))
 # @jit
 def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max_distance, MainCandidate):
 	temp = list()
@@ -424,19 +399,12 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 	if len(pos_list) >= evidence_read:
 		start = list()
 		tra_dic = dict()
-		tag = dict()
 		for ele in pos_list:
-			if ele[3] not in tag:
-				tag[ele[3]] = 0
-
 			start.append(ele[0])
 			# size.append(ele[1])
 			if ele[1] not in tra_dic:
 				tra_dic[ele[1]] = list()
 			tra_dic[ele[1]].append(ele[2])
-
-		if len(tag) < evidence_read:
-			return 0
 
 		max_chr_c = 0
 		max_chr = ""
@@ -452,7 +420,7 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary):
 			if chr not in semi_result:
 				semi_result[chr] = list()
 			# semi_result[chr].append([breakpoint_1, max_chr, breakpoint_2, svtype])
-			semi_result[chr].append("%d\t%s\t%s\t%d\t%s\n"%(breakpoint_1, max_chr, breakpoint_2, len(tag), svtype))
+			semi_result[chr].append("%d\t%s\t%s\t%s\n"%(breakpoint_1, max_chr, breakpoint_2, svtype))
 # @jit
 def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distance, MainCandidate):
 	temp = list()
@@ -523,10 +491,10 @@ def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_s
 			for chr in candidate[sv_type]:
 				# print candidate[sv_type][chr]
 				for ele in candidate[sv_type][chr]:
-					if len(ele) == 3:
-						file.write("%s\t%s\t%d\t%d\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2]))
-					elif len(ele) == 4:
-						file.write("%s\t%s\t%d\t%s\t%d\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2], ele[3]))
+					if len(ele) == 2:
+						file.write("%s\t%s\t%d\t%d\n"%(sv_type, chr, ele[0], ele[1]))
+					elif len(ele) == 3:
+						file.write("%s\t%s\t%d\t%s\t%d\n"%(sv_type, chr, ele[0], ele[1], ele[2]))
 					#print ele
 		except:
 			pass
@@ -538,9 +506,8 @@ def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_s
 				for key_1 in candidate[sv_type][chr]:
 					for key_2 in candidate[sv_type][chr][key_1]:
 						for ele in candidate[sv_type][chr][key_1][key_2]:
-							file.write("%s\t%s\t%d\t%d\t%d\t%s\n"%(sv_type, chr, key_1, key_2, ele[0], ele[1]))
-							# for i in ele:
-								# file.write("%s\t%s\t%d\t%d\t%d\t%s\n"%(sv_type, chr, key_1, key_2, i[0], i[1]))
+							for i in ele:
+								file.write("%s\t%s\t%d\t%d\t%d\n"%(sv_type, chr, key_1, key_2, i))
 		except:
 			pass
 	file.close()	
@@ -615,25 +582,22 @@ def load_signals(path, candidate):
 			chr = seq[1]
 			start_pos = int(seq[2])
 			sv_len = int(seq[3])
-			read_name = seq[4]
 			if chr not in candidate[svtype]:
 				candidate[svtype][chr] = list()
-			candidate[svtype][chr].append([start_pos, sv_len, read_name])
+			candidate[svtype][chr].append([start_pos, sv_len])
 		elif svtype == "TRA":
 			chr = seq[1]
 			start_pos = int(seq[2])
 			chr2 = seq[3]
 			pos2 = int(seq[4])
-			read_name = seq[5]
 			if chr not in candidate[svtype]:
 				candidate[svtype][chr] = list()
-			candidate[svtype][chr].append([start_pos, chr2, pos2, read_name])
+			candidate[svtype][chr].append([start_pos, chr2, pos2])
 		else:
 			chr = seq[1]
 			key_1 = int(seq[2])
 			key_2 = int(seq[3])
 			pos = int(seq[4])
-			read_name = seq[5]
 			if chr not in candidate[svtype]:
 				candidate[svtype][chr] = dict()
 				candidate[svtype][chr][key_1] = dict()
@@ -646,7 +610,7 @@ def load_signals(path, candidate):
 					if key_2 not in candidate[svtype][chr][key_1]:
 						candidate[svtype][chr][key_1][key_2] = list()
 
-			candidate[svtype][chr][key_1][key_2].append([pos, read_name])
+			candidate[svtype][chr][key_1][key_2].append(pos)
 
 def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path, MainCandidate):
 	# starttime = time.time()
@@ -684,7 +648,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 		# 		for k in MainCandidate["DUP_r"][chr][i][j]:
 		# 			print 0, k
 		# # 	print chr, i
-		intergrate_dup(chr, evidence_read, SV_size, 50, "l_DUP", "DUP_r", "DUP", max_distance, MainCandidate)
+		intergrate_dup(chr, evidence_read, SV_size, 10, "l_DUP", "DUP_r", "DUP", max_distance, MainCandidate)
 		MainCandidate["DUP"][chr] = []
 		MainCandidate["l_DUP"][chr] = []
 		MainCandidate["DUP_r"][chr] = []
@@ -715,8 +679,6 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	# for chr in sorted(semi_result.keys()):
 	for chr in semi_result:
 		semi_result[chr] = sorted(semi_result[chr], key = lambda x:x[:])
-		# result merging
-		# exist a bug
 		for i in semi_result[chr]:
 			# print i
 			file.write("%s\t%s"%(chr, i))
