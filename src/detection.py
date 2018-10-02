@@ -515,9 +515,9 @@ def single_pipe(sam_path, Chr_name, min_length, min_mapq, max_split_parts, min_s
 	logging.info("%d reads on %s."%(total_reads, Chr_name))
 	samfile.close()
 
-	# output = "%s_%s.txt"%(temp_dir, Chr_name)
-	# print candidate
-	file = open(temp_dir, 'a')
+	output = "%s_%s.txt"%(temp_dir, Chr_name)
+	#print output 
+	file = open(output, 'w')
 	for sv_type in ["DEL", "INS", "INV", "DUP", 'TRA']:
 		try:
 			for chr in candidate[sv_type]:
@@ -573,7 +573,7 @@ def main_ctrl(args):
 	analysis_pools = Pool(processes=int(args.threads))
 
 	# result = list()
-	temporary_dir = "%s_temp.txt"%(args.temp_dir)
+	temporary_dir = args.temp_dir
 	for i in process_list:
 		para = [(args.input, i[0], args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, i[1], temporary_dir)]
 		analysis_pools.map_async(multi_run_wrapper, para)
@@ -584,7 +584,7 @@ def main_ctrl(args):
 	# for res in result:
 		# temp = res.get()[0]
 
-	load_signals(temporary_dir, MainCandidate)
+	load_signals(temporary_dir, MainCandidate, process_list)
 
 	# 	for sv_type in ["DEL", "INS", "INV", "DUP", "TRA"]:
 	# 		for chr in temp[sv_type]:
@@ -605,48 +605,51 @@ def main_ctrl(args):
 	# logging.info("Adjusting SV candidates...")
 	show_temp_result(args.min_support, args.min_length, 30, args.max_distance, args.output, MainCandidate)
 
-def load_signals(path, candidate):
-	file = open(path, 'r')
-	for line in file:
-		seq = line.strip('\n').split('\t')
-		svtype = seq[0]
+def load_signals(path, candidate, process_list):
+	# file_path = list()
+	for i in process_list:
+		file_path = "%s_%s.txt"%(path, i[0])
+		file = open(file_path, 'r')
+		for line in file:
+			seq = line.strip('\n').split('\t')
+			svtype = seq[0]
 
-		if svtype == "INS" or svtype == "DEL" or svtype == "DUP" or svtype == "INV":
-			chr = seq[1]
-			start_pos = int(seq[2])
-			sv_len = int(seq[3])
-			read_name = seq[4]
-			if chr not in candidate[svtype]:
-				candidate[svtype][chr] = list()
-			candidate[svtype][chr].append([start_pos, sv_len, read_name])
-		elif svtype == "TRA":
-			chr = seq[1]
-			start_pos = int(seq[2])
-			chr2 = seq[3]
-			pos2 = int(seq[4])
-			read_name = seq[5]
-			if chr not in candidate[svtype]:
-				candidate[svtype][chr] = list()
-			candidate[svtype][chr].append([start_pos, chr2, pos2, read_name])
-		else:
-			chr = seq[1]
-			key_1 = int(seq[2])
-			key_2 = int(seq[3])
-			pos = int(seq[4])
-			read_name = seq[5]
-			if chr not in candidate[svtype]:
-				candidate[svtype][chr] = dict()
-				candidate[svtype][chr][key_1] = dict()
-				candidate[svtype][chr][key_1][key_2] = list()
-			else:
-				if key_1 not in candidate[svtype][chr]:
+			if svtype == "INS" or svtype == "DEL" or svtype == "DUP" or svtype == "INV":
+				chr = seq[1]
+				start_pos = int(seq[2])
+				sv_len = int(seq[3])
+				read_name = seq[4]
+				if chr not in candidate[svtype]:
+					candidate[svtype][chr] = list()
+				candidate[svtype][chr].append([start_pos, sv_len, read_name])
+			elif svtype == "TRA":
+				chr = seq[1]
+				start_pos = int(seq[2])
+				chr2 = seq[3]
+				pos2 = int(seq[4])
+				read_name = seq[5]
+				if chr not in candidate[svtype]:
+					candidate[svtype][chr] = list()
+				candidate[svtype][chr].append([start_pos, chr2, pos2, read_name])
+			elif svtype == "l_DUP" or svtype == "DUP_r" or svtype == "l_INV" or svtype == "INV_r":
+				chr = seq[1]
+				key_1 = int(seq[2])
+				key_2 = int(seq[3])
+				pos = int(seq[4])
+				read_name = seq[5]
+				if chr not in candidate[svtype]:
+					candidate[svtype][chr] = dict()
 					candidate[svtype][chr][key_1] = dict()
 					candidate[svtype][chr][key_1][key_2] = list()
 				else:
-					if key_2 not in candidate[svtype][chr][key_1]:
+					if key_1 not in candidate[svtype][chr]:
+						candidate[svtype][chr][key_1] = dict()
 						candidate[svtype][chr][key_1][key_2] = list()
+					else:
+						if key_2 not in candidate[svtype][chr][key_1]:
+							candidate[svtype][chr][key_1][key_2] = list()
 
-			candidate[svtype][chr][key_1][key_2].append([pos, read_name])
+				candidate[svtype][chr][key_1][key_2].append([pos, read_name])
 
 def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path, MainCandidate):
 	# starttime = time.time()
