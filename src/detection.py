@@ -28,6 +28,7 @@ signal = {Abnormal: 0, Normal_foward: 1, Reverse_complement: 2, Supplementary_ma
 
 candidate = dict()
 semi_result = dict()
+dup_result = dict()
 candidate["DEL"] = dict()
 candidate["INS"] = dict()
 candidate["INV"] = dict()
@@ -400,10 +401,33 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCan
 		# if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
 		if size >= SV_size:
 			# result.append([chr, breakpoint, size, len(pos_list+re_l+re_r)])
-			if chr not in semi_result:
-				semi_result[chr] = list()
-			# semi_result[chr].append([breakpoint, size, len(pos_list+re_l+re_r), svtype])
-			semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, size, len(tag), svtype))
+
+			# if chr not in semi_result:
+			# 	semi_result[chr] = list()
+			# # semi_result[chr].append([breakpoint, size, len(pos_list+re_l+re_r), svtype])
+			# semi_result[chr].append("%d\t%d\t%d\t%s\n"%(breakpoint, size, len(tag), svtype))
+			if chr not in dup_result:
+				dup_result[chr] = list()
+			dup_result[chr].append([breakpoint, size, len(tag)])
+
+def polish_dup(chr):
+	if chr in dup_result:
+		dup_result[chr] = sorted(dup_result[chr], key = lambda x:x[:])
+		# temp = list()
+		# temp.append(dup_result[chr][0])
+		temp = dup_result[chr][0]
+		if chr not in semi_result:
+			semi_result[chr] = list()
+		for i in dup_result[chr][1:]:
+			if temp[0] <= i[0] and i[0] <= temp[0]+temp[1]:
+				if temp[2] < i[2]:
+					temp = i
+			else:
+				semi_result[chr].append("%d\t%d\t%d\t%s\n"%(temp[0], temp[1], temp[2], "DUP"))
+				temp = i
+		semi_result[chr].append("%d\t%d\t%d\t%s\n"%(temp[0], temp[1], temp[2], "DUP"))
+
+
 # @jit
 def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max_distance, MainCandidate):
 	temp = list()
@@ -691,6 +715,7 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 		MainCandidate["DUP"][chr] = []
 		MainCandidate["l_DUP"][chr] = []
 		MainCandidate["DUP_r"][chr] = []
+		polish_dup(chr)
 		gc.collect()
 	# print("[INFO]: Parse duplications used %0.2f seconds."%(time.time() - starttime))
 	
