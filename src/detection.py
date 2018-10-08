@@ -38,8 +38,8 @@ candidate["DUP"] = dict()
 candidate["TRA"] = dict()
 candidate["l_DUP"] = dict()
 candidate["DUP_r"] = dict()
-candidate["l_INV"] = dict()
-candidate["INV_r"] = dict()
+# candidate["l_INV"] = dict()
+# candidate["INV_r"] = dict()
 
 def detect_flag(Flag):
 	if Flag in signal:
@@ -67,16 +67,21 @@ def store_info(pos_list, svtype):
 			candidate[svtype][ele[0]][hash_1][hash_2].append(ele[1:])
 
 def analysis_split_read(split_read, SV_size, RLength, read_name):
+	'''
+	read_start	read_end	ref_start	ref_end	chr	strand
+	#0			#1			#2			#3		#4	#5
+	'''
 	SP_list = sorted(split_read, key = lambda x:x[0])
-	# for i in SP_list:
-	# 	print i
+	print read_name
+	for i in SP_list:
+		print i
 	DUP_flag = [0]*len(SP_list)
 	for a in xrange(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
 		ele_2 = SP_list[a+1]
 		if ele_1[4] == ele_2[4]:
 			# dup & ins & del 
-			if ele_1[3] - ele_2[2] >= SV_size:
+			if ele_1[3] - ele_2[2] >= SV_size and ele_1[5] == ele_2[5]:
 				# DUP_flag[a] = 1
 				# DUP_flag[a+1] = 1
 				if a == 0:
@@ -91,16 +96,22 @@ def analysis_split_read(split_read, SV_size, RLength, read_name):
 					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_2[3], read_name])
 
 			if ele_1[3] <= ele_2[2]:
-				if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
+				if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size and ele_1[5] == ele_2[5]:
 					# store_signal([[ele_2[4], (ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]]], "INS")
 					if ele_2[4] not in candidate["INS"]:
 						candidate["INS"][ele_2[4]] = list()
 					candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
-				if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
+				if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size and ele_1[5] == ele_2[5]:
 					# store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
 					if ele_2[4] not in candidate["DEL"]:
 						candidate["DEL"][ele_2[4]] = list()
 					candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
+
+			# INV
+			if ele_1[5] != ele_2[5] and ele_2[3] - ele_1[3] >= SV_size:
+
+
+
 		else:
 			# tra
 			if ele_1[4] < ele_2[4]:
@@ -114,28 +125,29 @@ def analysis_split_read(split_read, SV_size, RLength, read_name):
 					candidate["TRA"][ele_2[4]] = list()
 				candidate["TRA"][ele_2[4]].append([ele_2[2], ele_1[4], ele_1[3], read_name])
 
-	call_inv = sorted(SP_list, key = lambda x:x[2])
-	if len(call_inv) >= 3:
-		for a in call_inv[:-2]:
-			if a[5] != call_inv[call_inv.index(a)+1][5] and a[5] == call_inv[call_inv.index(a)+2][5] and a[4] == call_inv[call_inv.index(a)+1][4] and a[4] == call_inv[call_inv.index(a)+2][4]:
-				if call_inv[call_inv.index(a)+1][3] - call_inv[call_inv.index(a)+1][2] >= SV_size:
-					# store_signal([[a[4], a[3] , call_inv[call_inv.index(a)+1][3]]], "INV")
-					if a[4] not in candidate["INV"]:
-						candidate["INV"][a[4]] = list()
-					candidate["INV"][a[4]].append([a[3] , call_inv[call_inv.index(a)+1][3], read_name])
+	# call_inv = sorted(SP_list, key = lambda x:x[2])
+	# if len(call_inv) >= 3:
+	# 	for a in call_inv[:-2]:
+	# 		if a[5] != call_inv[call_inv.index(a)+1][5] and a[5] == call_inv[call_inv.index(a)+2][5] and a[4] == call_inv[call_inv.index(a)+1][4] and a[4] == call_inv[call_inv.index(a)+2][4]:
+	# 			if call_inv[call_inv.index(a)+1][3] - call_inv[call_inv.index(a)+1][2] >= SV_size:
+	# 				# store_signal([[a[4], a[3] , call_inv[call_inv.index(a)+1][3]]], "INV")
+	# 				if a[4] not in candidate["INV"]:
+	# 					candidate["INV"][a[4]] = list()
+	# 				candidate["INV"][a[4]].append([a[3] , call_inv[call_inv.index(a)+1][3], read_name])
 	
-	if len(call_inv) == 2:
-		if call_inv[0][5] != call_inv[1][5] and call_inv[0][4] == call_inv[1][4]:
-			ls_1 = call_inv[0][3] - call_inv[0][2]
-			ls_2 = call_inv[1][3] - call_inv[1][2]
-			if ls_1 > ls_2:
-				if call_inv[1][2] > call_inv[0][3] and ls_2 >= SV_size:
-					store_info([[call_inv[0][4], call_inv[1][3], read_name]], "INV_r")
-					# pass
-			else:
-				if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
-					store_info([[call_inv[0][4], call_inv[0][2], read_name]], "l_INV")
-					# pass
+	# if len(call_inv) == 2:
+	# 	if call_inv[0][5] != call_inv[1][5] and call_inv[0][4] == call_inv[1][4]:
+	# 		ls_1 = call_inv[0][3] - call_inv[0][2]
+	# 		ls_2 = call_inv[1][3] - call_inv[1][2]
+	# 		if ls_1 > ls_2:
+	# 			if call_inv[1][2] > call_inv[0][3] and ls_2 >= SV_size:
+	# 				store_info([[call_inv[0][4], call_inv[1][3], read_name]], "INV_r")
+	# 				# pass
+	# 		else:
+	# 			if call_inv[1][2] > call_inv[0][3] and ls_1 >= SV_size:
+	# 				store_info([[call_inv[0][4], call_inv[0][2], read_name]], "l_INV")
+	# 				# pass
+
 
 def acquire_clip_pos(deal_cigar):
 	seq = list(cigar.Cigar(deal_cigar).items())
@@ -983,7 +995,7 @@ def setupLogging(debug=False):
 
 def run(argv):
 	args = parseArgs(argv)
-	setupLogging(False)
+	# setupLogging(False)
 	# print args
 	starttime = time.time()
 	main_ctrl(args)
