@@ -72,46 +72,57 @@ def analysis_split_read(split_read, SV_size, RLength, read_name):
 	#0			#1			#2			#3		#4	#5
 	'''
 	SP_list = sorted(split_read, key = lambda x:x[0])
-	print read_name
-	for i in SP_list:
-		print i
+	# print read_name
+	# for i in SP_list:
+	# 	print i
 	DUP_flag = [0]*len(SP_list)
 	for a in xrange(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
 		ele_2 = SP_list[a+1]
 		if ele_1[4] == ele_2[4]:
-			# dup & ins & del 
-			if ele_1[3] - ele_2[2] >= SV_size and ele_1[5] == ele_2[5]:
-				# DUP_flag[a] = 1
-				# DUP_flag[a+1] = 1
-				if a == 0:
-					store_info([[ele_1[4], ele_1[3], read_name]], "DUP_r")
-
-				if a+1 == len(SP_list)-1:
-					store_info([[ele_2[4], ele_2[2], read_name]], "l_DUP")
-				else:
-					# store_signal([[ele_2[4], ele_2[2], ele_2[3]]], "DUP")
-					if ele_2[4] not in candidate["DUP"]:
-						candidate["DUP"][ele_2[4]] = list()
-					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_2[3], read_name])
-
-			if ele_1[3] <= ele_2[2]:
-				if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size and ele_1[5] == ele_2[5]:
-					# store_signal([[ele_2[4], (ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]]], "INS")
-					if ele_2[4] not in candidate["INS"]:
-						candidate["INS"][ele_2[4]] = list()
-					candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
-				if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size and ele_1[5] == ele_2[5]:
-					# store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
-					if ele_2[4] not in candidate["DEL"]:
-						candidate["DEL"][ele_2[4]] = list()
-					candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
-
 			# INV
-			if ele_1[5] != ele_2[5] and ele_2[3] - ele_1[3] >= SV_size:
+			if ele_1[5] != ele_2[5]:
+				# exist a bug 
+				#print "this", ele_1[3], ele_2[3]
+				if ele_2[3] - ele_1[3] >= SV_size:
+					if ele_2[0] >= ele_1[1]:
+						# print "that", ele_1[3], ele_2[3]
+						# print "that", ele_1[2], ele_2[2]
+						if ele_1[4] not in candidate["INV"]:
+							candidate["INV"][ele_1[4]] = list()
+						candidate["INV"][ele_1[4]].append([ele_1[3], ele_2[3], read_name])
+						candidate["INV"][ele_1[4]].append([ele_1[2], ele_2[2], read_name])
+				#	# candidate["INV"][a[4]].append([a[3] , call_inv[call_inv.index(a)+1][3], read_name])
+				#	print "this\tINV", ele_1[4], ele_1[3], ele_2[3], read_name
+				#	candidate["INV"][ele_1[4]].append([ele_1[3], ele_2[3], read_name])
 
+			else:
+				# dup & ins & del 
+				if ele_1[3] - ele_2[2] >= SV_size:
+					# DUP_flag[a] = 1
+					# DUP_flag[a+1] = 1
+					if a == 0:
+						store_info([[ele_1[4], ele_1[3], read_name]], "DUP_r")
 
+					if a+1 == len(SP_list)-1:
+						store_info([[ele_2[4], ele_2[2], read_name]], "l_DUP")
+					else:
+						# store_signal([[ele_2[4], ele_2[2], ele_2[3]]], "DUP")
+						if ele_2[4] not in candidate["DUP"]:
+							candidate["DUP"][ele_2[4]] = list()
+						candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
 
+				if ele_1[3] <= ele_2[2]:
+					if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
+						# store_signal([[ele_2[4], (ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1]]], "INS")
+						if ele_2[4] not in candidate["INS"]:
+							candidate["INS"][ele_2[4]] = list()
+						candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
+					if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
+						# store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
+						if ele_2[4] not in candidate["DEL"]:
+							candidate["DEL"][ele_2[4]] = list()
+						candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
 		else:
 			# tra
 			if ele_1[4] < ele_2[4]:
@@ -179,7 +190,20 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_ba
 		local_mapq = int(seq[4])
 		if local_mapq >= min_mapq:
 			local_set = acquire_clip_pos(local_cigar)
-			split_read.append([local_set[0], total_L-local_set[1], local_start, local_start+local_set[2], local_chr, local_strand])
+			# split_read.append([local_set[0], total_L-local_set[1], local_start, local_start+local_set[2], local_chr, local_strand])
+			# print read_name, local_set, local_strand
+			if local_strand == '+':
+			 	split_read.append([local_set[0], total_L-local_set[1], local_start, local_start+local_set[2], local_chr, local_strand])
+			else:
+				# if read_name == "bfe83948_158430_4316":
+				# 	print "this", seq
+				# 	print "this", [local_set[1], total_L-local_set[0], local_start, local_start+local_set[2], local_chr, local_strand]
+				# 	# split_read.append([local_set[1], total_L-local_set[0], local_start, local_start+local_set[2], local_chr, local_strand])
+				# 	continue
+				try:
+					split_read.append([local_set[1], total_L-local_set[0], local_start, local_start+local_set[2], local_chr, local_strand])
+				except:
+					pass
 	if len(split_read) <= max_split_parts:
 		analysis_split_read(split_read, low_bandary, total_L, read_name)
 
@@ -227,7 +251,10 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 	if process_signal == 1 or process_signal == 2:
 		Tags = read.get_tags()
 		if read.mapq >= min_mapq:
-			primary_info = [softclip_left, read.query_length-softclip_right, pos_start, pos_end, Chr_name, dic_starnd[process_signal]]
+			if process_signal == 1:
+				primary_info = [softclip_left, read.query_length-softclip_right, pos_start, pos_end, Chr_name, dic_starnd[process_signal]]
+			else:
+				primary_info = [softclip_right, read.query_length-softclip_left, pos_start, pos_end, Chr_name, dic_starnd[process_signal]]
 		else:
 			primary_info = []
 
@@ -364,56 +391,53 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 					re.append(ele[0])
 					re_id.append(ele[1])
 	return re, re_id
+
+def cal_cluster_breakpoint_2(pos_list):
+	pos_list.sort()
+	#print pos_list
+	temp = list()
+	temp.append(pos_list[0])
+	best_bp = 0
+	len_best_bp = 0
+	for pos in pos_list[1:]:
+		if temp[-1] + 50 < pos:
+			if len(temp) > len_best_bp:
+				len_best_bp = len(temp)
+				best_bp = sum(temp)/len(temp)
+			temp = list()
+			temp.append(pos)
+		else:
+			temp.append(pos)
+	if len(temp) > len_best_bp:
+		len_best_bp = len(temp)
+		best_bp = sum(temp)/len(temp)
+	return best_bp, len_best_bp
+
 # @jit
 def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate, bam):
 	start = list()
 	end = list()
-	tag = dict()
-	diff = list()
-	# up_B = int(len(pos_list)*0.75)
-	# low_B = int(len(pos_list)*0.25)
 	for ele in pos_list:
 		start.append(ele[0])
-	# for ele in pos_list[low_B:up_B+1]:
 		end.append(ele[1])
-		# tag.append(ele[2])
-		if ele[2] not in tag:
-			# tag.append(ele[2])
-			tag[ele[2]] = 0
 
-	re_l, rl_id = acquire_locus(min(start)-50, max(start)+50, ll, chr, MainCandidate)
-	re_r, rr_id = acquire_locus(min(end)-50, max(end)+50, lr, chr, MainCandidate)
-
-	for flag in rl_id:
-		if flag not in tag:
-			# tag.append(flag)
-			tag[flag] = 0
-	for flag in rr_id:
-		if flag not in tag:
-			# tag.append(flag)
-			tag[flag] = 0
+	re_l, rl_id = acquire_locus(int(min(start)/1000)*1000, int(max(start)/1000+1)*1000, ll, chr, MainCandidate)
+	re_r, rr_id = acquire_locus(min(end)-1000, max(end)+1000, lr, chr, MainCandidate)
 
 	# print pos_list
-	# print re_l
-	# print re_r
+	#print start+re_l
+	#print end+re_r
 
-	breakpoint = sum(start+re_l)/len(start+re_l)
-	# size = sum(end+re_r)/len(end+re_r) - breakpoint
-	end = end + re_r
-	end.sort()
-	for k in xrange(len(end)-1):
-		diff.append(end[k+1] - end[k])
-	# print end
-	# print diff
-	if len(diff) > 0:
-		size = acquire_length(end, max(int(sum(diff)/len(diff)), 50)) - breakpoint
-	else:
-		size = acquire_length(end, 50) - breakpoint
-	# print breakpoint, size, re_r, re_l, start, end
+	breakpoint_1, tag_1 = cal_cluster_breakpoint_2(start+re_l)
+	breakpoint_2, tag_2 = cal_cluster_breakpoint_2(end+re_r)
+	#print breakpoint
+	size = breakpoint_2 - breakpoint_1 + 1
+
+	# print breakpoint_1, breakpoint_2, size, tag_1+tag_2 
 
 	# result = list()
 	# if len(pos_list+re_l+re_r) >= evidence_read and len(pos_list) >= 5:
-	if len(tag) >= evidence_read:
+	if tag_1+tag_2 >= evidence_read:
 		# need to add some semi-signals
 		# if size >= SV_size and max(end+re_r) - min(end+re_r) < int(0.5*size):
 		if size >= SV_size:
@@ -428,16 +452,16 @@ def merge_pos_dup(pos_list, chr, evidence_read, SV_size, ll, lr, svtype, MainCan
 			if svtype == "DUP":
 				if chr not in dup_result:
 					dup_result[chr] = list()
-				if breakpoint-50 >= 0:
-					DR = bam.count(chr, breakpoint-50, breakpoint-49)
+				if breakpoint_1-50 >= 0:
+					DR = bam.count(chr, breakpoint_1-50, breakpoint_1-49)
 				else:
 					DR = bam.count(chr, 0, 1)
-				dup_result[chr].append([breakpoint, size, len(tag), DR])
+				dup_result[chr].append([breakpoint_1, size, tag_1+tag_2, DR])
 			if svtype == "INV":
 				if chr not in inv_result:
 					inv_result[chr] = list()
-				DR = bam.count(chr, breakpoint, breakpoint+1)
-				inv_result[chr].append([breakpoint, size, len(tag), DR])
+				DR = bam.count(chr, breakpoint_1, breakpoint_1+1)
+				inv_result[chr].append([breakpoint_1, size, tag_1+tag_2, DR])
 			# bam.close()
 
 def polish_dup(chr, svtype):
@@ -481,6 +505,72 @@ def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate, sam_path)
 
+def cal_cluster_breakpoint(pos_list):
+	pos_list.sort()
+	temp = list()
+	temp.append(pos_list[0])
+	best_bp = 0
+	len_best_bp = 0
+	for pos in pos_list[1:]:
+		if temp[-1] + 50 < pos:
+			if len(temp) > len_best_bp:
+				len_best_bp = len(temp)
+				best_bp = sum(temp)/len(temp)
+			temp = list()
+			temp.append(pos)
+	if len(temp) > len_best_bp:
+		len_best_bp = len(temp)
+		best_bp = sum(temp)/len(temp)
+	return best_bp
+
+def merge_pos_inv(pos_list, chr, evidence_read, SV_size, svtype, MainCandidate, bam):
+	if len(pos_list) >= evidence_read:
+		start = list()
+		end = list()
+		tag = dict()
+		for ele in pos_list:
+			start.append(ele[0])
+			end.append(ele[1])
+			if ele[2] not in tag:
+				tag[ele[2]] = 0
+
+		if len(tag) < evidence_read:
+			return 0
+
+		breakpoint_1 = sum(start)/len(start)
+		breakpoint_2 = cal_cluster_breakpoint(end)
+
+		if chr not in semi_result:
+			semi_result[chr] = list()
+
+		DR = min(bam.count(chr, breakpoint_1, breakpoint_1+1), bam.count(chr, breakpoint_2, breakpoint_2+1))
+		# semi_result[chr].append()
+
+		# if SV_len >= SV_size and size[int(0.75*len(size))] - size[int(0.25*len(size))] < int(0.5*SV_len):
+		if breakpoint_2 - breakpoint_1 + 1 >= SV_size:
+			# result.append([chr, breakpoint, SV_len, len(pos_list)])
+			if chr not in semi_result:
+				semi_result[chr] = list()
+			# bam = pysam.AlignmentFile(sam_path, 'rb')
+			# DR = bam.count(chr, breakpoint, breakpoint+1)
+			# bam.close()
+			semi_result[chr].append([breakpoint_1, breakpoint_2-breakpoint_1+1, len(tag), DR, svtype])
+
+def intergrate_inv(chr, evidence_read, SV_size, low_bandary, svtype, max_distance, MainCandidate, sam_path):
+	temp = list()
+	temp.append(MainCandidate[svtype][chr][0])
+	for pos in MainCandidate[svtype][chr][1:]:
+		if temp[-1][0] + low_bandary < pos[0]:
+			if temp[-1][0] - temp[0][0] <= max_distance:
+				merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
+				# print temp
+			temp = list()
+			temp.append(pos)
+		else:
+			temp.append(pos)
+	if temp[-1][0] - temp[0][0] <= max_distance:
+		merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
+
 def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary, bam):
 	if len(pos_list) >= evidence_read:
 		start = list()
@@ -509,11 +599,17 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary, ba
 		if max_chr_c >= evidence_read:
 			breakpoint_1 = int(sum(start)/len(start))
 			breakpoint_2 = int(sum(tra_dic[max_chr])/max_chr_c)
+			tag = dict()
+			for ele in pos_list:
+				if ele[1] == max_chr:
+					if ele[3] not in tag:
+						tag[ele[3]] = 0
 
 			if chr not in semi_result:
 				semi_result[chr] = list()
 			# bam = pysam.AlignmentFile(sam_path, 'rb')
-			DR = bam.count(chr, breakpoint_1, breakpoint_1+1)
+			# DR = bam.count(chr, breakpoint_1, breakpoint_1+1)
+			DR = min(bam.count(chr, breakpoint_1, breakpoint_1+1), bam.count(chr, breakpoint_2, breakpoint_2+1))
 			# bam.close()
 			semi_result[chr].append([breakpoint_1, max_chr, breakpoint_2, len(tag), DR, svtype])
 			# semi_result[chr].append("%d\t%s\t%s\t%d\t%s\n"%(breakpoint_1, max_chr, breakpoint_2, len(tag), svtype))
@@ -523,14 +619,14 @@ def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 	temp.append(MainCandidate[svtype][chr][0])
 	for pos in MainCandidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
-			if temp[-1][0] - temp[0][0] <= max_distance:
-				merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
+			# if temp[-1][0] - temp[0][0] <= max_distance:
+			merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
 			temp = list()
 			temp.append(pos)
 		else:
 			temp.append(pos)
-	if temp[-1][0] - temp[0][0] <= max_distance:
-		merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
+	# if temp[-1][0] - temp[0][0] <= max_distance:
+	merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
 
 # def load_sam(sam_path):
 # 	starttime = time.time()
@@ -583,6 +679,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_seq_size, t
 
 	output = "%s_%s_%d_%d.txt"%(temp_dir, Chr_name, task[1], task[2])
 	#print output 
+	#print candidate["INV"], output
 	file = open(output, 'w')
 	for sv_type in ["DEL", "INS", "INV", "DUP", 'TRA']:
 		try:
@@ -597,7 +694,8 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_seq_size, t
 		except:
 			pass
 
-	for sv_type in ["l_DUP", "DUP_r", "l_INV", "INV_r"]:
+	# for sv_type in ["l_DUP", "DUP_r", "l_INV", "INV_r"]:
+	for sv_type in ["l_DUP", "DUP_r"]:
 		try:
 			for chr in candidate[sv_type]:
 				# print candidate[sv_type][chr]
@@ -653,8 +751,8 @@ def main_ctrl(args):
 	MainCandidate["TRA"] = dict()
 	MainCandidate["l_DUP"] = dict()
 	MainCandidate["DUP_r"] = dict()
-	MainCandidate["l_INV"] = dict()
-	MainCandidate["INV_r"] = dict()
+	# MainCandidate["l_INV"] = dict()
+	# MainCandidate["INV_r"] = dict()
 	
 	# samfile = pysam.AlignmentFile(args.input)
 	# contig_num = len(samfile.get_index_statistics())
@@ -739,10 +837,10 @@ def main_ctrl(args):
 			# print i
 			# DR = samfile.count(chr, i[0]-1, i[0]+1)
 			# print i
-			if len(i) == 4:
-				file.write("%s\t%d\t%d\t%d\t%s\n"%(chr, i[0], i[1], i[2], i[3]))
 			if len(i) == 5:
-				file.write("%s\t%d\t%s\t%d\t%d\t%s\n"%(chr, i[0], i[1], i[2], i[3], i[4]))
+				file.write("%s\t%d\t%d\t%d\t%d\t%s\n"%(chr, i[0], i[1], i[2], i[3], i[4]))
+			if len(i) == 6:
+				file.write("%s\t%d\t%s\t%d\t%d\t%d\t%s\n"%(chr, i[0], i[1], i[2], i[3], i[4], i[5]))
 	file.close()
 	samfile.close()
 
@@ -773,7 +871,8 @@ def parse_signal(Chr_name, path, candidate, Task_list, evidence_read, SV_size, m
 					if chr not in candidate[svtype]:
 						candidate[svtype][chr] = list()
 					candidate[svtype][chr].append([start_pos, chr2, pos2, read_name])
-				elif svtype == "l_DUP" or svtype == "DUP_r" or svtype == "l_INV" or svtype == "INV_r":
+				# elif svtype == "l_DUP" or svtype == "DUP_r" or svtype == "l_INV" or svtype == "INV_r":
+				elif svtype == "l_DUP" or svtype == "DUP_r":
 					chr = seq[1]
 					key_1 = int(seq[2])
 					key_2 = int(seq[3])
@@ -845,11 +944,11 @@ def temp_result(chr, evidence_read, SV_size, low_bandary, max_distance, MainCand
 	# starttime = time.time()
 	if chr in MainCandidate["INV"]:
 		MainCandidate["INV"][chr] = sorted(MainCandidate["INV"][chr], key = lambda x:x[:])
-		intergrate_dup(chr, evidence_read, SV_size, 10, "l_INV", "INV_r", "INV", max_distance, MainCandidate, bam)
+		intergrate_inv(chr, evidence_read, SV_size, 200, "INV", max_distance, MainCandidate, bam)
 		MainCandidate["INV"][chr] = []
-		MainCandidate["l_INV"][chr] = []
-		MainCandidate["INV_r"][chr] = []
-		polish_dup(chr, "INV")
+		# MainCandidate["l_INV"][chr] = []
+		# MainCandidate["INV_r"][chr] = []
+		# polish_dup(chr, "INV")
 		gc.collect()
 	# print("[INFO]: Parse inversions used %0.2f seconds."%(time.time() - starttime))
 
@@ -858,7 +957,7 @@ def temp_result(chr, evidence_read, SV_size, low_bandary, max_distance, MainCand
 		MainCandidate["TRA"][chr] = sorted(MainCandidate["TRA"][chr], key = lambda x:x[:])
 		# for i in MainCandidate["TRA"][chr]:
 		# 	print chr, i
-		intergrate_tra(chr, evidence_read, SV_size, 10, "TRA", max_distance, MainCandidate, bam)
+		intergrate_tra(chr, evidence_read, SV_size, 5000, "TRA", max_distance, MainCandidate, bam)
 		MainCandidate["TRA"][chr] = []
 		gc.collect()
 	bam.close()
@@ -959,8 +1058,8 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 		MainCandidate["INV"][chr] = sorted(MainCandidate["INV"][chr], key = lambda x:x[:])
 		intergrate_dup(chr, evidence_read, SV_size, 10, "l_INV", "INV_r", "INV", max_distance, MainCandidate, sam_path)
 		MainCandidate["INV"][chr] = []
-		MainCandidate["l_INV"][chr] = []
-		MainCandidate["INV_r"][chr] = []
+		# MainCandidate["l_INV"][chr] = []
+		# MainCandidate["INV_r"][chr] = []
 		gc.collect()
 	# print("[INFO]: Parse inversions used %0.2f seconds."%(time.time() - starttime))
 
@@ -995,7 +1094,7 @@ def setupLogging(debug=False):
 
 def run(argv):
 	args = parseArgs(argv)
-	# setupLogging(False)
+	setupLogging(False)
 	# print args
 	starttime = time.time()
 	main_ctrl(args)
