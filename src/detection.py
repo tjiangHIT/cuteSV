@@ -511,23 +511,28 @@ def intergrate_dup(chr, evidence_read, SV_size, low_bandary, ll, lr, svtype, max
 	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_dup(temp, chr, evidence_read, SV_size, ll, lr, svtype, MainCandidate, sam_path)
 
-def cal_cluster_breakpoint(pos_list):
+def cal_cluster_breakpoint(pos_list, threshold):
 	pos_list.sort()
+	# print pos_list
 	temp = list()
 	temp.append(pos_list[0])
 	best_bp = 0
 	len_best_bp = 0
 	for pos in pos_list[1:]:
-		if temp[-1] + 50 < pos:
+		if temp[-1] + threshold < pos:
 			if len(temp) > len_best_bp:
 				len_best_bp = len(temp)
 				best_bp = sum(temp)/len(temp)
+				# print best_bp, len_best_bp
 			temp = list()
+			temp.append(pos)
+		else:
 			temp.append(pos)
 	if len(temp) > len_best_bp:
 		len_best_bp = len(temp)
 		best_bp = sum(temp)/len(temp)
-	return best_bp
+		# print best_bp, len_best_bp
+	return best_bp, len_best_bp
 
 def merge_pos_inv(pos_list, chr, evidence_read, SV_size, svtype, MainCandidate, bam):
 
@@ -544,16 +549,23 @@ def merge_pos_inv(pos_list, chr, evidence_read, SV_size, svtype, MainCandidate, 
 		if len(tag) < evidence_read:
 			return 0
 
-		breakpoint_1 = sum(start)/len(start)
-		# breakpoint_2 = cal_cluster_breakpoint(end)
-		breakpoint_2 = sum(end)/len(end)
+		# breakpoint_1 = sum(start)/len(start)
+		# breakpoint_2 = sum(end)/len(end)
+		# start.sort()
+		# print start
+		# end.sort()
 		# print end
 		# print breakpoint_1, breakpoint_2
+		breakpoint_1, tag_1 = cal_cluster_breakpoint(start, 10)
+		breakpoint_2, tag_2 = cal_cluster_breakpoint(end, 10)
+		# print breakpoint_1, breakpoint_2
+		if min(tag_1, tag_2)*2 < len(tag):
+			return 0
 
 		if chr not in semi_result:
 			semi_result[chr] = list()
 
-		DR = max(bam.count(chr, breakpoint_1, breakpoint_1+1), bam.count(chr, breakpoint_2, breakpoint_2+1))
+		DR = min(bam.count(chr, breakpoint_1, breakpoint_1+1), bam.count(chr, breakpoint_2, breakpoint_2+1))
 		# semi_result[chr].append()
 
 		# if SV_len >= SV_size and size[int(0.75*len(size))] - size[int(0.25*len(size))] < int(0.5*SV_len):
@@ -570,28 +582,29 @@ def intergrate_inv(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 	temp = list()
 	temp.append(MainCandidate[svtype][chr][0])
 	for pos in MainCandidate[svtype][chr][1:]:
-		# new adjusting
-		if temp[-1][0] + low_bandary >= pos[0] and temp[-1][1] + low_bandary >= pos[1]:
-			temp.append(pos)
-		else:
-			if temp[-1][0] - temp[0][0] <= max_distance and temp[-1][1] - temp[0][1] <= max_distance:
+	# 	# new adjusting
+	# 	if temp[-1][0] + low_bandary >= pos[0] and temp[-1][1] + low_bandary >= pos[1]:
+	# 		temp.append(pos)
+	# 	else:
+	# 		if temp[-1][0] - temp[0][0] <= max_distance and temp[-1][1] - temp[0][1] <= max_distance:
+	# 			merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
+	# 		temp = list()
+	# 		temp.append(pos)
+	# if temp[-1][0] - temp[0][0] <= max_distance and temp[-1][1] - temp[0][1] <= max_distance:
+	# 	merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
+
+		# old version
+		if temp[-1][0] + low_bandary < pos[0]:
+			if temp[-1][0] - temp[0][0] <= max_distance:
 				merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
+				# for i in temp:
+				# 	print i
 			temp = list()
 			temp.append(pos)
-	if temp[-1][0] - temp[0][0] <= max_distance and temp[-1][1] - temp[0][1] <= max_distance:
+		else:
+			temp.append(pos)
+	if temp[-1][0] - temp[0][0] <= max_distance:
 		merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
-# # old version
-# 		if temp[-1][0] + low_bandary < pos[0] and temp[-1][1] + low_bandary < pos[1]:
-# 			if temp[-1][0] - temp[0][0] <= max_distance:
-# 				merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
-# 				# for i in temp:
-# 				# 	print i
-# 			temp = list()
-# 			temp.append(pos)
-# 		else:
-# 			temp.append(pos)
-# 	if temp[-1][0] - temp[0][0] <= max_distance:
-# 		merge_pos_inv(temp, chr, evidence_read, SV_size, svtype, MainCandidate, sam_path)
 
 def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary, bam):
 	if len(pos_list) >= evidence_read:
@@ -619,8 +632,13 @@ def merge_pos_tra(pos_list, chr, evidence_read, SV_size, svtype, low_bandary, ba
 				max_chr_c = len(tra_dic[key])
 
 		if max_chr_c >= evidence_read:
-			breakpoint_1 = int(sum(start)/len(start))
-			breakpoint_2 = int(sum(tra_dic[max_chr])/max_chr_c)
+			# breakpoint_1 = int(sum(start)/len(start))
+			# breakpoint_2 = int(sum(tra_dic[max_chr])/max_chr_c)
+			breakpoint_1, tag_1 = cal_cluster_breakpoint(start, 50)
+			breakpoint_2, tag_2 = cal_cluster_breakpoint(tra_dic[max_chr], 50)
+			# print breakpoint_1, breakpoint_2, tag_1, tag_2, max_chr_c
+			if min(tag_1, tag_2)*2 < max_chr_c:
+				return 0
 			tag = dict()
 			for ele in pos_list:
 				if ele[1] == max_chr:
@@ -641,14 +659,14 @@ def intergrate_tra(chr, evidence_read, SV_size, low_bandary, svtype, max_distanc
 	temp.append(MainCandidate[svtype][chr][0])
 	for pos in MainCandidate[svtype][chr][1:]:
 		if temp[-1][0] + low_bandary < pos[0]:
-			# if temp[-1][0] - temp[0][0] <= max_distance:
-			merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
+			if temp[-1][0] - temp[0][0] <= max_distance:
+				merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
 			temp = list()
 			temp.append(pos)
 		else:
 			temp.append(pos)
-	# if temp[-1][0] - temp[0][0] <= max_distance:
-	merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
+	if temp[-1][0] - temp[0][0] <= max_distance:
+		merge_pos_tra(temp, chr, evidence_read, SV_size, svtype, low_bandary, sam_path)
 
 # def load_sam(sam_path):
 # 	starttime = time.time()
@@ -845,7 +863,15 @@ def main_ctrl(args):
 		temp = res.get()[0]
 		# print temp
 		if len(temp) > 0:
-			semi_result[temp[0]] = temp[1]
+			# semi_result[temp[0]] = temp[1]
+			# if len(temp[1]) > 1:
+			for chk in temp[1]:
+				if chk not in semi_result:
+					semi_result[chk] = temp[1][chk]
+				else:
+					for k in temp[1][chk]:
+						semi_result[chk].append(k)
+
 	# para = [("GL000219.1", temporary_dir, MainCandidate, Task_list, args.min_support, args.min_length, args.max_distance)]
 	# result = map(multi_run_wrapper_call, para)
 
@@ -871,7 +897,7 @@ def main_ctrl(args):
 
 def cal_GT(a, b):
 	if b == 0:
-		return "False"
+		return "1/1"
 	if a*1.0/b < 0.3:
 		return "0/0"
 	elif a*1.0/b >= 0.3 and a*1.0/b < 0.8:
@@ -879,7 +905,7 @@ def cal_GT(a, b):
 	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
 		return "1/1"
 	else:
-		return "False"
+		return "1/1"
 
 
 def parse_signal(Chr_name, path, candidate, Task_list, evidence_read, SV_size, max_distance, sam_path):
@@ -930,7 +956,8 @@ def parse_signal(Chr_name, path, candidate, Task_list, evidence_read, SV_size, m
 			file.close()
 	temp_result(Chr_name, evidence_read, SV_size, 30, max_distance, candidate, sam_path)
 	if Chr_name in semi_result:
-		return [Chr_name, semi_result[Chr_name]]
+		# return [Chr_name, semi_result[Chr_name]]
+		return [Chr_name, semi_result]
 	else:
 		return []
 
@@ -980,7 +1007,9 @@ def temp_result(chr, evidence_read, SV_size, low_bandary, max_distance, MainCand
 	
 	# starttime = time.time()
 	if chr in MainCandidate["INV"]:
-		MainCandidate["INV"][chr] = sorted(MainCandidate["INV"][chr], key = lambda x:x[:])
+		MainCandidate["INV"][chr] = sorted(MainCandidate["INV"][chr], key = lambda x:x[0])
+		# for i in MainCandidate["INV"][chr]:
+		# 	print chr, i
 		intergrate_inv(chr, evidence_read, SV_size, 50, "INV", max_distance, MainCandidate, bam)
 		MainCandidate["INV"][chr] = []
 		# MainCandidate["l_INV"][chr] = []
@@ -990,13 +1019,21 @@ def temp_result(chr, evidence_read, SV_size, low_bandary, max_distance, MainCand
 	# print("[INFO]: Parse inversions used %0.2f seconds."%(time.time() - starttime))
 
 	# starttime = time.time()
-	if chr in MainCandidate["TRA"]:
+	# if chr in MainCandidate["TRA"]:
+	# 	MainCandidate["TRA"][chr] = sorted(MainCandidate["TRA"][chr], key = lambda x:x[:])
+	# 	for i in MainCandidate["TRA"][chr]:
+	# 		print chr, i
+	# 	intergrate_tra(chr, evidence_read, SV_size, 50, "TRA", max_distance, MainCandidate, bam)
+	# 	MainCandidate["TRA"][chr] = []
+	# 	gc.collect()
+	for chr in MainCandidate["TRA"]:
 		MainCandidate["TRA"][chr] = sorted(MainCandidate["TRA"][chr], key = lambda x:x[:])
 		# for i in MainCandidate["TRA"][chr]:
 		# 	print chr, i
-		intergrate_tra(chr, evidence_read, SV_size, 5000, "TRA", max_distance, MainCandidate, bam)
+		intergrate_tra(chr, evidence_read, SV_size, 50, "TRA", max_distance, MainCandidate, bam)
 		MainCandidate["TRA"][chr] = []
 		gc.collect()
+
 	bam.close()
 
 def load_signals(path, candidate, process_list):
@@ -1103,8 +1140,8 @@ def show_temp_result(evidence_read, SV_size, low_bandary, max_distance, out_path
 	# starttime = time.time()
 	for chr in MainCandidate["TRA"]:
 		MainCandidate["TRA"][chr] = sorted(MainCandidate["TRA"][chr], key = lambda x:x[:])
-		# for i in MainCandidate["TRA"][chr]:
-		# 	print chr, i
+		for i in MainCandidate["TRA"][chr]:
+			print chr, i
 		intergrate_tra(chr, evidence_read, SV_size, 10, "TRA", max_distance, MainCandidate, sam_path)
 		MainCandidate["TRA"][chr] = []
 		gc.collect()
