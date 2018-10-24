@@ -151,25 +151,32 @@ def main_ctrl(args):
 				recall += 1
 
 		else:
-			flag = 1
+			flag = 0
 			chr_1 = seq[0]
 			breakpoint_1 = int(seq[1])
 			chr_2 = seq[2]
 			breakpoint_2 = int(seq[3])
 			svtype = seq[6]
-			ans_MP = acquire_locus(pos-50, pos+50, svtype, chr, total_MP)
+			ans_MP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr, total_MP)
+
 			if len(ans_MP) > 0:
 				flag = 1
 				# print ans_MP
 				if ans_MP[3] == 'Y':
 					homo_MP[ans_MP[4]] = 1
-			ans_FP = acquire_locus(pos-50, pos+50, svtype, chr, total_FP)
+			ans_FP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr, total_FP)
 			if len(ans_FP) > 0:
 				flag = 1
 				if ans_FP[3] == 'Y':
 					homo_FP[ans_FP[4]] = 1
 			if flag == 1:
 				recall += 1
+
+			# if chr_1 == '1' and chr_2 == '3':
+			# 	if breakpoint_1 == 47372:
+			# 		print seq
+			# 		print total_FP[svtype][chr_1][4][147]
+			# 		print ans_FP
 
 	file.close()
 	logging.info("Accuracy rate %d/%d"%(recall, total_call))
