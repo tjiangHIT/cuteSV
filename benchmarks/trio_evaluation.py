@@ -7,6 +7,7 @@ def load_parent_info(path):
 	homo_P = dict()
 	total_P = dict()
 	linkage = 0
+	Tag = dict()
 	file = open(path, "r")
 	for line in file:
 		seq = line.strip('\n').split('\t')
@@ -16,6 +17,10 @@ def load_parent_info(path):
 			svlen = int(seq[2])
 			svtype = seq[5]
 			GT = seq[6]
+
+			if svtype not in Tag:
+				Tag[svtype] = 0
+			Tag[svtype] += 1
 
 			if svtype not in total_P:
 				total_P[svtype] = dict()
@@ -45,6 +50,10 @@ def load_parent_info(path):
 			svtype = seq[6]
 			GT = seq[7]
 
+			if svtype not in Tag:
+				Tag[svtype] = 0
+			Tag[svtype] += 1
+
 			if svtype not in total_P:
 				total_P[svtype] = dict()
 			if chr_1 not in total_P[svtype]:
@@ -65,7 +74,7 @@ def load_parent_info(path):
 				total_P[svtype][chr_1][hash_1][hash_2].append([breakpoint_1, chr_2, breakpoint_2, 'N', 0])
 
 	file.close()
-	return homo_P, total_P
+	return homo_P, total_P, Tag
 
 def acquire_locus(down, up, keytype, chr, MainCandidate):
 	if keytype not in MainCandidate:
@@ -110,12 +119,18 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 
 def main_ctrl(args):
 	logging.info("Loading Male parent callsets.")
-	homo_MP, total_MP = load_parent_info(args.MP)
+	homo_MP, total_MP, Tag = load_parent_info(args.MP)
+	logging.info("Homozygous SV is %d in %s."%(len(homo_MP), args.MP))
 	# print len(homo_MP)
+	for key in Tag:
+		logging.info("Type %s SV is %d."%(key, Tag[key]))
 
 	logging.info("Loading Female parent callsets.")
-	homo_FP, total_FP = load_parent_info(args.FP)
+	homo_FP, total_FP, Tag = load_parent_info(args.FP)
+	logging.info("Homozygous SV is %d in %s."%(len(homo_FP), args.FP))
 	# print len(homo_FP)
+	for key in Tag:
+		logging.info("Type %s SV is %d."%(key, Tag[key]))
 	# for svtype in total_FP:
 	# 	# print svtype
 	# 	for chr in total_FP[svtype]:
@@ -127,6 +142,7 @@ def main_ctrl(args):
 	logging.info("Loading Offspring callsets.")
 	recall = 0
 	total_call = 0
+	tag = dict()
 	file = open(args.F1, 'r')
 	for line in file:
 		seq = line.strip('\n').split('\t')
@@ -137,6 +153,9 @@ def main_ctrl(args):
 			pos = int(seq[1])
 			svlen = int(seq[2])
 			svtype = seq[5]
+			if svtype not in tag:
+				tag[svtype] = 0
+			tag[svtype] += 1
 			ans_MP = acquire_locus(pos-50, pos+50, svtype, chr, total_MP)
 			if len(ans_MP) > 0:
 				flag = 1
@@ -157,14 +176,17 @@ def main_ctrl(args):
 			chr_2 = seq[2]
 			breakpoint_2 = int(seq[3])
 			svtype = seq[6]
-			ans_MP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr, total_MP)
+			if svtype not in tag:
+				tag[svtype] = 0
+			tag[svtype] += 1
+			ans_MP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr_1, total_MP)
 
 			if len(ans_MP) > 0:
 				flag = 1
 				# print ans_MP
 				if ans_MP[3] == 'Y':
 					homo_MP[ans_MP[4]] = 1
-			ans_FP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr, total_FP)
+			ans_FP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr_1, total_FP)
 			if len(ans_FP) > 0:
 				flag = 1
 				if ans_FP[3] == 'Y':
@@ -179,18 +201,20 @@ def main_ctrl(args):
 			# 		print ans_FP
 
 	file.close()
+	for key in tag:
+		logging.info("Type %s SV is %d."%(key, tag[key]))
 	logging.info("Accuracy rate %d/%d"%(recall, total_call))
 	total_right = 0
 	for key in homo_MP:
 		if homo_MP[key] == 1:
 			total_right += 1
-		else:
-			print homo_MP[key]
+		# else:
+		# 	print homo_MP[key]
 	for key in homo_FP:
 		if homo_FP[key] == 1:
 			total_right += 1
-		else:
-			print homo_FP[key]
+		# else:
+		# 	print homo_FP[key]
 	logging.info("Sensitivity rate %d/%d"%(total_right, len(homo_FP)+len(homo_MP)))
 
 def main(argv):

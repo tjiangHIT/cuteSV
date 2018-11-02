@@ -7,6 +7,7 @@ def load_parent_info(path):
 	homo_P = dict()
 	total_P = dict()
 	linkage = 0
+	Tag = dict()
 	file = open(path, 'r')
 	for line in file:
 		seq = line.strip('\n').split('\t')
@@ -21,6 +22,10 @@ def load_parent_info(path):
 		pos_2 = int(info.split(";")[3].split("=")[1])
 		svlen = int(info.split(";")[11].split("=")[1])
 		GT = seq[9].split(':')[0]
+
+		if svtype not in Tag:
+			Tag[svtype] = 0
+		Tag[svtype] += 1
 
 		if svtype not in total_P:
 			total_P[svtype] = dict()
@@ -42,7 +47,7 @@ def load_parent_info(path):
 			total_P[svtype][chr_1][hash_1][hash_2].append([pos_1, chr_2, pos_2, svlen, 'N', 0])
 		# print chr_1, pos_1, chr_2, pos_2, svlen, svtype, GT
 	file.close()
-	return homo_P, total_P
+	return homo_P, total_P, Tag
 
 def acquire_locus(down, up, keytype, chr, MainCandidate):
 	back_ele = list()
@@ -92,16 +97,23 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 
 def main_ctrl(args):
 	logging.info("Loading Male parent callsets.")
-	homo_MP, total_MP = load_parent_info(args.MP)
-	print len(homo_MP)
+	homo_MP, total_MP, Tag = load_parent_info(args.MP)
+	# print len(homo_MP)
+	logging.info("Homozygous SV is %d in %s."%(len(homo_MP), args.MP))
+	for key in Tag:
+		logging.info("Type %s SV is %d."%(key, Tag[key]))
 
 	logging.info("Loading Female parent callsets.")
-	homo_FP, total_FP = load_parent_info(args.FP)
-	print len(homo_FP)
+	homo_FP, total_FP, Tag = load_parent_info(args.FP)
+	# print len(homo_FP)
+	logging.info("Homozygous SV is %d in %s."%(len(homo_FP), args.FP))
+	for key in Tag:
+		logging.info("Type %s SV is %d."%(key, Tag[key]))
 
 	logging.info("Loading Offspring callsets.")
 	recall = 0
 	total_call = 0
+	tag = dict()
 	file = open(args.F1, 'r')
 	for line in file:
 		seq = line.strip('\n').split('\t')
@@ -113,6 +125,9 @@ def main_ctrl(args):
 		chr_1 = seq[0]
 		pos_1 = int(seq[1])
 		svtype = seq[4]
+		if svtype not in tag:
+			tag[svtype] = 0
+		tag[svtype] += 1
 		info = seq[7]
 		chr_2 = info.split(";")[2].split("=")[1]
 		pos_2 = int(info.split(";")[3].split("=")[1])
@@ -138,6 +153,8 @@ def main_ctrl(args):
 			recall += 1
 
 	file.close()
+	for key in tag:
+		logging.info("Type %s SV is %d."%(key, tag[key]))
 	logging.info("Accuracy rate %d/%d"%(recall, total_call))
 	total_right = 0
 	for key in homo_MP:
