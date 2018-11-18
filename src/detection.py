@@ -769,14 +769,14 @@ def main_ctrl(args):
 		# process_list.append([i[0], i[3]])
 		# print i[0], samfile.get_reference_length(i[0])
 		local_ref_len = samfile.get_reference_length(i[0])
-		if local_ref_len < single_task:
+		if local_ref_len < args.batches:
 			Task_list.append([i[0], 0, local_ref_len])
 		else:
 			pos = 0
-			task_round = int(local_ref_len/single_task)
+			task_round = int(local_ref_len/args.batches)
 			for j in xrange(task_round):
-				Task_list.append([i[0], pos, pos+single_task])
-				pos += single_task
+				Task_list.append([i[0], pos, pos+args.batches])
+				pos += args.batches
 			if pos < local_ref_len:
 				Task_list.append([i[0], pos, local_ref_len])
 
@@ -841,6 +841,7 @@ def main_ctrl(args):
 	'''
 	# show_temp_result(args.min_support, args.min_length, 30, args.max_distance, args.output, MainCandidate)
 
+	'''
 	logging.info("Construct variant calling file.")
 	analysis_pools = Pool(processes=int(args.threads))
 	# multiprocessing final calling
@@ -893,6 +894,7 @@ def main_ctrl(args):
 				file.write("%s\t%d\t%s\t%d\t%d\t%d\t%s\t%s\n"%(chr, i[0], i[1], i[2], i[3], i[4], i[5], cal_GT(i[3], i[4])))
 				# file.write("%s\t%d\t%s\t%d\t%s\t%d\t%d\n"%(chr, i[0], i[4], i[1], cal_GT(i[2], i[3]), i[2], i[3]))
 	file.close()
+	'''
 	samfile.close()
 
 def cal_GT(a, b):
@@ -1192,6 +1194,7 @@ def parseArgs(argv):
 	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", default = 1000, type = int)
 	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 2000, type = int)
 	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", default = 16, type = int)
+	parser.add_argument('-b', '--batches', help = "A batches of reads to load.[%(default)s]", default = 10000000, type = int)
 	args = parser.parse_args(argv)
 	return args
 
