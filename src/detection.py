@@ -954,7 +954,7 @@ def parse_signal(Chr_name, path, candidate, Task_list, evidence_read, SV_size, m
 						else:
 							if key_2 not in candidate[svtype][chr][key_1]:
 								candidate[svtype][chr][key_1][key_2] = list()
-						candidate[svtype][chr][key_1][key_2].append([pos, read_name])
+					candidate[svtype][chr][key_1][key_2].append([pos, read_name])
 			file.close()
 	temp_result(Chr_name, evidence_read, SV_size, 30, max_distance, candidate, sam_path)
 	if Chr_name in semi_result:
