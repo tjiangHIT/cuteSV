@@ -3,219 +3,187 @@ import argparse
 import logging
 import time
 
-def load_parent_info(path):
-	homo_P = dict()
-	total_P = dict()
-	linkage = 0
-	Tag = dict()
-	file = open(path, "r")
+def load_callset_cuteSV(path):
+	callset = dict()
+	file = open(path, 'r')
 	for line in file:
 		seq = line.strip('\n').split('\t')
-		if len(seq) == 7:
-			chr = seq[0]
-			pos = int(seq[1])
-			svlen = int(seq[2])
-			svtype = seq[5]
-			GT = seq[6]
-
-			if svtype not in Tag:
-				Tag[svtype] = 0
-			Tag[svtype] += 1
-
-			if svtype not in total_P:
-				total_P[svtype] = dict()
-			if chr not in total_P[svtype]:
-				total_P[svtype][chr] = dict()
-			hash_1 = int(pos/10000)
-			mod = pos % 10000
-			hash_2 = int(mod / 50)
-			if hash_1 not in total_P[svtype][chr]:
-				total_P[svtype][chr][hash_1] = dict()
-			if hash_2 not in total_P[svtype][chr][hash_1]:
-				total_P[svtype][chr][hash_1][hash_2] = list()
-
-			if GT == '1/1':
-				linkage += 1
-				total_P[svtype][chr][hash_1][hash_2].append([pos, svlen, 'Y', linkage])
-				homo_P[linkage] = seq
-			else:
-				total_P[svtype][chr][hash_1][hash_2].append([pos, svlen, 'N', 0])
-
+		if seq[0] not in callset:
+			callset[seq[0]] = dict()
+		if seq[1] == 'TRA':
+			if seq[1] not in callset[seq[0]]:
+				callset[seq[0]][seq[1]] = dict()
+			if seq[3] not in callset[seq[0]][seq[1]]:
+				callset[seq[0]][seq[1]][seq[3]] = list()
+			callset[seq[0]][seq[1]][seq[3]].append([int(seq[2]), int(seq[4]), 0])
 		else:
-			# TRA
-			chr_1 = seq[0]
-			breakpoint_1 = int(seq[1])
-			chr_2 = seq[2]
-			breakpoint_2 = int(seq[3])
-			svtype = seq[6]
-			GT = seq[7]
-
-			if svtype not in Tag:
-				Tag[svtype] = 0
-			Tag[svtype] += 1
-
-			if svtype not in total_P:
-				total_P[svtype] = dict()
-			if chr_1 not in total_P[svtype]:
-				total_P[svtype][chr_1] = dict()
-			hash_1 = int(breakpoint_1/10000)
-			mod = breakpoint_1 % 10000
-			hash_2 = int(mod / 50)
-			if hash_1 not in total_P[svtype][chr_1]:
-				total_P[svtype][chr_1][hash_1] = dict()
-			if hash_2 not in total_P[svtype][chr_1][hash_1]:
-				total_P[svtype][chr_1][hash_1][hash_2] = list()
-			# total_P[svtype][chr_1][hash_1][hash_2].append([breakpoint_1, chr_2, breakpoint_2])
-			if GT == '1/1':
-				linkage	+= 1
-				total_P[svtype][chr_1][hash_1][hash_2].append([breakpoint_1, chr_2, breakpoint_2, 'Y', linkage])
-				homo_P[linkage] = seq
-			else:
-				total_P[svtype][chr_1][hash_1][hash_2].append([breakpoint_1, chr_2, breakpoint_2, 'N', 0])
-
+			if seq[1] not in callset[seq[0]]:
+				callset[seq[0]][seq[1]] = list()
+			callset[seq[0]][seq[1]].append([int(seq[2]), int(seq[2])+int(seq[3]), 0])
 	file.close()
-	return homo_P, total_P, Tag
+	return callset
 
-def acquire_locus(down, up, keytype, chr, MainCandidate):
-	if keytype not in MainCandidate:
-		return []
-	if chr not in MainCandidate[keytype]:
-		return []
-	if int(up/10000) == int(down/10000):
-		key_1 = int(down/10000)
-		if key_1 not in MainCandidate[keytype][chr]:
-			return []
-		for i in xrange(int((up%10000)/50)-int((down%10000)/50)+1):
-			# exist a bug ***********************************
-			key_2 = int((down%10000)/50)+i
-			if key_2 not in MainCandidate[keytype][chr][key_1]:
-				continue
-			for ele in MainCandidate[keytype][chr][key_1][key_2]:
-				if ele[0] >= down and ele[0] <= up:
-					return ele
+def load_callset_sniffles(path):
+	callset = dict()
+	file = open(path, 'r')
+	for line in file:
+		seq = line.strip('\n').split('\t')
+		if seq[0][0] == '#':
+			continue
+		if seq[0] not in callset:
+			callset[seq[0]] = dict()
+		pos_2 = int(seq[7].split(';')[3].split('=')[1])
+		if seq[4][1:-1] == 'TRA':
+			if seq[4][1:-1] not in callset[seq[0]]:
+				callset[seq[0]][seq[4][1:-1]] = dict()
+				chr_2 = seq[7].split(';')[2].split('=')[1]
+			if chr_2 not in callset[seq[0]][seq[4][1:-1]]:
+				callset[seq[0]][seq[4][1:-1]][chr_2] = list()
+			callset[seq[0]][seq[4][1:-1]][chr_2].append([int(seq[1]), pos_2, 0])
+		else:
+			if seq[4][1:-1] not in callset[seq[0]]:
+				callset[seq[0]][seq[4][1:-1]] = list()
+			callset[seq[0]][seq[4][1:-1]].append([int(seq[1]), pos_2, 0])
+	file.close()
+	return callset
+
+def load_callset_pbsv(path):
+	callset = dict()
+	file = open(path, 'r')
+	for line in file:
+		seq = line.strip('\n').split('\t')
+		if seq[0][0] == '#':
+			continue
+		if seq[0] not in callset:
+			callset[seq[0]] = dict()
+		svtype = seq[2].split('.')[1]
+		if svtype == 'BND':
+			svtype = "TRA"
+			if svtype not in callset[seq[0]]:
+				callset[seq[0]][svtype] = dict()
+				if len(seq[4].split(']')) > 1:
+					chr_2 = seq[4].split(']')[1].split(':')[0]
+					pos_2 = int(seq[4].split(']')[1].split(':')[1])
+				else:
+					chr_2 = seq[4].split('[')[1].split(':')[0]
+					pos_2 = int(seq[4].split('[')[1].split(':')[1])
+			if chr_2 not in callset[seq[0]][svtype]:
+				callset[seq[0]][svtype][chr_2] = list()
+			callset[seq[0]][svtype][chr_2].append([int(seq[1]), pos_2, 0])
+		else:
+			if svtype not in callset[seq[0]]:
+				callset[seq[0]][svtype] = list()
+			# print seq[7]
+			try:
+				svlen = int(seq[7].split(';')[2].split('=')[1])
+				callset[seq[0]][svtype].append([int(seq[1]), int(seq[1])+svlen, 0])
+			except:
+				pos_2 = int(seq[7].split(';')[1].split('=')[1])
+				callset[seq[0]][svtype].append([int(seq[1]), pos_2, 0])
+	file.close()
+	return callset
+
+def cal_overlap(a_l, a_r, b_l, b_r, bias):
+	if a_l < b_l:
+		if b_l >= a_r:
+			return 0
+		else:
+			if b_r <= a_r:
+				if (a_r - a_l)*bias <= b_r - b_l:
+					return 1
+				else:
+					return 0
+			else:
+				overlap = a_r - b_l
+				if (a_r - a_l)*bias <= overlap and (b_r - b_l)*bias <= overlap:
+					return 1
+				else:
+					return 0
 	else:
-		key_1 = int(down/10000)
-		if key_1 in MainCandidate[keytype][chr]:
-			for i in xrange(200-int((down%10000)/50)):
-				# exist a bug ***********************************
-				key_2 = int((down%10000)/50)+i
-				if key_2 not in MainCandidate[keytype][chr][key_1]:
-					continue
-				for ele in MainCandidate[keytype][chr][key_1][key_2]:
-					if ele[0] >= down and ele[0] <= up:
-						return ele
-		key_1 += 1
-		if key_1 not in MainCandidate[keytype][chr]:
-			return []
-		for i in xrange(int((up%10000)/50)+1):
-			# exist a bug ***********************************
-			key_2 = i
-			if key_2 not in MainCandidate[keytype][chr][key_1]:
+		if a_l >= b_r:
+			return 0
+		else:
+			if a_r <= b_r:
+				if (b_r - b_l)*bias <= a_r - a_l:
+					return 1
+				else:
+					return 0
+			else:
+				overlap = b_r - a_l
+				if (a_r - a_l)*bias <= overlap and (b_r - b_l)*bias <= overlap:
+					return 1
+				else:
+					return 0
+
+def cal_overlap_tra(a_l, a_r, b_l, b_r, bias):
+	if abs(a_l-b_l) <= bias and abs(a_r-b_r) <= bias:
+		return 1
+	else:
+		return 0
+
+def eva_record(call_A, call_B, bias, offect):
+	for chr in call_A:
+		if chr not in call_B:
+			continue
+		for svtype in call_A[chr]:
+			if svtype not in call_B[chr]:
 				continue
-			for ele in MainCandidate[keytype][chr][key_1][key_2]:
-				if ele[0] >= down and ele[0] <= up:
-					return ele
-	return []
+			if svtype == "TRA":
+				for chr_2 in call_A[chr][svtype]:
+					if chr_2 not in call_B[chr][svtype]:
+						continue
+					for i in xrange(len(call_A[chr][svtype][chr_2])):
+						for j in xrange(len(call_B[chr][svtype][chr_2])):
+							judgement = cal_overlap_tra(call_A[chr][svtype][chr_2][i][0], call_A[chr][svtype][chr_2][i][1], call_B[chr][svtype][chr_2][j][0], call_B[chr][svtype][chr_2][j][1], offect)
+							if judgement == 1:
+								call_A[chr][svtype][chr_2][i][2] = 1
+								call_B[chr][svtype][chr_2][j][2] = 1
+								# exist a bug
+			else:
+				for i in xrange(len(call_A[chr][svtype])):
+					for j in xrange(len(call_B[chr][svtype])):
+						judgement = cal_overlap(call_A[chr][svtype][i][0], call_A[chr][svtype][i][1], call_B[chr][svtype][j][0], call_B[chr][svtype][j][1], bias)
+						if judgement == 1:
+							call_A[chr][svtype][i][2] = 1
+							call_B[chr][svtype][j][2] = 1
+
+def statistics_true_possitive(callset):
+	record = 0
+	true_record = 0
+	for chr in callset:
+		for svtype in callset[chr]:
+			if svtype == "TRA":
+				for chr_2 in callset[chr][svtype]:
+					for res in callset[chr][svtype][chr_2]:
+						record += 1
+						if res[2] == 1:
+							true_record += 1
+			else:
+				for res in callset[chr][svtype]:
+					record += 1
+					if res[2] == 1:
+						true_record += 1
+	return record, true_record
 
 def main_ctrl(args):
-	logging.info("Loading Male parent callsets.")
-	homo_MP, total_MP, Tag = load_parent_info(args.MP)
-	logging.info("Homozygous SV is %d in %s."%(len(homo_MP), args.MP))
-	# print len(homo_MP)
-	for key in Tag:
-		logging.info("Type %s SV is %d."%(key, Tag[key]))
-
-	logging.info("Loading Female parent callsets.")
-	homo_FP, total_FP, Tag = load_parent_info(args.FP)
-	logging.info("Homozygous SV is %d in %s."%(len(homo_FP), args.FP))
-	# print len(homo_FP)
-	for key in Tag:
-		logging.info("Type %s SV is %d."%(key, Tag[key]))
-	# for svtype in total_FP:
-	# 	# print svtype
-	# 	for chr in total_FP[svtype]:
-	# 		# print chr
-	# 		for hash_1 in total_FP[svtype][chr]:
-	# 			for hash_2 in total_FP[svtype][chr][hash_1]:
-	# 				print total_FP[svtype][chr][hash_1][hash_2]
-	# 				# break
-	logging.info("Loading Offspring callsets.")
-	recall = 0
-	total_call = 0
-	tag = dict()
-	file = open(args.F1, 'r')
-	for line in file:
-		seq = line.strip('\n').split('\t')
-		total_call += 1
-		if len(seq) == 7:
-			flag = 0
-			chr = seq[0]
-			pos = int(seq[1])
-			svlen = int(seq[2])
-			svtype = seq[5]
-			if svtype not in tag:
-				tag[svtype] = 0
-			tag[svtype] += 1
-			ans_MP = acquire_locus(pos-50, pos+50, svtype, chr, total_MP)
-			if len(ans_MP) > 0:
-				flag = 1
-				if ans_MP[2] == 'Y':
-					homo_MP[ans_MP[3]] = 1
-			ans_FP = acquire_locus(pos-50, pos+50, svtype, chr, total_FP)
-			if len(ans_FP) > 0:
-				flag = 1
-				if ans_FP[2] == 'Y':
-					homo_FP[ans_FP[3]] = 1
-			if flag == 1:
-				recall += 1
-
-		else:
-			flag = 0
-			chr_1 = seq[0]
-			breakpoint_1 = int(seq[1])
-			chr_2 = seq[2]
-			breakpoint_2 = int(seq[3])
-			svtype = seq[6]
-			if svtype not in tag:
-				tag[svtype] = 0
-			tag[svtype] += 1
-			ans_MP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr_1, total_MP)
-
-			if len(ans_MP) > 0:
-				flag = 1
-				# print ans_MP
-				if ans_MP[3] == 'Y':
-					homo_MP[ans_MP[4]] = 1
-			ans_FP = acquire_locus(breakpoint_1-50, breakpoint_1+50, svtype, chr_1, total_FP)
-			if len(ans_FP) > 0:
-				flag = 1
-				if ans_FP[3] == 'Y':
-					homo_FP[ans_FP[4]] = 1
-			if flag == 1:
-				recall += 1
-
-			# if chr_1 == '1' and chr_2 == '3':
-			# 	if breakpoint_1 == 47372:
-			# 		print seq
-			# 		print total_FP[svtype][chr_1][4][147]
-			# 		print ans_FP
-
-	file.close()
-	for key in tag:
-		logging.info("Type %s SV is %d."%(key, tag[key]))
-	logging.info("Accuracy rate %d/%d"%(recall, total_call))
-	total_right = 0
-	for key in homo_MP:
-		if homo_MP[key] == 1:
-			total_right += 1
-		# else:
-		# 	print homo_MP[key]
-	for key in homo_FP:
-		if homo_FP[key] == 1:
-			total_right += 1
-		# else:
-		# 	print homo_FP[key]
-	logging.info("Sensitivity rate %d/%d"%(total_right, len(homo_FP)+len(homo_MP)))
+	logging.info("Load SV callset of cuteSV.")
+	call_child = load_callset_cuteSV(args.F1)
+	call_father = load_callset_cuteSV(args.MP)
+	call_mother = load_callset_cuteSV(args.FP)
+	#call_child = load_callset_sniffles(args.F1)
+	#call_father = load_callset_sniffles(args.MP)
+	#call_mother = load_callset_sniffles(args.FP)
+	#call_child = load_callset_pbsv(args.F1)
+	#call_father = load_callset_pbsv(args.MP)
+	#call_mother = load_callset_pbsv(args.FP)	
+	logging.info("Evaluate accuracy and sensitivity.")
+	eva_record(call_child, call_father, args.bias, args.offect)
+	eva_record(call_child, call_mother, args.bias, args.offect)
+	child_r, child_tr = statistics_true_possitive(call_child)
+	father_r, father_tr = statistics_true_possitive(call_father)
+	mother_r, mother_tr = statistics_true_possitive(call_mother)
+	logging.info("Accuracy rate is %d/%d."%(child_tr, child_r))
+	logging.info("Sensitivity rate is %d/%d."%(mother_tr+father_tr, mother_r+father_r))
 
 def main(argv):
 	args = parseArgs(argv)
@@ -234,6 +202,8 @@ def parseArgs(argv):
 	parser.add_argument("MP", type=str, help="Male parent callsets")
 	parser.add_argument('FP', type=str, help = "Female parent callsets")
 	parser.add_argument('F1', type=str, help = "Offspring callsets")
+	parser.add_argument('-b', '--bias', help = "Bias of overlaping.[%(default)s]", default = 0.7, type = float)
+	parser.add_argument('-o', '--offect', help = "Offect of translocation overlaping.[%(default)s]", default = 50, type = int)
 	# parser.add_argument('-s', '--min_support', help = "Minimum number of reads that support a SV to be reported.[%(default)s]", default = 10, type = int)
 	args = parser.parse_args(argv)
 	return args

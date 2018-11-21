@@ -213,7 +213,22 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size=50):
 	if len(semi_dup_cluster) > 1:
 		generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, dup_candidates, candidate_single_SV)
 	file.close()
-	return candidate_single_SV
+	return polish_dup(candidate_single_SV)
+
+def polish_dup(candidate_single_SV):
+	if len(candidate_single_SV) <= 1:
+		return candidate_single_SV
+	polish_dup_candidate = list()
+	temp = candidate_single_SV[0]
+	for i in candidate_single_SV[1:]:
+		if temp[2] <= i[2] and i[2] <= temp[2]+temp[3]:
+			if temp[4] < i[4]:
+				temp = i
+		else:
+			polish_dup_candidate.append(temp)
+			temp = i
+	polish_dup_candidate.append(temp)
+	return polish_dup_candidate
 
 def acquire_locus(down, up, keytype, chr, MainCandidate):
 	re = list()

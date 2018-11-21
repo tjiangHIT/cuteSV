@@ -375,9 +375,11 @@ def main_ctrl(args):
 	for chr in chr_name_list:
 		for svtype in ["DEL", "INS", "INV"]:
 			if svtype == "INV":
-				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 20, args.min_length)]
+				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 20, args.min_length)]
+				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 50, args.min_length)]
 			else:
-				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.7, 10, args.min_length)]
+				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.7, 10, args.min_length)]
+				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 50, args.min_length)]
 			# resolution_INDEL(sys.argv[1], "1", "INV", 10, 0.5, 20, 50)
 			result.append(analysis_pools.map_async(run_indel_inv, para))
 			# print chr, svtype
