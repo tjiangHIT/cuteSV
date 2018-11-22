@@ -18,7 +18,7 @@ sniffles -m ${query}_minimap2.bam -v ${query}_minimap2_sniffles.vcf -s 10 -l 50 
 
 # pbsv
 pbsv discover ${query}_minimap2.bam ${query}_minimap2_pbsv.svsig.gz -s ${query}
-pbsv call ${ref} ${query}_minimap2_pbsv.svsig.gz ${query}_minimap2_pbsv.vcf -j 16 -m 50
+pbsv call ${ref} ${query}_minimap2_pbsv.svsig.gz ${query}_minimap2_pbsv.vcf -j 16 -m 50 --call-min-reads-all-samples 10 --call-min-reads-one-sample 10
 
 # SVIM
 /home/tjiang/miniconda3/bin/python3 /home/tjiang/Tools/svim/SVIM.py alignment --min_sv_size 50 svim/f1/ f1_minimap2.bam
