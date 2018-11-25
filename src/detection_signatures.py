@@ -376,23 +376,23 @@ def main_ctrl(args):
 		for svtype in ["DEL", "INS", "INV"]:
 			if svtype == "INV":
 				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 20, args.min_length)]
-				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 50, args.min_length)]
+				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, args.max_cluster_bias, args.min_length, args.max_distance)]
 			else:
 				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.7, 10, args.min_length)]
-				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 50, args.min_length)]
+				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, args.max_cluster_bias, args.min_length, args.max_distance)]
 			# resolution_INDEL(sys.argv[1], "1", "INV", 10, 0.5, 20, 50)
 			result.append(analysis_pools.map_async(run_indel_inv, para))
 			# print chr, svtype
 		# DUP
 		# resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size=50)
 		# resolution_DUP(sys.argv[1], "1", 10, 50, 50)
-		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, 50, args.min_length)]
+		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias, args.min_length, args.max_distance)]
 		result.append(analysis_pools.map_async(run_dup, para))
 
 	for i in process_tra:
 		# TRA
 		# resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias)
-		para = [("%s%s.sigs"%(temporary_dir, "TRA"), i[0], i[1], args.min_support, 0.6, 50)]
+		para = [("%s%s.sigs"%(temporary_dir, "TRA"), i[0], i[1], args.min_support, 0.6, args.max_cluster_bias)]
 		result.append(analysis_pools.map_async(run_tra, para))
 
 	analysis_pools.close()
@@ -463,7 +463,7 @@ def parseArgs(argv):
 	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 2000, type = int)
 	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", default = 16, type = int)
 	parser.add_argument('-b', '--batches', help = "A batches of reads to load.[%(default)s]", default = 10000000, type = int)
-	parser.add_argument('-c', '--max_cluster_bias', help = "Maximum distance to cluster read together.[%(default)s]", default = 10, type = int)
+	parser.add_argument('-c', '--max_cluster_bias', help = "Maximum distance to cluster read together.[%(default)s]", default = 50, type = int)
 	args = parser.parse_args(argv)
 	return args
 
