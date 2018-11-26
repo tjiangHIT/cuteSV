@@ -76,7 +76,7 @@ def load_callset_pbsv(path):
 			# print seq[7]
 			try:
 				svlen = int(seq[7].split(';')[2].split('=')[1])
-				callset[seq[0]][svtype].append([int(seq[1]), int(seq[1])+svlen, 0])
+				callset[seq[0]][svtype].append([int(seq[1]), int(seq[1])+abs(svlen), 0])
 			except:
 				pos_2 = int(seq[7].split(';')[1].split('=')[1])
 				callset[seq[0]][svtype].append([int(seq[1]), pos_2, 0])
@@ -147,43 +147,133 @@ def eva_record(call_A, call_B, bias, offect):
 							call_A[chr][svtype][i][2] = 1
 							call_B[chr][svtype][j][2] = 1
 
-def statistics_true_possitive(callset):
+def statistics_true_possitive(callset, SVTYPE="ALL"):
 	record = 0
 	true_record = 0
-	for chr in callset:
-		for svtype in callset[chr]:
-			if svtype == "TRA":
-				for chr_2 in callset[chr][svtype]:
-					for res in callset[chr][svtype][chr_2]:
+	if SVTYPE == "ALL":
+		for chr in callset:
+			for svtype in callset[chr]:
+				if svtype == "TRA":
+					for chr_2 in callset[chr][svtype]:
+						for res in callset[chr][svtype][chr_2]:
+							record += 1
+							if res[2] == 1:
+								true_record += 1
+				else:
+					for res in callset[chr][svtype]:
 						record += 1
 						if res[2] == 1:
 							true_record += 1
-			else:
-				for res in callset[chr][svtype]:
-					record += 1
-					if res[2] == 1:
-						true_record += 1
+	else:
+		for chr in callset:
+			if SVTYPE in callset[chr]:
+				if SVTYPE == "TRA":
+					for chr_2 in callset[chr][SVTYPE]:
+						for res in callset[chr][SVTYPE][chr_2]:
+							record += 1
+							if res[2] == 1:
+								true_record += 1
+				else:
+					for res in callset[chr][SVTYPE]:
+						record += 1
+						if res[2] == 1:
+							true_record += 1
+	return record, true_record
+
+def statistics_true_possitive_print(callset, SVTYPE="ALL"):
+	record = 0
+	true_record = 0
+	if SVTYPE == "ALL":
+		for chr in callset:
+			for svtype in callset[chr]:
+				if svtype == "TRA":
+					for chr_2 in callset[chr][svtype]:
+						for res in callset[chr][svtype][chr_2]:
+							record += 1
+							if res[2] == 1:
+								true_record += 1
+				else:
+					for res in callset[chr][svtype]:
+						record += 1
+						if res[2] == 1:
+							true_record += 1
+	else:
+		for chr in callset:
+			if SVTYPE in callset[chr]:
+				if SVTYPE == "TRA":
+					for chr_2 in callset[chr][SVTYPE]:
+						for res in callset[chr][SVTYPE][chr_2]:
+							record += 1
+							if res[2] == 1:
+								true_record += 1
+				else:
+					for res in callset[chr][SVTYPE]:
+						record += 1
+						if res[2] == 1:
+							true_record += 1
+						else:
+							print("%s\t%s\t%d\t%d"%(chr, SVTYPE, res[0], res[1]))
 	return record, true_record
 
 def main_ctrl(args):
 	logging.info("Load SV callset of cuteSV.")
-	call_child = load_callset_cuteSV(args.F1)
-	call_father = load_callset_cuteSV(args.MP)
-	call_mother = load_callset_cuteSV(args.FP)
-	#call_child = load_callset_sniffles(args.F1)
-	#call_father = load_callset_sniffles(args.MP)
-	#call_mother = load_callset_sniffles(args.FP)
-	#call_child = load_callset_pbsv(args.F1)
-	#call_father = load_callset_pbsv(args.MP)
-	#call_mother = load_callset_pbsv(args.FP)	
-	logging.info("Evaluate accuracy and sensitivity.")
-	eva_record(call_child, call_father, args.bias, args.offect)
-	eva_record(call_child, call_mother, args.bias, args.offect)
+	if args.CALLER == "cuteSV":
+		call_child = load_callset_cuteSV(args.F1)
+		call_father = load_callset_cuteSV(args.MP)
+		call_mother = load_callset_cuteSV(args.FP)
+		logging.info("Evaluate accuracy and sensitivity.")
+		eva_record(call_child, call_father, args.bias, args.offect)
+		eva_record(call_child, call_mother, args.bias, args.offect)
+		svtype = ["DEL", "DUP", "INS", "INV", "TRA"]
+		for i in svtype:
+			child_r, child_tr = statistics_true_possitive(call_child, i)
+			father_r, father_tr = statistics_true_possitive(call_father, i)
+			mother_r, mother_tr = statistics_true_possitive(call_mother, i)
+			logging.info("%s: Accuracy rate is %d/%d(%.5f)."%(i, child_tr, child_r, 1.0*child_tr/child_r))
+			logging.info("%s: Sensitivity rate is %d/%d(%.5f)."%(i, mother_tr+father_tr, mother_r+father_r, 1.0*(mother_tr+father_tr)/(mother_r+father_r)))
+		# statistics_true_possitive_print(call_child, "DUP")
+	elif args.CALLER == "sniffles":
+		call_child = load_callset_sniffles(args.F1)
+		call_father = load_callset_sniffles(args.MP)
+		call_mother = load_callset_sniffles(args.FP)
+		logging.info("Evaluate accuracy and sensitivity.")
+		eva_record(call_child, call_father, args.bias, args.offect)
+		eva_record(call_child, call_mother, args.bias, args.offect)
+		svtype = ["DEL", "DUP", "INS", "INV", "TRA"]
+		for i in svtype:
+			child_r, child_tr = statistics_true_possitive(call_child, i)
+			father_r, father_tr = statistics_true_possitive(call_father, i)
+			mother_r, mother_tr = statistics_true_possitive(call_mother, i)
+			logging.info("%s: Accuracy rate is %d/%d(%.5f)."%(i, child_tr, child_r, 1.0*child_tr/child_r))
+			logging.info("%s: Sensitivity rate is %d/%d(%.5f)."%(i, mother_tr+father_tr, mother_r+father_r, 1.0*(mother_tr+father_tr)/(mother_r+father_r)))
+	elif args.CALLER == "pbsv":
+		call_child = load_callset_pbsv(args.F1)
+		call_father = load_callset_pbsv(args.MP)
+		call_mother = load_callset_pbsv(args.FP)
+		logging.info("Evaluate accuracy and sensitivity.")
+		eva_record(call_child, call_father, args.bias, args.offect)
+		eva_record(call_child, call_mother, args.bias, args.offect)
+		svtype = ["DEL", "INS", "INV", "TRA"]
+		for i in svtype:
+			child_r, child_tr = statistics_true_possitive(call_child, i)
+			father_r, father_tr = statistics_true_possitive(call_father, i)
+			mother_r, mother_tr = statistics_true_possitive(call_mother, i)
+			try:
+				logging.info("%s: Accuracy rate is %d/%d(%.5f)."%(i, child_tr, child_r, 1.0*child_tr/child_r))
+			except:
+				logging.info("%s: Accuracy rate is %d/%d."%(i, child_tr, child_r))
+			try:
+				logging.info("%s: Sensitivity rate is %d/%d(%.5f)."%(i, mother_tr+father_tr, mother_r+father_r, 1.0*(mother_tr+father_tr)/(mother_r+father_r)))
+			except:
+				logging.info("%s: Sensitivity rate is %d/%d."%(i, mother_tr+father_tr, mother_r+father_r))
+	# logging.info("Evaluate accuracy and sensitivity.")
+	# eva_record(call_child, call_father, args.bias, args.offect)
+	# eva_record(call_child, call_mother, args.bias, args.offect)
 	child_r, child_tr = statistics_true_possitive(call_child)
 	father_r, father_tr = statistics_true_possitive(call_father)
 	mother_r, mother_tr = statistics_true_possitive(call_mother)
-	logging.info("Accuracy rate is %d/%d."%(child_tr, child_r))
-	logging.info("Sensitivity rate is %d/%d."%(mother_tr+father_tr, mother_r+father_r))
+	logging.info("Accuracy rate is %d/%d(%.5f)."%(child_tr, child_r, 1.0*child_tr/child_r))
+	logging.info("Sensitivity rate is %d/%d(%.5f)."%(mother_tr+father_tr, mother_r+father_r, 1.0*(mother_tr+father_tr)/(mother_r+father_r)))
 
 def main(argv):
 	args = parseArgs(argv)
@@ -199,6 +289,7 @@ USAGE="""\
 
 def parseArgs(argv):
 	parser = argparse.ArgumentParser(prog="Trio_eval", description=USAGE, formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument("CALLER", type=str, help="Choose a caller")
 	parser.add_argument("MP", type=str, help="Male parent callsets")
 	parser.add_argument('FP', type=str, help = "Female parent callsets")
 	parser.add_argument('F1', type=str, help = "Offspring callsets")

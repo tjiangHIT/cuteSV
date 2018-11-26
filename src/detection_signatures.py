@@ -106,6 +106,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 				if ele_1[3] - ele_2[2] >= SV_size:
 					# DUP_flag[a] = 1
 					# DUP_flag[a+1] = 1
+					'''
 					if a == 0:
 						store_info([[ele_1[4], ele_1[3], read_name]], "DUP_r", candidate)
 
@@ -116,6 +117,10 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 						if ele_2[4] not in candidate["DUP"]:
 							candidate["DUP"][ele_2[4]] = list()
 						candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
+					'''
+					if ele_2[4] not in candidate["DUP"]:
+						candidate["DUP"][ele_2[4]] = list()
+					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
 
 				if ele_1[3] <= ele_2[2]:
 					if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:

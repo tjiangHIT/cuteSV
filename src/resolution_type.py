@@ -30,7 +30,7 @@ def resolution_INDEL(path, chr, svtype, read_count, overlap_size, max_cluster_bi
 		read_id = seq[4]
 		
 		if pos - semi_indel_cluster[-1][0] > max_cluster_bias:
-			if len(semi_indel_cluster) > read_count:
+			if len(semi_indel_cluster) >= read_count:
 				generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
 			semi_indel_cluster = []
 			semi_indel_cluster.append([pos, indel_len, read_id])
@@ -118,12 +118,12 @@ def generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, ove
 	# else:
 	# 	flag = "IMPRECISE"
 	if svtype == "INV" and indel_len-breakpoint >= sv_size:
-		#print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
+		# print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)))
 		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)))
 		candidate_single_SV.append([chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)])
 		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\t%s\n"%(chr, svtype, breakpoint, indel_len, len(read_tag), flag))
 	else:
-		#print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
+		# print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
 		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
 		candidate_single_SV.append([chr, svtype, breakpoint, indel_len, len(read_tag)])
 		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\t%s\n"%(chr, svtype, breakpoint, indel_len, len(read_tag), flag))
@@ -148,7 +148,7 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 		read_id = seq[5]
 		
 		if pos_1 - semi_tra_cluster[-1][0] > max_cluster_bias:
-			if len(semi_tra_cluster) > read_count:
+			if len(semi_tra_cluster) >= read_count:
 				generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, candidate_single_SV)
 			semi_tra_cluster = []
 			semi_tra_cluster.append([pos_1, pos_2, read_id])
@@ -189,13 +189,13 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 	# if temp[1][2]+temp[0][2] > len(read_tag)*0.5:
 	if temp[1][2] >= 0.5*read_count:
 		if temp[0][2]+temp[1][2] >= len(semi_tra_cluster)*overlap_size:
-			#print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
-			#print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))
+			# print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
+			# print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))
 			candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))
 	else:
 		if temp[0][2] >= len(semi_tra_cluster)*overlap_size:
-			#print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
+			# print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 
 
@@ -237,7 +237,7 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, max_distanc
 			read_id = seq[4]
 		
 			if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias:
-				if len(semi_dup_cluster) > 1:
+				if len(semi_dup_cluster) >= read_count:
 					generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, dup_candidates, candidate_single_SV)
 				semi_dup_cluster = []
 				semi_dup_cluster.append([pos_1, pos_2, read_id])
@@ -247,7 +247,8 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, max_distanc
 	if len(semi_dup_cluster) > 1:
 		generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, dup_candidates, candidate_single_SV)
 	file.close()
-	return polish_dup(candidate_single_SV, max_distance)
+	# return polish_dup(candidate_single_SV, max_distance)
+	return candidate_single_SV
 
 def polish_dup(candidate_single_SV, max_distance):
 	polish_dup_candidate = list()
@@ -375,9 +376,9 @@ def generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bia
 	if breakpoint_2 - breakpoint_1 + 1 >= sv_size and len(read_tag) >= read_count:
 		# print info_1
 		# print info_2
-		#print("%s\t%s\t%d\t%d\t%d"%(chr, "DUP", breakpoint_1, breakpoint_2-breakpoint_1+1, len(read_tag)))
-		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, "DUP", breakpoint_1, breakpoint_2-breakpoint_1+1, len(read_tag)))
-		candidate_single_SV.append([chr, "DUP", breakpoint_1, breakpoint_2-breakpoint_1+1, len(read_tag)])
+		# print("%s\t%s\t%d\t%d\t%d"%(chr, "DUP", breakpoint_1, breakpoint_2-breakpoint_1+1, len(read_tag)))
+		candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, "DUP", breakpoint_1, breakpoint_2-breakpoint_1+1, len(read_tag)))
+		# candidate_single_SV.append([chr, "DUP", breakpoint_1, breakpoint_2-breakpoint_1+1, len(read_tag)])
 
 #if __name__ == '__main__':
 	# candidate_single_SV = []
