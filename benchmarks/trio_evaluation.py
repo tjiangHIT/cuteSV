@@ -151,6 +151,12 @@ def eva_record(call_A, call_B, bias, offect):
 								call_A[chr][svtype][chr_2][i][2] = 1
 								call_B[chr][svtype][chr_2][j][2] = 1
 								# exist a bug
+			elif svtype == "INS":
+				for i in xrange(len(call_A[chr][svtype])):
+					for j in xrange(len(call_B[chr][svtype])):
+						if abs(call_A[chr][svtype][i][0]-call_B[chr][svtype][j][0]) <= offect:
+							call_A[chr][svtype][i][2] = 1
+							call_B[chr][svtype][j][2] = 1
 			else:
 				for i in xrange(len(call_A[chr][svtype])):
 					for j in xrange(len(call_B[chr][svtype])):
