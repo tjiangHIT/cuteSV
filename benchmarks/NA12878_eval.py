@@ -196,6 +196,8 @@ def statistics_true_possitive(callset, SVTYPE="ALL"):
 					record += 1
 					if res[2] == 1:
 						true_record += 1
+					else:
+						print chr, SVTYPE, res[0], res[1]
 	return record, true_record
 
 def main_ctrl(args):

@@ -30,15 +30,15 @@ def resolution_INDEL(path, chr, svtype, read_count, overlap_size, max_cluster_bi
 		read_id = seq[4]
 		
 		if pos - semi_indel_cluster[-1][0] > max_cluster_bias:
-			if len(semi_indel_cluster) > read_count:
-				generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
+			if len(semi_indel_cluster) >= read_count/2:
+				generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count/2, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
 			semi_indel_cluster = []
 			semi_indel_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_indel_cluster.append([pos, indel_len, read_id])
 
-	if len(semi_indel_cluster) > read_count:
-		generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
+	if len(semi_indel_cluster) >= read_count/2:
+		generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count/2, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
 	file.close()
 
 	# file = open("%s%s_%s.bed"%(file_out, chr, svtype), 'w')
@@ -46,15 +46,16 @@ def resolution_INDEL(path, chr, svtype, read_count, overlap_size, max_cluster_bi
 	# 	file.write(i)
 	# file.close()
 
-	return polish_indel(candidate_single_SV, max_distance)
+	return polish_indel(candidate_single_SV, max_distance, read_count)
 
-def polish_indel(candidate_single_SV, max_distance):
+def polish_indel(candidate_single_SV, max_distance, read_count):
 	polish_indel_candidate = list()
 	if len(candidate_single_SV) <= 1:
 		# return candidate_single_SV
 		for temp in candidate_single_SV:
 			encode_temp = "%s\t%s\t%d\t%d\t%d\n"%(temp[0], temp[1], temp[2], temp[3], temp[4])
-			polish_indel_candidate.append(encode_temp)
+			if temp[4] >= read_count:
+				polish_indel_candidate.append(encode_temp)
 		return polish_indel_candidate
 	
 	temp = candidate_single_SV[0]
@@ -68,10 +69,14 @@ def polish_indel(candidate_single_SV, max_distance):
 			temp = [i[0], i[1], new_break_point, new_indel_length, new_read_count]
 		else:
 			encode_temp = "%s\t%s\t%d\t%d\t%d\n"%(temp[0], temp[1], temp[2], temp[3], temp[4])
-			polish_indel_candidate.append(encode_temp)
+			# polish_indel_candidate.append(encode_temp)
+			if temp[4] >= read_count:
+				polish_indel_candidate.append(encode_temp)
 			temp = i
 	encode_temp = "%s\t%s\t%d\t%d\t%d\n"%(temp[0], temp[1], temp[2], temp[3], temp[4])
-	polish_indel_candidate.append(encode_temp)
+	# polish_indel_candidate.append(encode_temp)
+	if temp[4] >= read_count:
+		polish_indel_candidate.append(encode_temp)
 	return polish_indel_candidate
 
 def generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV):

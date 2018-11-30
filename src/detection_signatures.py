@@ -71,9 +71,9 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 	#0			#1			#2			#3		#4	#5
 	'''
 	SP_list = sorted(split_read, key = lambda x:x[0])
-	#print read_name
-	#for i in SP_list:
-	#	print i
+	# print read_name
+	# for i in SP_list:
+	# 	print i
 	DUP_flag = [0]*len(SP_list)
 	for a in xrange(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
@@ -103,6 +103,12 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 
 			else:
 				# dup & ins & del 
+				if ele_1[5] == '-':
+					ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
+					ele_2 = [RLength-SP_list[a][1],RLength-SP_list[a][0]]+SP_list[a][2:]
+					# print ele_1
+					# print ele_2
+
 				if ele_1[3] - ele_2[2] >= SV_size:
 					# DUP_flag[a] = 1
 					# DUP_flag[a+1] = 1
@@ -130,6 +136,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 						candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
 					if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
 						# store_signal([[ele_2[4], ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3]]], "DEL")
+						# print ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3]
 						if ele_2[4] not in candidate["DEL"]:
 							candidate["DEL"][ele_2[4]] = list()
 						candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
@@ -233,7 +240,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 		if read.cigar[-1][0] == 4:
 			softclip_right = read.cigar[-1][1]
 
-
+	# print read.query_name, process_signal
 	if process_signal == 1 or process_signal == 2:
 		Tags = read.get_tags()
 		if read.mapq >= min_mapq:
@@ -417,9 +424,9 @@ def main_ctrl(args):
 		file.write(i)
 	file.close()
 
-	logging.info("Cleaning temporary files.")
-	cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs"%(temporary_dir, temporary_dir))
-	exe(cmd_remove_tempfile)
+	# logging.info("Cleaning temporary files.")
+	# cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs"%(temporary_dir, temporary_dir))
+	# exe(cmd_remove_tempfile)
 	
 	samfile.close()
 
@@ -465,7 +472,7 @@ def parseArgs(argv):
 	# # parser.add_argument('-het','--heterozygous', help = "The mininum score of a genotyping reported as a heterozygous.[%(default)s]", default = 0.3, type = float)
 	parser.add_argument('-q', '--min_mapq', help = "Minimum mapping quality value of alignment to be taken into account.[%(default)s]", default = 20, type = int)
 	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", default = 1000, type = int)
-	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 2000, type = int)
+	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 1000, type = int)
 	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", default = 16, type = int)
 	parser.add_argument('-b', '--batches', help = "A batches of reads to load.[%(default)s]", default = 10000000, type = int)
 	parser.add_argument('-c', '--max_cluster_bias', help = "Maximum distance to cluster read together.[%(default)s]", default = 50, type = int)
