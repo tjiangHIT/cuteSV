@@ -153,14 +153,14 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 		read_id = seq[5]
 		
 		if pos_1 - semi_tra_cluster[-1][0] > max_cluster_bias:
-			if len(semi_tra_cluster) > read_count:
+			if len(semi_tra_cluster) >= read_count:
 				generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, candidate_single_SV)
 			semi_tra_cluster = []
 			semi_tra_cluster.append([pos_1, pos_2, read_id])
 		else:
 			semi_tra_cluster.append([pos_1, pos_2, read_id])
 
-	if len(semi_tra_cluster) > read_count:
+	if len(semi_tra_cluster) >= read_count:
 		generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, candidate_single_SV)
 	file.close()
 	return candidate_single_SV
@@ -242,14 +242,14 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, max_distanc
 			read_id = seq[4]
 		
 			if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias:
-				if len(semi_dup_cluster) > read_count:
+				if len(semi_dup_cluster) >= read_count:
 					generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, dup_candidates, candidate_single_SV)
 				semi_dup_cluster = []
 				semi_dup_cluster.append([pos_1, pos_2, read_id])
 			else:
 				semi_dup_cluster.append([pos_1, pos_2, read_id])
 
-	if len(semi_dup_cluster) > read_count:
+	if len(semi_dup_cluster) >= read_count:
 		generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, dup_candidates, candidate_single_SV)
 	file.close()
 	# return polish_dup(candidate_single_SV, max_distance)

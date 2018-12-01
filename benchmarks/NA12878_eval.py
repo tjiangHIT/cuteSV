@@ -11,7 +11,7 @@ def transfer_chrID(seq):
 		return seq[3:]
 
 
-def load_golden_answer(path):
+def load_golden_answer(path, svsize=50):
 	Ans = dict()
 	file = open(path, 'r')
 	for line in file:
@@ -35,6 +35,8 @@ def load_golden_answer(path):
 		else:
 			svlen = int(seq[7].split(';')[2].split('=')[1]) - pos
 
+		# if svlen < svsize:
+		# 	continue
 		if svtype == "INS":
 			Ans[chr][svtype].append([pos, abs(svlen), 0])
 		else:
@@ -42,7 +44,7 @@ def load_golden_answer(path):
 	file.close()
 	return Ans
 
-def load_callset_cuteSV(path, filter=10):
+def load_callset_cuteSV(path, filter=10, svsize=50):
 	callset = dict()
 	file = open(path, 'r')
 	for line in file:
@@ -59,6 +61,8 @@ def load_callset_cuteSV(path, filter=10):
 		svlen = int(seq[3])
 		if int(seq[-1]) < filter:
 			continue
+		if svlen < svsize:
+			continue
 		if svtype == "INS":
 			callset[chr][svtype].append([pos, svlen, 0])
 		else:
@@ -66,7 +70,7 @@ def load_callset_cuteSV(path, filter=10):
 	file.close()
 	return callset
 
-def load_callset_sniffles(path, filter=10):
+def load_callset_sniffles(path, filter=10, svsize=50):
 	callset = dict()
 	file = open(path, 'r')
 	for line in file:
@@ -87,7 +91,8 @@ def load_callset_sniffles(path, filter=10):
 		# print chr, pos, svtype, svlen
 		if int(seq[-1].split(':')[-1]) < filter:
 			continue
-
+		if svlen < svsize:
+			continue
 		if svtype == "INS":
 			callset[chr][svtype].append([pos, svlen, 0])
 		else:
@@ -95,7 +100,7 @@ def load_callset_sniffles(path, filter=10):
 	file.close()
 	return callset
 
-def load_callset_pbsv(path, filter=10):
+def load_callset_pbsv(path, filter=10, svsize=50):
 	callset = dict()
 	file = open(path, 'r')
 	for line in file:
@@ -121,6 +126,8 @@ def load_callset_pbsv(path, filter=10):
 			callset[chr][svtype] = list()
 		pos = int(seq[1])
 		svlen = int(seq[7].split(';')[2].split('=')[1])
+		if svlen < svsize:
+			continue
 		if svtype == "INS":
 			callset[chr][svtype].append([pos, svlen, 0])
 		else:
@@ -196,18 +203,18 @@ def statistics_true_possitive(callset, SVTYPE="ALL"):
 					record += 1
 					if res[2] == 1:
 						true_record += 1
-					else:
-						print chr, SVTYPE, res[0], res[1]
+					# else:
+					# 	print chr, SVTYPE, res[0], res[1]
 	return record, true_record
 
 def main_ctrl(args):
 	logging.info("Load SV Golden Answers.")
-	Ans = load_golden_answer(args.ANS)
+	Ans = load_golden_answer(args.ANS, args.SVSIZE)
 	# for chr in Ans:
 	# 	for sv in Ans[chr]:
 	# 		print chr, sv, len(Ans[chr][sv])
 	if args.CALLER == "sniffles":
-		Callset = load_callset_sniffles(args.CALL, int(args.CALL_c))
+		Callset = load_callset_sniffles(args.CALL, int(args.CALL_c), args.SVSIZE)
 		# for chr in Callset:
 		# 	for sv in Callset[chr]:
 		# 		print chr, sv, len(Callset[chr][sv])
@@ -222,7 +229,7 @@ def main_ctrl(args):
 			logging.info("%s: Sensitivity rate is %d/%d(%.5f)."%(i, answer_tr, answer_r, sensitivity))
 	elif args.CALLER == "cuteSV":
 		# pass
-		Callset = load_callset_cuteSV(args.CALL, int(args.CALL_c))
+		Callset = load_callset_cuteSV(args.CALL, int(args.CALL_c), args.SVSIZE)
 		eve_record(Ans, Callset, args.bias, args.offect)
 		eve_record(Ans, Callset, args.bias, args.offect)
 		svtype = ["DEL", "INS"]
@@ -235,7 +242,7 @@ def main_ctrl(args):
 			logging.info("%s: Sensitivity rate is %d/%d(%.5f)."%(i, answer_tr, answer_r, sensitivity))
 	elif args.CALLER == "pbsv":
 		# pass
-		Callset = load_callset_pbsv(args.CALL, int(args.CALL_c))
+		Callset = load_callset_pbsv(args.CALL, int(args.CALL_c), args.SVSIZE)
 		eve_record(Ans, Callset, args.bias, args.offect)
 		eve_record(Ans, Callset, args.bias, args.offect)
 		svtype = ["DEL", "INS"]
@@ -271,7 +278,8 @@ def parseArgs(argv):
 	parser.add_argument("CALLER", type=str, help="Choose a caller.")
 	parser.add_argument("ANS", type=str, help="Golden answers.")
 	parser.add_argument('CALL', type=str, help = "Callset produced by chosen caller.")
-	parser.add_argument("CALL_c", type=str, help="Coverage of chosen callsets")
+	parser.add_argument("CALL_c", type=int, help="Coverage of chosen callsets")
+	parser.add_argument("SVSIZE", type=int, help="Coverage of chosen callsets")
 	parser.add_argument('-b', '--bias', help = "Bias of overlaping.[%(default)s]", default = 0.7, type = float)
 	parser.add_argument('-o', '--offect', help = "Offect of INS breakpoint overlaping.[%(default)s]", default = 100, type = int)
 	# parser.add_argument('-s', '--min_support', help = "Minimum number of reads that support a SV to be reported.[%(default)s]", default = 10, type = int)
