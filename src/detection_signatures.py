@@ -7,8 +7,16 @@
  * @Description: Parse the ME signals from alignments
  * @author: tjiang
  * @date: Apr 24 2018
- * @version V1.0     
+ * @version V1.0.0   
 '''
+
+VERSION = '1.0.0'
+
+USAGE="""\
+	Detection of Structural Variants using long reads.
+
+	cuteSV V%s
+"""%(VERSION)
 
 import pysam
 import cigar
@@ -18,43 +26,35 @@ from resolution_type import *
 import os
 import argparse
 import logging
-import sys, time
+import sys
+import time
 import gc
 
-dic_starnd = {1:'+', 2: '-'}
-Normal_foward = 1 >> 1
-Abnormal = 1 << 2
-Reverse_complement = 1 << 4
-Supplementary_map = 1 << 11
-signal = {Abnormal: 0, Normal_foward: 1, Reverse_complement: 2, Supplementary_map:3, Reverse_complement | Supplementary_map:4}
-single_task = 10000000
-
-# candidate = dict()
-# candidate["DEL"] = dict()
-# candidate["INS"] = dict()
-# candidate["INV"] = dict()
-# candidate["DUP"] = dict()
-# candidate["TRA"] = dict()
-# candidate["l_DUP"] = dict()
-# candidate["DUP_r"] = dict()
-# candidate["l_INV"] = dict()
-# candidate["INV_r"] = dict()
-
+dic_starnd = {1:'+', \
+		2: '-'}
+signal = {1 << 2: 0, \
+		1 >> 1: 1, \
+		1 << 4: 2, \
+		1 << 11: 3, \
+		1 << 4 | 1 << 11: 4}
+'''
+	1 >> 1 means normal_foward read
+	1 << 2 means unmapped read
+	1 << 4 means reverse_complement read
+	1 << 11 means supplementary alignment read
+	1 << 4 | 1 << 11 means supplementary alignment with reverse_complement read
+'''
 def detect_flag(Flag):
-	if Flag in signal:
-		return signal[Flag]
-	else:
-		return 0
+	back_sig = signal[Flag] if Flag in signal else 0
+	return back_sig
 
 def store_info(pos_list, svtype, candidate):
 	for ele in pos_list:
 		if ele[0] not in candidate[svtype]:
 			candidate[svtype][ele[0]] = dict()
-
 		hash_1 = int(ele[1] /10000)
 		mod = ele[1] % 10000
 		hash_2 = int(mod / 50)
-
 		if hash_1 not in candidate[svtype][ele[0]]:
 			candidate[svtype][ele[0]][hash_1] = dict()
 			candidate[svtype][ele[0]][hash_1][hash_2] = list()
@@ -62,7 +62,6 @@ def store_info(pos_list, svtype, candidate):
 		else:
 			if hash_2 not in candidate[svtype][ele[0]][hash_1]:
 				candidate[svtype][ele[0]][hash_1][hash_2] = list()
-
 			candidate[svtype][ele[0]][hash_1][hash_2].append(ele[1:])
 
 def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
@@ -341,33 +340,33 @@ def main_ctrl(args):
 			if pos < local_ref_len:
 				Task_list.append([i[0], pos, local_ref_len])
 
-	analysis_pools = Pool(processes=int(args.threads))
+	# analysis_pools = Pool(processes=int(args.threads))
 
-	# # result = list()
+	# # # result = list()
 	if args.temp_dir[-1] == '/':
 		temporary_dir = args.temp_dir
 	else:
 		temporary_dir = args.temp_dir+'/'
-	# '''
-	os.mkdir("%ssignatures"%temporary_dir)
-	for i in Task_list:
-		para = [(args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, temporary_dir, i)]
-		analysis_pools.map_async(multi_run_wrapper, para)
-	analysis_pools.close()
-	analysis_pools.join()
-	# '''
-	# '''
-	logging.info("Rebuilding ssignatures of structural variants.")
-	analysis_pools = Pool(processes=int(args.threads))
-	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
-	cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
-	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3n > %sINV.sigs"%(temporary_dir, temporary_dir))
-	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 4,4 -k 3,3n > %sTRA.sigs"%(temporary_dir, temporary_dir))
-	cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
-	for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:
-		analysis_pools.map_async(exe, (i,))
-	analysis_pools.close()
-	analysis_pools.join()
+	# # '''
+	# os.mkdir("%ssignatures"%temporary_dir)
+	# for i in Task_list:
+	# 	para = [(args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, temporary_dir, i)]
+	# 	analysis_pools.map_async(multi_run_wrapper, para)
+	# analysis_pools.close()
+	# analysis_pools.join()
+	# # '''
+	# # '''
+	# logging.info("Rebuilding ssignatures of structural variants.")
+	# analysis_pools = Pool(processes=int(args.threads))
+	# cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
+	# cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
+	# cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3n > %sINV.sigs"%(temporary_dir, temporary_dir))
+	# cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 4,4 -k 3,3n > %sTRA.sigs"%(temporary_dir, temporary_dir))
+	# cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
+	# for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:
+	# 	analysis_pools.map_async(exe, (i,))
+	# analysis_pools.close()
+	# analysis_pools.join()
 	# '''
 
 	chr_name_list.sort()
@@ -388,38 +387,41 @@ def main_ctrl(args):
 		for svtype in ["DEL", "INS", "INV"]:
 			if svtype == "INV":
 				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, 20, args.min_length)]
-				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, args.max_cluster_bias, args.min_length, args.max_distance)]
-			else:
-				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.7, 10, args.min_length)]
-				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, args.max_cluster_bias, args.min_length, args.max_distance)]
+				# para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.5, args.max_cluster_bias, args.min_length, args.max_distance)]
+				pass
+			if svtype == 'DEL':
+				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.3, 200, 0.7, 5)]
+				result.append(analysis_pools.map_async(run_del, para))
+			if svtype == 'INS':
+				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 0.2, 100, 0.6, 5)]
+				result.append(analysis_pools.map_async(run_ins, para))
 			# resolution_INDEL(sys.argv[1], "1", "INV", 10, 0.5, 20, 50)
-			result.append(analysis_pools.map_async(run_indel_inv, para))
+			# result.append(analysis_pools.map_async(run_indel_inv, para))
 			# print chr, svtype
 		# DUP
 		# resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size=50)
 		# resolution_DUP(sys.argv[1], "1", 10, 50, 50)
-		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias, args.min_length, args.max_distance)]
-		result.append(analysis_pools.map_async(run_dup, para))
+		# para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias, args.min_length, args.max_distance)]
+		# result.append(analysis_pools.map_async(run_dup, para))
 
-	for i in process_tra:
-		# TRA
-		# resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias)
-		para = [("%s%s.sigs"%(temporary_dir, "TRA"), i[0], i[1], args.min_support, 0.6, args.max_cluster_bias)]
-		result.append(analysis_pools.map_async(run_tra, para))
+	# for i in process_tra:
+	# 	# TRA
+	# 	# resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias)
+	# 	para = [("%s%s.sigs"%(temporary_dir, "TRA"), i[0], i[1], args.min_support, 0.6, args.max_cluster_bias)]
+	# 	result.append(analysis_pools.map_async(run_tra, para))
 
 	analysis_pools.close()
 	analysis_pools.join()
 
 	semi_result = list()
 	for res in result:
-		semi_result += res.get()[0]
+		try:
+			semi_result += res.get()[0]
+		except:
+			pass
 
-	# for i in semi_result:
-	# 	print i,
-	# print len(semi_result)
 	logging.info("Writing into disk.")
 	file = open(args.output, 'w')
-	# for chr in sorted(semi_result.keys()):
 	for i in semi_result:
 		file.write(i)
 	file.close()
@@ -451,31 +453,39 @@ def setupLogging(debug=False):
 def run(argv):
 	args = parseArgs(argv)
 	setupLogging(False)
-	# print args
 	starttime = time.time()
 	main_ctrl(args)
 	logging.info("Finished in %0.2f seconds."%(time.time() - starttime))
 
-USAGE="""\
-	Detection of all types of Structural Variants.
-"""
-
 def parseArgs(argv):
-	parser = argparse.ArgumentParser(prog="cuteSV", description=USAGE, formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument("input", metavar="[BAM]", type=str, help="Sorted .bam file form NGMLR.")
-	parser.add_argument('output', type=str, help = "the prefix of novel sequence insertion pridections")
+	parser = argparse.ArgumentParser(prog="cuteSV", description=USAGE, 
+		formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument("input", metavar="[BAM]", type=str, 
+		help="Sorted .bam file form NGMLR or Minimap2.")
+	parser.add_argument('output', type=str, help = "the path of [Output]")
 	parser.add_argument('temp_dir', type=str, help = "temporary directory to use for distributed jobs")
-	parser.add_argument('-s', '--min_support', help = "Minimum number of reads that support a SV to be reported.[%(default)s]", default = 10, type = int)
-	parser.add_argument('-l', '--min_length', help = "Minimum length of SV to be reported.[%(default)s]", default = 50, type = int)
-	parser.add_argument('-p', '--max_split_parts', help = "Maximum number of split segments a read may be aligned before it is ignored.[%(default)s]", default = 7, type = int)
-	# # parser.add_argument('-hom', '--homozygous', help = "The mininum score of a genotyping reported as a homozygous.[%(default)s]", default = 0.8, type = float)
-	# # parser.add_argument('-het','--heterozygous', help = "The mininum score of a genotyping reported as a heterozygous.[%(default)s]", default = 0.3, type = float)
-	parser.add_argument('-q', '--min_mapq', help = "Minimum mapping quality value of alignment to be taken into account.[%(default)s]", default = 20, type = int)
-	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", default = 1000, type = int)
-	parser.add_argument('-r', '--min_seq_size', help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", default = 2000, type = int)
-	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", default = 16, type = int)
-	parser.add_argument('-b', '--batches', help = "A batches of reads to load.[%(default)s]", default = 10000000, type = int)
-	parser.add_argument('-c', '--max_cluster_bias', help = "Maximum distance to cluster read together.[%(default)s]", default = 50, type = int)
+	parser.add_argument('-s', '--min_support', 
+		help = "Minimum number of reads that support a SV to be reported.[%(default)s]", 
+		default = 5, type = int)
+	parser.add_argument('-l', '--min_length', help = "Minimum length of SV to be reported.[%(default)s]", 
+		default = 50, type = int)
+	parser.add_argument('-p', '--max_split_parts', 
+		help = "Maximum number of split segments a read may be aligned before it is ignored.[%(default)s]", 
+		default = 7, type = int)
+	parser.add_argument('-q', '--min_mapq', 
+		help = "Minimum mapping quality value of alignment to be taken into account.[%(default)s]", 
+		default = 20, type = int)
+	parser.add_argument('-d', '--max_distance', help = "Maximum distance to group SV together..[%(default)s]", 
+		default = 1000, type = int)
+	parser.add_argument('-r', '--min_seq_size', 
+		help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", 
+		default = 2000, type = int)
+	parser.add_argument('-t', '--threads', help = "Number of threads to use.[%(default)s]", 
+		default = 16, type = int)
+	parser.add_argument('-b', '--batches', help = "A batches of reads to load.[%(default)s]", 
+		default = 10000000, type = int)
+	parser.add_argument('-c', '--max_cluster_bias', 
+		help = "Maximum distance to cluster read together.[%(default)s]", default = 50, type = int)
 	args = parser.parse_args(argv)
 	return args
 

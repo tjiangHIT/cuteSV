@@ -10,4 +10,4 @@ grep '^#' ${INVCF} > ${INVCF}.sorted.vcf && grep -v '^#' ${INVCF} | LC_ALL=C sor
 bgzip -c ${INVCF}.sorted.vcf > ${INVCF}.sorted.vcf.gz
 tabix -p vcf ${INVCF}.sorted.vcf.gz
 
-truvari.py -b ${EXP} -c ${INVCF}.sorted.vcf.gz -o ${outdir} -f ${REF} --giabreport --passonly --includebed ${HIGHBED} -r 2000
+truvari.py -b ${EXP} -c ${INVCF}.sorted.vcf.gz -o ${outdir} -f ${REF} --giabreport --passonly --includebed ${HIGHBED} -r 1000 -p 0

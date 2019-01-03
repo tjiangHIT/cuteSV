@@ -1,6 +1,9 @@
 import sys
-import numpy as np
-# from scipy.stats import kurtosis
+
+# candidate_single_SV = list()
+# dup_candidates = dict()
+# dup_candidates["l_DUP"] = dict()
+# dup_candidates["DUP_r"] = dict()
 
 def run_indel_inv(args):
 	return resolution_INDEL(*args)
@@ -11,226 +14,7 @@ def run_tra(args):
 def run_dup(args):
 	return resolution_DUP(*args)
 
-def run_del(args):
-	return resolution_DEL(*args)
-
-def run_ins(args):
-	return resolution_INS(*args)
-
-def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, threshold_local, minimum_support_reads):
-	'''
-	cluster deletion
-	*****************************
-	path:	DEL.sigs
-	chr:	chromosome id
-	svtype:	<DEL>
-	
-	read_count 	max_cluster_bias 	 	
-	----------------------------
-	5/10		200 bp (<500 bp)
-	*****************************
-	'''
-	semi_del_cluster = list()
-	semi_del_cluster.append([0,0,''])
-	candidate_single_SV = list()
-
-	file = open(path, 'r')
-	for line in file:
-		seq = line.strip('\n').split('\t')
-		if seq[1] != chr:
-			continue
-
-		pos = int(seq[2])
-		indel_len = int(seq[3])
-		read_id = seq[4]
-		
-		if pos - semi_del_cluster[-1][0] > max_cluster_bias:
-			if len(semi_del_cluster) >= read_count:
-				generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-					threshold_gloab, threshold_local, minimum_support_reads, 
-					candidate_single_SV)
-			semi_del_cluster = []
-			semi_del_cluster.append([pos, indel_len, read_id])
-		else:
-			semi_del_cluster.append([pos, indel_len, read_id])
-
-	if len(semi_del_cluster) >= read_count:
-		generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-			threshold_gloab, threshold_local, minimum_support_reads, 
-			candidate_single_SV)
-	file.close()
-	return candidate_single_SV
-
-def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
-	'''
-	generate deletion
-	*************************************************************
-	threshold_gloab 	threshold_local 	minimum_support_reads
-	-------------------------------------------------------------
-		0.3					0.7 					5
-	*************************************************************
-	'''
-	# Remove duplicates
-	read_tag = dict()
-	for element in semi_del_cluster:
-		if element[2] not in read_tag:
-			read_tag[element[2]] = element
-		else:
-			if element[1] > read_tag[element[2]][1]:
-				read_tag[element[2]] = element
-
-	if len(read_tag) < read_count:
-		return
-
-	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
-	global_len = [i[1] for i in read_tag2SortedList]
-	DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP = threshold_gloab * np.mean(global_len)
-
-	last_len = -DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP
-	max_conut = 0
-	max_LEN_sum = 0
-	max_bps_sum = 0
-	temp_count = 0
-	temp_LEN_sum = 0
-	temp_bps_sum = 0
-	for i in read_tag2SortedList:
-		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP:
-			if temp_count > max_conut:
-				max_conut = temp_count
-				max_LEN_sum = temp_LEN_sum
-				max_bps_sum = temp_bps_sum
-			temp_count = 1
-			temp_LEN_sum = i[1]
-			temp_bps_sum = i[0]
-		else:
-			temp_count += 1
-			temp_LEN_sum += i[1]
-			temp_bps_sum += i[0]
-		last_len = i[1]
-	if temp_count > max_conut:
-		max_conut = temp_count
-		max_LEN_sum = temp_LEN_sum
-		max_bps_sum = temp_bps_sum
-
-	breakpoint_starts = int(max_bps_sum / max_conut)
-	signal_len = int(max_LEN_sum / max_conut)
-	overlap_score = float(max_conut * 1.0 / len(read_tag))
-
-	if max_conut >= minimum_support_reads and overlap_score >= threshold_local:
-		candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\n'%
-		(chr, svtype, breakpoint_starts, signal_len, len(read_tag), max_conut, overlap_score))
-
-def resolution_INS(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, threshold_local, minimum_support_reads):
-	'''
-	cluster insertion
-	*****************************
-	path:	INS.sigs
-	chr:	chromosome id
-	svtype:	<INS>
-	
-	read_count 	max_cluster_bias 	 	
-	----------------------------
-	5/10		100 bp (<500 bp)
-	*****************************
-	'''
-	semi_ins_cluster = list()
-	semi_ins_cluster.append([0,0,''])
-	candidate_single_SV = list()
-
-	file = open(path, 'r')
-	for line in file:
-		seq = line.strip('\n').split('\t')
-		if seq[1] != chr:
-			continue
-
-		pos = int(seq[2])
-		indel_len = int(seq[3])
-		read_id = seq[4]
-		
-		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
-			if len(semi_ins_cluster) >= read_count:
-				generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV)
-			semi_ins_cluster = []
-			semi_ins_cluster.append([pos, indel_len, read_id])
-		else:
-			semi_ins_cluster.append([pos, indel_len, read_id])
-
-	if len(semi_ins_cluster) >= read_count:
-		generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV)
-	file.close()
-	return candidate_single_SV
-
-def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
-	'''
-	generate insertion
-	*************************************************************
-	threshold_gloab 	threshold_local 	minimum_support_reads
-	-------------------------------------------------------------
-		0.2					0.6						5
-	*************************************************************
-	'''
-	# Remove duplicates
-	read_tag = dict()
-	for element in semi_ins_cluster:
-		if element[2] not in read_tag:
-			read_tag[element[2]] = element
-		else:
-			if element[1] > read_tag[element[2]][1]:
-				read_tag[element[2]] = element
-
-	if len(read_tag) < read_count:
-		return
-
-	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
-	# start&end breakpoint
-	breakpoint_starts = [i[0] for i in read_tag2SortedList]
-	global_len = [i[1] for i in read_tag2SortedList]
-
-	DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP = threshold_gloab * np.mean(global_len)
-
-	last_len = -DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP
-	max_conut = 0
-	max_LEN_sum = 0
-	temp_count = 0
-	temp_LEN_sum = 0
-	for i in read_tag2SortedList:
-		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP:
-			if temp_count > max_conut:
-				max_conut = temp_count
-				max_LEN_sum = temp_LEN_sum
-			temp_count = 1
-			temp_LEN_sum = i[1]
-		else:
-			temp_count += 1
-			temp_LEN_sum += i[1]
-		last_len = i[1]
-	if temp_count > max_conut:
-		max_conut = temp_count
-		max_LEN_sum = temp_LEN_sum
-
-	breakpointStart = np.mean(breakpoint_starts)
-	breakpointStart_STD = np.std(breakpoint_starts)
-	signal_len = int(max_LEN_sum / max_conut)
-	overlap_score = float(max_conut * 1.0 / len(read_tag))
-
-	if max_conut >= minimum_support_reads and overlap_score >= threshold_local:
-		candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\t%.3f\t%d\n' % 
-			(chr, svtype, breakpointStart, signal_len, len(read_tag), max_conut, overlap_score, breakpointStart_STD, np.mean(global_len)))
-
 def resolution_INDEL(path, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, max_distance):
-	'''
-	cluster INDEL
-	************************************************************************
-	path:	INDEL.sigs
-	chr:	chromosome id
-	svtype:	<INDEL>
-	
-	read_count 	overlap_size 	max_cluster_bias 	sv_size 	max_distance
-	------------------------------------------------------------------------
-	5/10		0.5				50 bp (<500 bp)		50 bp 		1000 bp
-	************************************************************************
-	'''
 	semi_indel_cluster = list()
 	semi_indel_cluster.append([0,0,''])
 	candidate_single_SV = list()
@@ -246,18 +30,23 @@ def resolution_INDEL(path, chr, svtype, read_count, overlap_size, max_cluster_bi
 		read_id = seq[4]
 		
 		if pos - semi_indel_cluster[-1][0] > max_cluster_bias:
-			if len(semi_indel_cluster) >= read_count:
-				generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
+			if len(semi_indel_cluster) >= read_count/2:
+				generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count/2, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
 			semi_indel_cluster = []
 			semi_indel_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_indel_cluster.append([pos, indel_len, read_id])
 
-	if len(semi_indel_cluster) >= read_count:
-		generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
+	if len(semi_indel_cluster) >= read_count/2:
+		generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count/2, overlap_size, max_cluster_bias, sv_size, candidate_single_SV)
 	file.close()
-	# return polish_indel(candidate_single_SV, max_distance, read_count)
-	return candidate_single_SV
+
+	# file = open("%s%s_%s.bed"%(file_out, chr, svtype), 'w')
+	# for i in candidate_single_SV:
+	# 	file.write(i)
+	# file.close()
+
+	return polish_indel(candidate_single_SV, max_distance, read_count)
 
 def polish_indel(candidate_single_SV, max_distance, read_count):
 	polish_indel_candidate = list()
@@ -291,133 +80,60 @@ def polish_indel(candidate_single_SV, max_distance, read_count):
 	return polish_indel_candidate
 
 def generate_semi_indel_cluster(semi_indel_cluster, chr, svtype, read_count, overlap_size, max_cluster_bias, sv_size, candidate_single_SV):
-	'''
-	generate INDEL
-	*******************************************
-	overlap_size 	max_cluster_bias 	sv_size
-	-------------------------------------------
-	0.5				50 bp (<500 bp)		50 bp
-	*******************************************
-	'''
-	# unique read id
 	read_tag = dict()
+	phase_indel_len = list()
+	breakpoint_ele = 0
 	for element in semi_indel_cluster:
+		phase_indel_len.append(element[1])
+		breakpoint_ele += element[0]
 		if element[2] not in read_tag:
-			read_tag[element[2]] = element
-		else:
-			if element[1] > read_tag[element[2]][1]:
-				read_tag[element[2]] = element
+			read_tag[element[2]] = 0
 
 	if len(read_tag) < read_count:
 		return
-
-	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
-
-	last_len = -DISCRETE_THRESHOLD_LEN_CLUSTER
+	phase_indel_len.sort()
+	last_len = -max_cluster_bias
 	max_conut = 0
-	max_LEN_sum = 0
-	max_bps_sum = 0
+	max_conut_sum = 0
 	temp_count = 0
-	temp_LEN_sum = 0
-	temp_bps_sum = 0
-	for i in read_tag2SortedList:
-		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER:
+	temp_count_sum = 0
+	for i in phase_indel_len:
+		if i - last_len > max_cluster_bias:
 			if temp_count > max_conut:
 				max_conut = temp_count
-				max_LEN_sum = temp_LEN_sum
-				max_bps_sum = temp_bps_sum
+				max_conut_sum = temp_count_sum
 			temp_count = 1
-			temp_LEN_sum = i[1]
-			temp_bps_sum = i[0]
+			temp_count_sum = i
 		else:
 			temp_count += 1
-			temp_LEN_sum += i[1]
-			temp_bps_sum += i[0]
-		last_len = i[1]
+			temp_count_sum += i
+		last_len = i
 	if temp_count > max_conut:
 		max_conut = temp_count
-		max_LEN_sum = temp_LEN_sum
-		max_bps_sum = temp_bps_sum
+		max_conut_sum = temp_count_sum
 
-	breakpoint_starts = int(max_bps_sum / max_conut)
-	signal_len = int(max_LEN_sum / max_conut)
-
-	candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\n'%
-		(chr, svtype, breakpoint_starts, signal_len, len(read_tag), max_conut, float(max_conut * 1.0 / len(read_tag))))
-
-	# '''Summary statistics'''
-	# # start&end breakpoint
-	# breakpoint_starts = [read_tag[key][0] for key in read_tag]
-	# breakpoint_ends = [read_tag[key][0] + read_tag[key][1] for key in read_tag]
-	# # signature length
-	# signal_len = [read_tag[key][1] for key in read_tag]
-	# breakpointStart = np.mean(breakpoint_starts)
-	# breakpointStart_STD = np.std(breakpoint_starts)
-	# breakpointStart_kurtosis = kurtosis(breakpoint_starts)
-	# signalLEN = np.mean(signal_len)
-	# signalLEN_STD = np.std(signal_len)
-	# signalLEN_kurtosis = kurtosis(signal_len)
-	# breakpointEnd = np.mean(breakpoint_ends)
-	# breakpointEnd_STD = np.std(breakpoint_ends)
-	# breakpointEnd_kurtosis = kurtosis(breakpoint_ends)
-	# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%d\t %d\t%d\t%d\t%d\t\n'%(chr, svtype, breakpointStart, signalLEN, len(read_tag), 
-	# 	breakpointStart_STD, breakpointStart_kurtosis, signalLEN_STD, signalLEN_kurtosis, breakpointEnd_STD, breakpointEnd_kurtosis))
-
-	# read_tag = dict()
-	# phase_indel_len = list()
-	# breakpoint_ele = 0
-	# for element in semi_indel_cluster:
-	# 	phase_indel_len.append(element[1])
-	# 	breakpoint_ele += element[0]
-	# 	if element[2] not in read_tag:
-	# 		read_tag[element[2]] = 0
-	# if len(read_tag) < read_count:
-	# 	return
-	# phase_indel_len.sort()
-	# last_len = -max_cluster_bias
-	# max_conut = 0
-	# max_conut_sum = 0
-	# temp_count = 0
-	# temp_count_sum = 0
-	# for i in phase_indel_len:
-	# 	if i - last_len > max_cluster_bias:
-	# 		if temp_count > max_conut:
-	# 			max_conut = temp_count
-	# 			max_conut_sum = temp_count_sum
-	# 		temp_count = 1
-	# 		temp_count_sum = i
-	# 	else:
-	# 		temp_count += 1
-	# 		temp_count_sum += i
-	# 	last_len = i
-	# if temp_count > max_conut:
-	# 	max_conut = temp_count
-	# 	max_conut_sum = temp_count_sum
-	
-	
-	# # result
-	# # chr, "DEL", breakpoint, len, read_count
-	# breakpoint = int(breakpoint_ele / len(semi_indel_cluster))
-	# indel_len = int(max_conut_sum/max_conut)
-	# if max_conut < int(len(read_tag)*overlap_size):
-	# 	return
-	# # if max_conut >= int(0.9*(len(read_tag))):
-	# # 	flag = "PRECISE"
-	# # else:
-	# # 	flag = "IMPRECISE"
-	# if svtype == "INV" and indel_len-breakpoint >= sv_size:
-	# 	# print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)))
-	# 	# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)))
-	# 	candidate_single_SV.append([chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)])
-	# 	# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\t%s\n"%(chr, svtype, breakpoint, indel_len, len(read_tag), flag))
+	# result
+	# chr, "DEL", breakpoint, len, read_count
+	breakpoint = int(breakpoint_ele / len(semi_indel_cluster))
+	indel_len = int(max_conut_sum/max_conut)
+	if max_conut < int(len(read_tag)*overlap_size):
+		return
+	# if max_conut >= int(0.9*(len(read_tag))):
+	# 	flag = "PRECISE"
 	# else:
-	# 	# print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
-	# 	# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
-	# 	candidate_single_SV.append([chr, svtype, breakpoint, indel_len, len(read_tag)])
-	# 	# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\t%s\n"%(chr, svtype, breakpoint, indel_len, len(read_tag), flag))
-	# # print semi_indel_cluster
-	# # print max_conut_sum, max_conut
-	
+	# 	flag = "IMPRECISE"
+	if svtype == "INV" and indel_len-breakpoint >= sv_size:
+		# print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)))
+		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)))
+		candidate_single_SV.append([chr, svtype, min(breakpoint, indel_len), max(breakpoint, indel_len), len(read_tag)])
+		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\t%s\n"%(chr, svtype, breakpoint, indel_len, len(read_tag), flag))
+	else:
+		# print("%s\t%s\t%d\t%d\t%d"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
+		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\n"%(chr, svtype, breakpoint, indel_len, len(read_tag)))
+		candidate_single_SV.append([chr, svtype, breakpoint, indel_len, len(read_tag)])
+		# candidate_single_SV.append("%s\t%s\t%d\t%d\t%d\t%s\n"%(chr, svtype, breakpoint, indel_len, len(read_tag), flag))
+	# print semi_indel_cluster
+	# print max_conut_sum, max_conut
 
 def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias):
 	semi_tra_cluster = list()
