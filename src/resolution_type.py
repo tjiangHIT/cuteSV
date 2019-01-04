@@ -629,6 +629,14 @@ def cal_cluster_breakpoint(pos_list, bias):
 	return best_bp
 
 def generate_semi_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, dup_candidates, candidate_single_SV):
+	'''
+	generate DUP
+	*******************************************
+	overlap_size 	max_cluster_bias 	sv_size
+	-------------------------------------------
+	0.5				50 bp (<500 bp)		50 bp
+	*******************************************
+	'''
 	start = list()
 	end = list()
 	start_id = list()
