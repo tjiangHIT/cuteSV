@@ -570,7 +570,7 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 		key_1 = int(down/10000)
 		if key_1 not in MainCandidate[keytype][chr]:
 			return re
-		for i in xrange(int((up%10000)/50)-int((down%10000)/50)+1):
+		for i in range(int((up%10000)/50)-int((down%10000)/50)+1):
 			# exist a bug ***********************************
 			key_2 = int((down%10000)/50)+i
 			if key_2 not in MainCandidate[keytype][chr][key_1]:
@@ -582,7 +582,7 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 	else:
 		key_1 = int(down/10000)
 		if key_1 in MainCandidate[keytype][chr]:
-			for i in xrange(200-int((down%10000)/50)):
+			for i in range(200-int((down%10000)/50)):
 				# exist a bug ***********************************
 				key_2 = int((down%10000)/50)+i
 				if key_2 not in MainCandidate[keytype][chr][key_1]:
@@ -594,7 +594,7 @@ def acquire_locus(down, up, keytype, chr, MainCandidate):
 		key_1 += 1
 		if key_1 not in MainCandidate[keytype][chr]:
 			return re
-		for i in xrange(int((up%10000)/50)+1):
+		for i in range(int((up%10000)/50)+1):
 			# exist a bug ***********************************
 			key_2 = i
 			if key_2 not in MainCandidate[keytype][chr][key_1]:

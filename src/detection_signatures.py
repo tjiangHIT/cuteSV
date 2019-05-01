@@ -74,7 +74,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 	# for i in SP_list:
 	# 	print i
 	DUP_flag = [0]*len(SP_list)
-	for a in xrange(len(SP_list[:-1])):
+	for a in range(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
 		ele_2 = SP_list[a+1]
 		if ele_1[4] == ele_2[4]:
@@ -165,7 +165,7 @@ def acquire_clip_pos(deal_cigar):
 
 	bias = 0
 	for i in seq:
-		if i[1] == 'M' or i[1] == 'D':
+		if i[1] == 'M' or i[1] == 'D' or i[1] == '=' or i[1] == 'X':
 			bias += i[0]
 	return [first_pos, last_pos, bias]
 
@@ -213,7 +213,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 		softclip_left = 0
 		softclip_right = 0
 		for element in read.cigar:
-			if element[0] == 0:
+			if element[0] in [0, 7 ,8]:
 				shift_del += element[1]
 			if element[0] == 2 and element[1] < low_bandary:
 				shift_del += element[1]
@@ -225,7 +225,7 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_seq_s
 				candidate["DEL"][Chr_name].append([pos_start+shift_del, element[1], read.query_name])
 				shift_del += element[1]
 
-			if element[0] == 0 or element[0] == 2:
+			if element[0] in [0, 2, 7, 8]:
 				shift_ins += element[1]
 			if element[0] == 1 and element[1] >= low_bandary:
 				shift_ins += 1
@@ -334,44 +334,44 @@ def main_ctrl(args):
 		else:
 			pos = 0
 			task_round = int(local_ref_len/args.batches)
-			for j in xrange(task_round):
+			for j in range(task_round):
 				Task_list.append([i[0], pos, pos+args.batches])
 				pos += args.batches
 			if pos < local_ref_len:
 				Task_list.append([i[0], pos, local_ref_len])
 
-	# analysis_pools = Pool(processes=int(args.threads))
+	analysis_pools = Pool(processes=int(args.threads))
 
 	# # # result = list()
 	if args.temp_dir[-1] == '/':
 		temporary_dir = args.temp_dir
 	else:
 		temporary_dir = args.temp_dir+'/'
-	# # '''
-	# os.mkdir("%ssignatures"%temporary_dir)
-	# for i in Task_list:
-	# 	para = [(args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, temporary_dir, i)]
-	# 	analysis_pools.map_async(multi_run_wrapper, para)
-	# analysis_pools.close()
-	# analysis_pools.join()
-	# # '''
-	# # '''
-	# logging.info("Rebuilding ssignatures of structural variants.")
-	# analysis_pools = Pool(processes=int(args.threads))
-	# cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
-	# cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
-	# cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3n > %sINV.sigs"%(temporary_dir, temporary_dir))
-	# cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 4,4 -k 3,3n > %sTRA.sigs"%(temporary_dir, temporary_dir))
-	# cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
-	# for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:
-	# 	analysis_pools.map_async(exe, (i,))
-	# analysis_pools.close()
-	# analysis_pools.join()
+	# '''
+	os.mkdir("%ssignatures"%temporary_dir)
+	for i in Task_list:
+		para = [(args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_seq_size, temporary_dir, i)]
+		analysis_pools.map_async(multi_run_wrapper, para)
+	analysis_pools.close()
+	analysis_pools.join()
+	# '''
+	# '''
+	logging.info("Rebuilding ssignatures of structural variants.")
+	analysis_pools = Pool(processes=int(args.threads))
+	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
+	cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
+	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3n > %sINV.sigs"%(temporary_dir, temporary_dir))
+	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 4,4 -k 3,3n > %sTRA.sigs"%(temporary_dir, temporary_dir))
+	cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
+	for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:
+		analysis_pools.map_async(exe, (i,))
+	analysis_pools.close()
+	analysis_pools.join()
 	# '''
 
 	chr_name_list.sort()
 	process_tra = list()
-	for i in xrange(len(chr_name_list)-1):
+	for i in range(len(chr_name_list)-1):
 		# print i
 		for j in chr_name_list[i+1:]:
 			process_tra.append([chr_name_list[i], j])
