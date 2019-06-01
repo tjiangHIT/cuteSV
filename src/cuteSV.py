@@ -12,7 +12,7 @@
 
 import pysam
 import cigar
-from cuteSV_Description import parseArgs, Generation_VCF_header
+from cuteSV_Description import parseArgs
 from multiprocessing import Pool
 from CommandRunner import *
 # from resolution_type import * 
@@ -20,6 +20,7 @@ from cuteSV_resolveINV import run_inv
 from cuteSV_resolveTRA import run_tra
 from cuteSV_resolveINDEL import run_ins, run_del
 from cuteSV_resolveDUP import run_dup
+from cuteSV_genotype import generate_output
 import os
 import argparse
 import logging
@@ -84,43 +85,87 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 					ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
 					ele_2 = [RLength-SP_list[a][1],RLength-SP_list[a][0]]+SP_list[a][2:]
 
-				if ele_1[3] - ele_2[2] >= SV_size:
+				if ele_1[3] - ele_2[2] >= SV_size and ele_2[0] - ele_1[1] <= 100:
 					if ele_2[4] not in candidate["DUP"]:
 						candidate["DUP"][ele_2[4]] = list()
 					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
 
-				if ele_1[3] <= ele_2[2]:
+				if ele_1[3] - ele_2[2] < SV_size:
 					if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
 						if ele_2[4] not in candidate["INS"]:
 							candidate["INS"][ele_2[4]] = list()
 
-						if ele_2[2] - ele_1[3] <= 100:
+						if ele_2[2] - ele_1[3] <= 100 and ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= 100000:
 							candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
 					if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
 						if ele_2[4] not in candidate["DEL"]:
 							candidate["DEL"][ele_2[4]] = list()
 
-						if ele_2[0] - ele_1[1] <= 100:
+						if ele_2[0] - ele_1[1] <= 100 and ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= 100000:
 							candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
 		else:
-			'''
-			*******************TRA*****************
-			---------------------------------------
-			chrom_1	pos_1	chrom_2 pos_2	read_id
-			---------------------------------------
-			'''
-			if ele_1[4] < ele_2[4]:
-				if ele_1[4] not in candidate["TRA"]:
-					candidate["TRA"][ele_1[4]] = list()
-				if ele_2[0] - ele_1[1] <= 100:
-					candidate["TRA"][ele_1[4]].append([ele_1[3], ele_2[4], ele_2[2], read_name])
-			else:
-				if ele_2[4] not in candidate["TRA"]:
-					candidate["TRA"][ele_2[4]] = list()
-				if ele_2[0] - ele_1[1] <= 100:
-					candidate["TRA"][ele_2[4]].append([ele_2[2], ele_1[4], ele_1[3], read_name])
-
 			trigger_INS_TRA = 1
+			'''
+			*********Description*********
+			*	TYPE A:		N[chr:pos[	*
+			*	TYPE B:		N]chr:pos]	*
+			*	TYPE C:		[chr:pos[N	*
+			*	TYPE D:		]chr:pos]N	*
+			*****************************
+			'''
+			if ele_2[0] - ele_1[1] <= 100:
+				if ele_1[5] == '+':
+					if ele_2[5] == '+':
+						# +&+
+						if ele_1[4] < ele_2[4]:
+							if ele_1[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_1[4]] = list()
+							candidate["TRA"][ele_1[4]].append(['A', ele_1[3], ele_2[4], ele_2[2], read_name])
+							# N[chr:pos[
+						else:
+							if ele_2[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_2[4]] = list()
+							candidate["TRA"][ele_2[4]].append(['D', ele_2[2], ele_1[4], ele_1[3], read_name])
+							# ]chr:pos]N
+					else:
+						# +&-
+						if ele_1[4] < ele_2[4]:
+							if ele_1[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_1[4]] = list()
+							candidate["TRA"][ele_1[4]].append(['B', ele_1[3], ele_2[4], ele_2[3], read_name])
+							# N]chr:pos]
+						else:
+							if ele_2[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_2[4]] = list()
+							candidate["TRA"][ele_2[4]].append(['B', ele_2[3], ele_1[4], ele_1[3], read_name])
+							# N]chr:pos]
+				else:
+					if ele_2[5] == '+':
+						# -&+
+						if ele_1[4] < ele_2[4]:
+							if ele_1[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_1[4]] = list()
+							candidate["TRA"][ele_1[4]].append(['C', ele_1[2], ele_2[4], ele_2[2], read_name])
+							# [chr:pos[N
+						else:
+							if ele_2[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_2[4]] = list()
+							candidate["TRA"][ele_2[4]].append(['C', ele_2[2], ele_1[4], ele_1[2], read_name])
+							# [chr:pos[N
+					else:
+						# -&-
+						if ele_1[4] < ele_2[4]:
+							if ele_1[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_1[4]] = list()
+							candidate["TRA"][ele_1[4]].append(['D', ele_1[2], ele_2[4], ele_2[3], read_name])
+							# ]chr:pos]N
+						else:
+							if ele_2[4] not in candidate["TRA"]:
+								candidate["TRA"][ele_2[4]] = list()
+							candidate["TRA"][ele_2[4]].append(['A', ele_2[3], ele_1[4], ele_1[2], read_name])
+							# N[chr:pos[
+
+
 
 	if len(SP_list) >= 3 and trigger_INS_TRA == 1:
 		if SP_list[0][4] == SP_list[-1][4]:
@@ -139,11 +184,16 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 				# print(ele_2)
 				dis_ref = ele_2[2] - ele_1[3]
 				dis_read = ele_2[0] - ele_1[1]
-				if dis_ref < 100 and dis_read - dis_ref >= SV_size:
+				if dis_ref < 100 and dis_read - dis_ref >= SV_size and dis_read - dis_ref <= 100000:
 					# print(min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name)
 					if ele_1[4] not in candidate['INS']:
 						candidate['INS'][ele_1[4]] = list()
 					candidate["INS"][ele_2[4]].append([min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name])
+
+				if dis_ref <= -SV_size:
+					if ele_2[4] not in candidate["DUP"]:
+						candidate["DUP"][ele_2[4]] = list()
+					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
 
 def acquire_clip_pos(deal_cigar):
 	seq = list(cigar.Cigar(deal_cigar).items())
@@ -167,6 +217,7 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_ba
 	split_read = list()
 	if len(primary_info) > 0:
 		split_read.append(primary_info)
+		min_mapq = 0
 	for i in Supplementary_info:
 		seq = i.split(',')
 		local_chr = seq[0]
@@ -174,8 +225,8 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_ba
 		local_cigar = seq[3]
 		local_strand = seq[2]
 		local_mapq = int(seq[4])
-		# if local_mapq >= min_mapq:
-		if local_mapq >= 0:	
+		if local_mapq >= min_mapq:
+		# if local_mapq >= 0:	
 			local_set = acquire_clip_pos(local_cigar)
 			if local_strand == '+':
 			 	split_read.append([local_set[0], total_L-local_set[1], local_start, 
@@ -189,10 +240,56 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, low_ba
 	if len(split_read) <= max_split_parts:
 		analysis_split_read(split_read, low_bandary, total_L, read_name, candidate)
 
+def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_dis):
+	# for i in sigs:
+	# 	print(svtype,i, len(sigs))
+	if len(sigs) == 0:
+		pass
+	elif len(sigs) == 1:
+		if Chr_name not in candidate[svtype]:
+			candidate[svtype][Chr_name] = list()
+		candidate[svtype][Chr_name].append([sigs[0][0], 
+											sigs[0][1], 
+											read_name])
+	else:
+		temp_sig = sigs[0]
+		if svtype == "INS":
+			temp_sig += [sigs[0][0]]
+		else:
+			temp_sig += [sum(sigs[0])]
+		# merge_dis_bias = max([i[1]] for i in sigs)
+
+		for i in sigs[1:]:
+			# if i[0] - temp_sig[2] <= max(merge_dis, merge_dis_bias):
+			if i[0] - temp_sig[2] <= merge_dis:
+				# 1000 ????
+				temp_sig[1] += i[1]
+				if svtype == "INS":
+					temp_sig[2] = i[0]
+				else:
+					temp_sig[2] = sum(i)
+			else:
+				if Chr_name not in candidate[svtype]:
+					candidate[svtype][Chr_name] = list()
+				candidate[svtype][Chr_name].append([temp_sig[0], 
+													temp_sig[1], 
+													read_name])
+				temp_sig = i
+				temp_sig.append(i[0])
+
+		if Chr_name not in candidate[svtype]:
+			candidate[svtype][Chr_name] = list()
+		candidate[svtype][Chr_name].append([temp_sig[0], 
+											temp_sig[1], 
+											read_name])
+
 
 def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_read_len, candidate):
 	if read.query_length < min_read_len:
 		return 0
+
+	Combine_sig_in_same_read_ins = list()
+	Combine_sig_in_same_read_del = list()
 
 	process_signal = detect_flag(read.flag)
 	if read.mapq >= min_mapq:
@@ -209,24 +306,31 @@ def parse_read(read, Chr_name, low_bandary, min_mapq, max_split_parts, min_read_
 				shift_del += element[1]
 			if element[0] == 2 and element[1] >= low_bandary:
 
-				if Chr_name not in candidate["DEL"]:
-					candidate["DEL"][Chr_name] = list()
-				candidate["DEL"][Chr_name].append([pos_start+shift_del, element[1], read.query_name])
+				# if Chr_name not in candidate["DEL"]:
+				# 	candidate["DEL"][Chr_name] = list()
+				# candidate["DEL"][Chr_name].append([pos_start+shift_del, element[1], read.query_name])
+				# print(Chr_name, pos_start+shift_del, element[1], read.query_name)
+				Combine_sig_in_same_read_del.append([pos_start+shift_del, element[1]])
 				shift_del += element[1]
 
 			if element[0] in [0, 2, 7, 8]:
 				shift_ins += element[1]
 			if element[0] == 1 and element[1] >= low_bandary:
 				shift_ins += 1
-				if Chr_name not in candidate["INS"]:
-					candidate["INS"][Chr_name] = list()
-				candidate["INS"][Chr_name].append([pos_start+shift_ins, element[1], read.query_name])
+				# if Chr_name not in candidate["INS"]:
+				# 	candidate["INS"][Chr_name] = list()
+				# candidate["INS"][Chr_name].append([pos_start+shift_ins, element[1], read.query_name])
+				# print(Chr_name, pos_start+shift_ins, element[1], read.query_name)
+				Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1]])
 
 		if read.cigar[0][0] == 4:
 			softclip_left = read.cigar[0][1]
 		if read.cigar[-1][0] == 4:
 			softclip_right = read.cigar[-1][1]
 
+	# ************Combine signals in same read********************
+	generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate, 500)
+	generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, read.query_name, "DEL", candidate, 500)
 
 	if process_signal == 1 or process_signal == 2:
 		Tags = read.get_tags()
@@ -274,9 +378,9 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 				for ele in candidate[sv_type][chr]:
 					if len(ele) == 3:
 						file.write("%s\t%s\t%d\t%d\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2]))
-					elif len(ele) == 4:
-						file.write("%s\t%s\t%d\t%s\t%d\t%s\n"%(sv_type, chr, ele[0], 
-							ele[1], ele[2], ele[3]))
+					elif len(ele) == 5:
+						file.write("%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(sv_type, chr, ele[0], 
+							ele[1], ele[2], ele[3], ele[4]))
 		except:
 			pass
 	file.close()	
@@ -329,7 +433,7 @@ def main_ctrl(args):
 	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
 	cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
 	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3n > %sINV.sigs"%(temporary_dir, temporary_dir))
-	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 4,4 -k 3,3n > %sTRA.sigs"%(temporary_dir, temporary_dir))
+	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 5,5 -k 3,3 -k 4,4n > %sTRA.sigs"%(temporary_dir, temporary_dir))
 	cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
 	for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:
 		analysis_pools.map_async(exe, (i,))
@@ -352,6 +456,7 @@ def main_ctrl(args):
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.max_cluster_bias_INV, args.min_length)]
 				result.append(analysis_pools.map_async(run_inv, para))
+				# pass
 			if svtype == 'DEL':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.diff_ratio_merging_DEL, args.max_cluster_bias_DEL, args.diff_ratio_filtering_DEL, 
@@ -385,45 +490,21 @@ def main_ctrl(args):
 	logging.info("Writing into disk.")
 
 	# sort SVs by [chr] and [pos]
-	result_sorted = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
-	# result_sorted = sorted(semi_result, key = lambda x:int(x[2]))
+	semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
+	generate_output(args, semi_result, contigINFO)	
 
-	file = open(args.output, 'w')
-	Generation_VCF_header(file, contigINFO, 'HG002')
-	ID = 0
-	for i in result_sorted:
-		# file.write("\t".join(i)+"\n")
-		if i[1] != "TRA":
-			file.write("%s\t%s\t%d\tN\t<%s>\t.\tPASS\tPRECISE;SVTYPE=%s;SVLEN=%s;RE=%s\tGT\t./.\n"%(i[0], i[2], ID, i[1], i[1], i[3], i[4]))
-		else:
-			file.write("%s\t%s\t%d\tN\t<%s>\t.\tPASS\tPRECISE;SVTYPE=%s;CHR2=%s;BREAKPOINT2=%s;RE=%s\tGT\t./.\n"%(i[0], i[2], ID, i[1], i[1], i[3], i[4], i[5]))
-		# print(i)
-		ID += 1
-	file.close()
-
-	logging.info("Cleaning temporary files.")
-	cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs"%(temporary_dir, temporary_dir))
-	exe(cmd_remove_tempfile)
+	# logging.info("Cleaning temporary files.")
+	# cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs"%(temporary_dir, temporary_dir))
+	# exe(cmd_remove_tempfile)
 	
 	samfile.close()
-
-def cal_GT(a, b):
-	if b == 0:
-		return "1/1"
-	if a*1.0/b < 0.3:
-		return "0/0"
-	elif a*1.0/b >= 0.3 and a*1.0/b < 0.8:
-		return "0/1"
-	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
-		return "1/1"
-	else:
-		return "1/1"
 
 def setupLogging(debug=False):
 	logLevel = logging.DEBUG if debug else logging.INFO
 	logFormat = "%(asctime)s [%(levelname)s] %(message)s"
 	logging.basicConfig( stream=sys.stderr, level=logLevel, format=logFormat )
 	logging.info("Running %s" % " ".join(sys.argv))
+
 
 def run(argv):
 	args = parseArgs(argv)

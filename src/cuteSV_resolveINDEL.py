@@ -2,19 +2,45 @@ import sys
 import numpy as np
 from collections import Counter
 
-def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, threshold_local, minimum_support_reads):
+'''
+*******************************************
+				TO DO LIST
+*******************************************
+	1. Identify DP with samfile pointer;
+	2. Add CIPOS, CILEN and/or CIEND;
+	3. Determine (IM)PRECISE type.
+*******************************************
+
+'''
+
+def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, 
+	threshold_local, minimum_support_reads):
+
 	'''
-	cluster deletion
-	*****************************
+	cluster DEL
+	********************************************************************************************
 	path:	DEL.sigs
 	chr:	chromosome id
 	svtype:	<DEL>
 	
-	read_count 	max_cluster_bias 	 	
-	----------------------------
-	5/10		200 bp (<500 bp)
-	*****************************
+	SEQTYPE		read_count 	max_cluster_bias 	sv_size		threshold_gloab 	threshold_local 
+	--------------------------------------------------------------------------------------------
+	CCS			3			200 bp (<500 bp)	30 bp 		0.4					0.5
+	CLR			5/10		200 bp (<500 bp)	50 bp 		0.3					0.7
+	--------------------------------------------------------------------------------------------
+	
+	Input file format
+	--------------------------------------------------------------------------------------------
+	column	#1	#2	#3	#4	#5
+			DEL	CHR	BP	LEN	ID	
+	#1	deletion type
+	#2	chromosome number
+	#3	breakpoint in each read
+	#4	DEL_len in each read
+	#5	read ID
+	********************************************************************************************
 	'''
+
 	semi_del_cluster = list()
 	semi_del_cluster.append([0,0,''])
 	candidate_single_SV = list()
@@ -31,22 +57,33 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 		
 		if pos - semi_del_cluster[-1][0] > max_cluster_bias:
 			if len(semi_del_cluster) >= read_count:
-				generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-					threshold_gloab, threshold_local, minimum_support_reads, 
-					candidate_single_SV)
+				generate_del_cluster(semi_del_cluster, 
+										chr, 
+										svtype, 
+										read_count, 
+										threshold_gloab, 
+										threshold_local, 
+										minimum_support_reads, 
+										candidate_single_SV)
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_del_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_del_cluster) >= read_count:
-		generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-			threshold_gloab, threshold_local, minimum_support_reads, 
-			candidate_single_SV)
+		generate_del_cluster(semi_del_cluster, 
+								chr, 
+								svtype, 
+								read_count, 
+								threshold_gloab, 
+								threshold_local, 
+								minimum_support_reads, 
+								candidate_single_SV)
 	file.close()
 	return candidate_single_SV
 
-def generate_del_cluster_ccs(semi_del_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+def generate_del_cluster_ccs(semi_del_cluster, chr, svtype, read_count, threshold_gloab,
+ threshold_local, minimum_support_reads, candidate_single_SV):
 	
 	# calculate support reads
 	support_read = len(list(set([i[2] for i in semi_del_cluster])))
@@ -117,20 +154,24 @@ def generate_del_cluster_ccs(semi_del_cluster, chr, svtype, read_count, threshol
 			else:
 				reliability = "IMPRECISION"
 
-			candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % (chr, svtype, i[0][0], -i[1][0], i[2], reliability))
+			candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % 
+				(chr, svtype, i[0][0], -i[1][0], i[2], reliability))
 
 
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+
 	'''
 	generate deletion
 	*************************************************************
 	threshold_gloab 	threshold_local 	minimum_support_reads
 	-------------------------------------------------------------
-		0.3					0.7 					5
+		0.3					0.7 					5		CLR
+		0.4					0.5 				  <=5		CCS
 	*************************************************************
 	'''
+
 	# Remove duplicates
 	read_tag = dict()
 	for element in semi_del_cluster:
@@ -179,22 +220,41 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 
 	if max_conut >= minimum_support_reads and overlap_score >= threshold_local:
 		# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\n'%
-		# (chr, svtype, breakpoint_starts, -signal_len, len(read_tag), max_conut, overlap_score))
-		candidate_single_SV.append([chr, svtype, str(int(breakpoint_starts)), str(-int(signal_len)), str(len(read_tag))])
+		# 	(chr, svtype, breakpoint_starts, -signal_len, len(read_tag), max_conut, overlap_score))
+		candidate_single_SV.append([chr, 
+									svtype, 
+									str(int(breakpoint_starts)), 
+									str(-int(signal_len)), 
+									str(len(read_tag))])
 
-def resolution_INS(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, threshold_local, minimum_support_reads):
+def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
+	max_cluster_bias, threshold_local, minimum_support_reads):
+	
 	'''
-	cluster insertion
-	*****************************
+	cluster INS
+	********************************************************************************************
 	path:	INS.sigs
 	chr:	chromosome id
 	svtype:	<INS>
 	
-	read_count 	max_cluster_bias 	 	
-	----------------------------
-	5/10		100 bp (<500 bp)
-	*****************************
+	SEQTYPE		read_count 	max_cluster_bias 	sv_size		threshold_gloab 	threshold_local 
+	--------------------------------------------------------------------------------------------
+	CCS			3			200 bp (<500 bp)	30 bp 		0.65				0.7
+	CLR			5/10		100 bp (<500 bp)	50 bp 		0.2					0.6
+	--------------------------------------------------------------------------------------------
+	
+	Input file format
+	--------------------------------------------------------------------------------------------
+	column	#1	#2	#3	#4	#5
+			INS	CHR	BP	LEN	ID	
+	#1	insertion type
+	#2	chromosome number
+	#3	breakpoint in each read
+	#4	DEL_len in each read
+	#5	read ID
+	********************************************************************************************
 	'''
+
 	semi_ins_cluster = list()
 	semi_ins_cluster.append([0,0,''])
 	candidate_single_SV = list()
@@ -211,18 +271,33 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 		
 		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
 			if len(semi_ins_cluster) >= read_count:
-				generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV)
+				generate_ins_cluster(semi_ins_cluster, 
+										chr, 
+										svtype, 
+										read_count, 
+										threshold_gloab, 
+										threshold_local, 
+										minimum_support_reads, 
+										candidate_single_SV)
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_ins_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_ins_cluster) >= read_count:
-		generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV)
+		generate_ins_cluster(semi_ins_cluster, 
+							chr, 
+							svtype, 
+							read_count, 
+							threshold_gloab, 
+							threshold_local, 
+							minimum_support_reads, 
+							candidate_single_SV)
 	file.close()
 	return candidate_single_SV
 
-def generate_ins_cluster_ccs(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+def generate_ins_cluster_ccs(semi_ins_cluster, chr, svtype, read_count, 
+	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
 
 	# calculate support reads
 	support_read = len(list(set([i[2] for i in semi_ins_cluster])))
@@ -298,18 +373,23 @@ def generate_ins_cluster_ccs(semi_ins_cluster, chr, svtype, read_count, threshol
 			if i[0][1] == 1 and i[1][1] == 1:
 				return
 
-			candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % (chr, svtype, i[0][0], i[1][0], i[2], reliability))
+			candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % 
+				(chr, svtype, i[0][0], i[1][0], i[2], reliability))
 
 
-def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
+	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+		
 	'''
-	generate insertion
+	generate deletion
 	*************************************************************
 	threshold_gloab 	threshold_local 	minimum_support_reads
 	-------------------------------------------------------------
-		0.2					0.6						5
+		0.2					0.6 					5		CLR
+		0.65				0.7 				  <=5		CCS
 	*************************************************************
 	'''
+
 	# Remove duplicates
 	read_tag = dict()
 	for element in semi_ins_cluster:
@@ -357,7 +437,11 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, threshold_gl
 	if max_conut >= minimum_support_reads and overlap_score >= threshold_local:
 		# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\t%.3f\t%d\n' % 
 		# 	(chr, svtype, breakpointStart, signal_len, len(read_tag), max_conut, overlap_score, breakpointStart_STD, np.mean(global_len)))
-		candidate_single_SV.append([chr, svtype, str(int(breakpointStart)), str(int(signal_len)), str(len(read_tag))])
+		candidate_single_SV.append([chr, 
+									svtype, 
+									str(int(breakpointStart)), 
+									str(int(signal_len)), 
+									str(len(read_tag))])
 
 def run_del(args):
 	return resolution_DEL(*args)

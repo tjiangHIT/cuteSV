@@ -2,6 +2,17 @@ import sys
 import numpy as np
 from collections import Counter
 
+'''
+*******************************************
+				TO DO LIST
+*******************************************
+	1. Identify DP with samfile pointer;
+	2. Add CIPOS, CILEN and/or CIEND;
+	3. Determine (IM)PRECISE type.
+	4. Filter DUP to improve INS FN rate.
+*******************************************
+'''
+
 def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size):
 	semi_dup_cluster = list()
 	semi_dup_cluster.append([0,0,''])
@@ -19,14 +30,23 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size):
 		
 		if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias:
 			if len(semi_dup_cluster) >= read_count:
-				generate_dup_cluster_ccs(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, candidate_single_SV)
+				generate_dup_cluster_ccs(semi_dup_cluster, 
+										chr, 
+										read_count, 
+										max_cluster_bias, 
+										sv_size, 
+										candidate_single_SV)
 			semi_dup_cluster = []
 			semi_dup_cluster.append([pos_1, pos_2, read_id])
 		else:
 			semi_dup_cluster.append([pos_1, pos_2, read_id])
 
 	if len(semi_dup_cluster) >= read_count:
-		generate_dup_cluster_ccs(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, candidate_single_SV)
+		generate_dup_cluster_ccs(semi_dup_cluster, 
+								chr, read_count, 
+								max_cluster_bias, 
+								sv_size, 
+								candidate_single_SV)
 	file.close()
 	return candidate_single_SV
 

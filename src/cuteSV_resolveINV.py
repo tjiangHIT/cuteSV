@@ -45,14 +45,25 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size):
 
 		if breakpoint_1_in_read - semi_inv_cluster[-1][0] > max_cluster_bias:
 			if len(semi_inv_cluster) >= read_count:
-				generate_semi_inv_cluster_2(semi_inv_cluster, chr, svtype, read_count, sv_size, candidate_single_SV, max_cluster_bias)
+				generate_semi_inv_cluster_2(semi_inv_cluster, 
+											chr, 
+											svtype, 
+											read_count, 
+											sv_size, 
+											candidate_single_SV, 
+											max_cluster_bias)
 			semi_inv_cluster = []
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id])
 		else:
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id])
 
 	if len(semi_inv_cluster) >= read_count:
-		generate_semi_inv_cluster_2(semi_inv_cluster, chr, svtype, read_count, sv_size, candidate_single_SV, max_cluster_bias)
+		generate_semi_inv_cluster_2(semi_inv_cluster, 
+									chr, svtype, 
+									read_count, 
+									sv_size, 
+									candidate_single_SV, 
+									max_cluster_bias)
 	file.close()
 	return candidate_single_SV
 
@@ -145,7 +156,11 @@ def generate_semi_inv_cluster_2(semi_inv_cluster, chr, svtype, read_count, sv_si
 				inv_len = breakpoint_2 - breakpoint_1
 				if inv_len >= sv_size and max_count_id >= read_count:
 					# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
-					candidate_single_SV.append([chr, svtype, str(int(breakpoint_1)), str(int(breakpoint_2)), str(max_count_id)])
+					candidate_single_SV.append([chr, 
+												svtype, 
+												str(int(breakpoint_1)), 
+												str(int(breakpoint_2)), 
+												str(max_count_id)])
 
 			temp_id = dict()
 			temp_count = 1
@@ -168,7 +183,11 @@ def generate_semi_inv_cluster_2(semi_inv_cluster, chr, svtype, read_count, sv_si
 		inv_len = breakpoint_2 - breakpoint_1
 		if inv_len >= sv_size and max_count_id >= read_count:
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
-			candidate_single_SV.append([chr, svtype, str(int(breakpoint_1)), str(int(breakpoint_2)), str(max_count_id)])
+			candidate_single_SV.append([chr, 
+										svtype, 
+										str(int(breakpoint_1)), 
+										str(int(breakpoint_2)), 
+										str(max_count_id)])
 
 def run_inv(args):
 	return resolution_INV(*args)
