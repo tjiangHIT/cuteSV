@@ -51,11 +51,15 @@ def generate_output(args, semi_result, contigINFO):
 					cal_end = int(i[2]) + 1
 				else:
 					cal_end = int(i[2]) + abs(int(i[3]))
-				info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE}".format(
+				info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};BREAKPOINT_STD={BPSTD};SVLEN_STD={LENSTD};RE={RE}".format(
 					PRECISION = "PRECISE", 
 					SVTYPE = i[1], 
 					SVLEN = i[3], 
 					END = str(cal_end), 
+					# BPSTD = i[5], 
+					# LENSTD = i[6], 
+					BPSTD = 0, 
+					LENSTD = 0, 
 					RE = i[4])
 				file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t.\tPASS\t{INFO}\t{FORMAT}\t./.::{RE}\n".format(
 					CHR = i[0], 
@@ -98,11 +102,13 @@ def generate_output(args, semi_result, contigINFO):
 					cal_end = int(i[2]) + 1
 				else:
 					cal_end = int(i[2]) + abs(int(i[3]))
-				info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE}".format(
+				info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};BREAKPOINT_STD={BPSTD};SVLEN_STD={LENSTD};RE={RE}".format(
 					PRECISION = "PRECISE", 
 					SVTYPE = i[1], 
 					SVLEN = i[3], 
 					END = str(cal_end), 
+					BPSTD = i[5], 
+					LENSTD = i[6], 
 					RE = i[4])
 				file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t.\tPASS\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}\n".format(
 					CHR = i[0], 

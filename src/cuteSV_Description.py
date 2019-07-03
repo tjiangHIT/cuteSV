@@ -23,6 +23,22 @@ class cuteSVdp(object):
 	Current version: v%s
 	Author: Tao Jiang
 	Contact: tjiang@hit.edu.cn
+
+
+	Suggestions:
+
+	For PacBio CLR data:
+		--max_cluster_bias_INS		100
+		--diff_ratio_merging_INS	0.2
+		--diff_ratio_filtering_INS	0.6
+		--diff_ratio_filtering_DEL	0.7
+	For PacBio CCS(HIFI) data:
+		--max_cluster_bias_INS		200
+		--diff_ratio_merging_INS	0.65
+		--diff_ratio_filtering_INS	0.65
+		--diff_ratio_filtering_DEL	0.35
+
+
 	"""%(VERSION)
 
 	MinSizeDel = 'For current version of cuteSV, it can detect deletions larger than this size.'
@@ -89,6 +105,10 @@ def parseArgs(argv):
 		help = "Minimum length of SV to be reported.[%(default)s]", 
 		default = 30, 
 		type = int)
+	GroupSVCluster.add_argument('-L', '--min_siglength', 
+		help = "Minimum length of SV signal to be extracted.[%(default)s]", 
+		default = 10, 
+		type = int)
 
 	# Just a parameter for debug.
 	# Will be removed in future.
@@ -131,7 +151,7 @@ def parseArgs(argv):
 	# ++++++INV++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_INV', 
 		help = "Maximum distance to cluster read together for inversion.[%(default)s]", 
-		default = 20, 
+		default = 500, 
 		type = int)
 
 	# ++++++DUP++++++

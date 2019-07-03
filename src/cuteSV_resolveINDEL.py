@@ -57,7 +57,7 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 		
 		if pos - semi_del_cluster[-1][0] > max_cluster_bias:
 			if len(semi_del_cluster) >= read_count:
-				generate_del_cluster(semi_del_cluster, 
+				generate_del_cluster_2(semi_del_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
@@ -71,7 +71,7 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 			semi_del_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_del_cluster) >= read_count:
-		generate_del_cluster(semi_del_cluster, 
+		generate_del_cluster_2(semi_del_cluster, 
 								chr, 
 								svtype, 
 								read_count, 
@@ -227,6 +227,116 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 									str(-int(signal_len)), 
 									str(len(read_tag))])
 
+def generate_del_cluster_2(semi_del_cluster, chr, svtype, read_count, 
+	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+
+	'''
+	generate deletion
+	*************************************************************
+	threshold_gloab 	threshold_local 	minimum_support_reads
+	-------------------------------------------------------------
+		0.3					0.7 					5		CLR
+		0.4					0.5 				  <=5		CCS
+	*************************************************************
+	'''
+
+	# Remove duplicates
+	read_tag = dict()
+	for element in semi_del_cluster:
+		if element[2] not in read_tag:
+			read_tag[element[2]] = element
+		else:
+			if element[1] > read_tag[element[2]][1]:
+				read_tag[element[2]] = element
+
+	if len(read_tag) < read_count:
+		return
+
+	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
+	global_len = [i[1] for i in read_tag2SortedList]
+	DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP = threshold_gloab * np.mean(global_len)
+
+	last_len = read_tag2SortedList[0][1]
+
+	alelle_collect = list()
+	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[]])
+
+	for i in read_tag2SortedList[1:]:
+		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP:
+			alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
+			alelle_collect.append([[],[],[]])
+
+		alelle_collect[-1][0].append(i[0])
+		alelle_collect[-1][1].append(i[1])
+		last_len = i[1]
+	alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
+	alelle_sort = sorted(alelle_collect, key = lambda x:x[2])
+
+	if alelle_sort[-1][2][0] >= minimum_support_reads and float(alelle_sort[-1][2][0] * 1.0 / len(read_tag)) >= threshold_local:
+		breakpointStart = np.mean(alelle_sort[-1][0])
+		breakpointStart_STD = np.std(alelle_sort[-1][0])
+		signalLen = np.mean(alelle_sort[-1][1])
+		signalLen_STD = np.std(alelle_sort[-1][1])
+		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+		candidate_single_SV.append([chr, 
+									svtype, 
+									str(int(breakpointStart)), 
+									str(int(-signalLen)), 
+									str(alelle_sort[-1][2][0]), 
+									"%.3f"%breakpointStart_STD, 
+									"%.3f"%signalLen_STD])
+
+		# extend to next alelle
+		if (len(alelle_sort) > 1 and alelle_sort[-2][2][0] >= minimum_support_reads 
+			and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag) 
+			and alelle_sort[-2][2][0] >= 0.3*len(read_tag)):
+			breakpointStart = np.mean(alelle_sort[-2][0])
+			breakpointStart_STD = np.std(alelle_sort[-2][0])
+			signalLen = np.mean(alelle_sort[-2][1])
+			last_signalLen_STD = signalLen_STD
+			signalLen_STD = np.std(alelle_sort[-2][1])
+			# if signalLen_STD < last_signalLen_STD:
+			# 	# pass
+			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+			candidate_single_SV.append([chr, 
+										svtype, 
+										str(int(breakpointStart)), 
+										str(int(-signalLen)), 
+										str(alelle_sort[-2][2][0]), 
+										"%.3f"%breakpointStart_STD, 
+										"%.3f"%signalLen_STD])
+
+	elif alelle_sort[-2][2][0] >= minimum_support_reads and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag):
+		if alelle_sort[-2][2][0] >= 0.4*len(read_tag):
+			breakpointStart = np.mean(alelle_sort[-1][0])
+			breakpointStart_STD = np.std(alelle_sort[-1][0])
+			signalLen = np.mean(alelle_sort[-1][1])
+			signalLen_STD = np.std(alelle_sort[-1][1])
+			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+			candidate_single_SV.append([chr, 
+										svtype, 
+										str(int(breakpointStart)), 
+										str(int(-signalLen)), 
+										str(alelle_sort[-1][2][0]), 
+										"%.3f"%breakpointStart_STD, 
+										"%.3f"%signalLen_STD])
+
+			breakpointStart = np.mean(alelle_sort[-2][0])
+			breakpointStart_STD = np.std(alelle_sort[-2][0])
+			signalLen = np.mean(alelle_sort[-2][1])
+			signalLen_STD = np.std(alelle_sort[-2][1])
+			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+			candidate_single_SV.append([chr, 
+										svtype, 
+										str(int(breakpointStart)), 
+										str(int(-signalLen)), 
+										str(alelle_sort[-2][2][0]), 
+										"%.3f"%breakpointStart_STD, 
+										"%.3f"%signalLen_STD])
+
+
+	
+
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
 	max_cluster_bias, threshold_local, minimum_support_reads):
 	
@@ -271,7 +381,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 		
 		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
 			if len(semi_ins_cluster) >= read_count:
-				generate_ins_cluster(semi_ins_cluster, 
+				generate_ins_cluster_2(semi_ins_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
@@ -285,14 +395,14 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 			semi_ins_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_ins_cluster) >= read_count:
-		generate_ins_cluster(semi_ins_cluster, 
-							chr, 
-							svtype, 
-							read_count, 
-							threshold_gloab, 
-							threshold_local, 
-							minimum_support_reads, 
-							candidate_single_SV)
+		generate_ins_cluster_2(semi_ins_cluster, 
+								chr, 
+								svtype, 
+								read_count, 
+								threshold_gloab, 
+								threshold_local, 
+								minimum_support_reads, 
+								candidate_single_SV)
 	file.close()
 	return candidate_single_SV
 
@@ -442,6 +552,122 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 									str(int(breakpointStart)), 
 									str(int(signal_len)), 
 									str(len(read_tag))])
+
+def generate_ins_cluster_2(semi_ins_cluster, chr, svtype, read_count, 
+	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+		
+	'''
+	generate deletion
+	*************************************************************
+	threshold_gloab 	threshold_local 	minimum_support_reads
+	-------------------------------------------------------------
+		0.2					0.6 					5		CLR
+		0.65				0.7 				  <=5		CCS
+	*************************************************************
+	'''
+
+	# Remove duplicates
+	read_tag = dict()
+	for element in semi_ins_cluster:
+		if element[2] not in read_tag:
+			read_tag[element[2]] = element
+		else:
+			if element[1] > read_tag[element[2]][1]:
+				read_tag[element[2]] = element
+
+	if len(read_tag) < read_count:
+		return
+
+	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
+	# start&end breakpoint
+	global_len = [i[1] for i in read_tag2SortedList]
+	DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP = threshold_gloab * np.mean(global_len)
+
+	last_len = read_tag2SortedList[0][1]
+
+	alelle_collect = list()
+	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[]])
+
+	for i in read_tag2SortedList[1:]:
+		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP:
+			alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
+			alelle_collect.append([[],[],[]])
+
+		alelle_collect[-1][0].append(i[0])
+		alelle_collect[-1][1].append(i[1])
+		last_len = i[1]
+	alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
+	alelle_sort = sorted(alelle_collect, key = lambda x:x[2])
+
+	# print(len(read_tag), DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP)
+	# for i in alelle_sort:
+	# 	for j in i:
+	# 		print(j)
+
+	# print(alelle_sort[-1][2][0], minimum_support_reads)
+	# print(float(alelle_sort[-1][2][0] * 1.0 / len(read_tag)), threshold_local)
+
+	if alelle_sort[-1][2][0] >= minimum_support_reads and float(alelle_sort[-1][2][0] * 1.0 / len(read_tag)) >= threshold_local:
+		breakpointStart = np.mean(alelle_sort[-1][0])
+		breakpointStart_STD = np.std(alelle_sort[-1][0])
+		signalLen = np.mean(alelle_sort[-1][1])
+		signalLen_STD = np.std(alelle_sort[-1][1])
+		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+		candidate_single_SV.append([chr, 
+									svtype, 
+									str(int(breakpointStart)), 
+									str(int(signalLen)), 
+									str(alelle_sort[-1][2][0]), 
+									"%.3f"%breakpointStart_STD, 
+									"%.3f"%signalLen_STD])
+
+		# extend to next alelle
+		if (len(alelle_sort) > 1 and alelle_sort[-2][2][0] >= minimum_support_reads 
+			and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag) 
+			and alelle_sort[-2][2][0] >= 0.3*len(read_tag)):
+			breakpointStart = np.mean(alelle_sort[-2][0])
+			breakpointStart_STD = np.std(alelle_sort[-2][0])
+			signalLen = np.mean(alelle_sort[-2][1])
+			last_signalLen_STD = signalLen_STD
+			signalLen_STD = np.std(alelle_sort[-2][1])
+			if signalLen_STD < last_signalLen_STD:
+				# pass
+				# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+				candidate_single_SV.append([chr, 
+											svtype, 
+											str(int(breakpointStart)), 
+											str(int(signalLen)), 
+											str(alelle_sort[-2][2][0]), 
+											"%.3f"%breakpointStart_STD, 
+											"%.3f"%signalLen_STD])
+
+	elif alelle_sort[-2][2][0] >= minimum_support_reads and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag):
+		if alelle_sort[-2][2][0] >= 0.4*len(read_tag):
+			breakpointStart = np.mean(alelle_sort[-1][0])
+			breakpointStart_STD = np.std(alelle_sort[-1][0])
+			signalLen = np.mean(alelle_sort[-1][1])
+			signalLen_STD = np.std(alelle_sort[-1][1])
+			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+			candidate_single_SV.append([chr, 
+										svtype, 
+										str(int(breakpointStart)), 
+										str(int(signalLen)), 
+										str(alelle_sort[-1][2][0]), 
+										"%.3f"%breakpointStart_STD, 
+										"%.3f"%signalLen_STD])
+
+			breakpointStart = np.mean(alelle_sort[-2][0])
+			breakpointStart_STD = np.std(alelle_sort[-2][0])
+			signalLen = np.mean(alelle_sort[-2][1])
+			signalLen_STD = np.std(alelle_sort[-2][1])
+			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+			candidate_single_SV.append([chr, 
+										svtype, 
+										str(int(breakpointStart)), 
+										str(int(signalLen)), 
+										str(alelle_sort[-2][2][0]), 
+										"%.3f"%breakpointStart_STD, 
+										"%.3f"%signalLen_STD])
 
 def run_del(args):
 	return resolution_DEL(*args)
