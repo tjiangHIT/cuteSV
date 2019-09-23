@@ -422,7 +422,7 @@ def main_ctrl(args):
 	analysis_pools = Pool(processes=int(args.threads))
 	os.mkdir("%ssignatures"%temporary_dir)
 	for i in Task_list:
-		para = [(args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i, args.min_siglength)]
+		para = [(args.input, args.min_size, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i, args.min_siglength)]
 		analysis_pools.map_async(multi_run_wrapper, para)
 	analysis_pools.close()
 	analysis_pools.join()
@@ -454,7 +454,7 @@ def main_ctrl(args):
 		for svtype in ["DEL", "INS", "INV"]:
 			if svtype == "INV":
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
-					args.max_cluster_bias_INV, args.min_length)]
+					args.max_cluster_bias_INV, args.min_size)]
 				result.append(analysis_pools.map_async(run_inv, para))
 				pass
 			if svtype == 'DEL':
@@ -468,7 +468,7 @@ def main_ctrl(args):
 					min(args.min_support, 5))]
 				result.append(analysis_pools.map_async(run_ins, para))
 		# DUP
-		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias_DUP, args.min_length)]
+		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias_DUP, args.min_size)]
 		result.append(analysis_pools.map_async(run_dup, para))
 
 	for i in process_tra:
