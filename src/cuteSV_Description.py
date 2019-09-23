@@ -101,8 +101,8 @@ def parseArgs(argv):
 		help = "Minimum number of reads that support a SV to be reported.[%(default)s]", 
 		default = 3, 
 		type = int)
-	GroupSVCluster.add_argument('-l', '--min_length', 
-		help = "Minimum length of SV to be reported.[%(default)s]", 
+	GroupSVCluster.add_argument('-l', '--min_size', 
+		help = "Minimum size of SV to be reported.[%(default)s]", 
 		default = 30, 
 		type = int)
 	GroupSVCluster.add_argument('-L', '--min_siglength', 
@@ -123,15 +123,15 @@ def parseArgs(argv):
 	# ++++++INS++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_INS', 
 		help = "Maximum distance to cluster read together for insertion.[%(default)s]", 
-		default = 200, 
+		default = 100, 
 		type = int)
 	GroupAdvanced.add_argument('--diff_ratio_merging_INS', 
 		help = "Do not merge breakpoints with basepair identity more than [%(default)s] for insertion.", 
-		default = 0.65, 
+		default = 0.2, 
 		type = float)
 	GroupAdvanced.add_argument('--diff_ratio_filtering_INS', 
 		help = "Filter breakpoints with basepair identity less than [%(default)s] for insertion.", 
-		default = 0.65, 
+		default = 0.6, 
 		type = float)
 
 	# ++++++DEL++++++
@@ -145,7 +145,7 @@ def parseArgs(argv):
 		type = float)
 	GroupAdvanced.add_argument('--diff_ratio_filtering_DEL', 
 		help = "Filter breakpoints with basepair identity less than [%(default)s] for deletion.", 
-		default = 0.35, 
+		default = 0.7, 
 		type = float)
 
 	# ++++++INV++++++

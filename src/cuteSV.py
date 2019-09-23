@@ -456,7 +456,7 @@ def main_ctrl(args):
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.max_cluster_bias_INV, args.min_length)]
 				result.append(analysis_pools.map_async(run_inv, para))
-				# pass
+				pass
 			if svtype == 'DEL':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.diff_ratio_merging_DEL, args.max_cluster_bias_DEL, args.diff_ratio_filtering_DEL, 

@@ -20,6 +20,17 @@ def cal_GT(a, b):
 	else:
 		return "1/1"
 
+def produce_GT(samfile, chr, bk, sup_read):
+	search_start = max(bk - 20, 0)
+	search_end = min(bk + 20, samfile.get_reference_length(chr))
+	DP = count_coverage(chr, search_start, search_end, samfile)
+	output_GT = "{FORMAT}\t{GT}:{DR}:{RE}".format(
+		FORMAT = "GT:DR:DV", 
+		GT = cal_GT(sup_read, DP),
+		DR = max(DP - sup_read, 0),
+		RE = sup_read)
+	return output_GT
+
 
 TriggerGT = {'False': 0, 'True': 1}
 
@@ -50,7 +61,7 @@ def generate_output(args, semi_result, contigINFO):
 				if i[1] == "INS":
 					cal_end = int(i[2]) + 1
 				else:
-					cal_end = int(i[2]) + abs(int(i[3]))
+					cal_end = int(i[2]) + abs(int(float(i[3])))
 				info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};BREAKPOINT_STD={BPSTD};SVLEN_STD={LENSTD};RE={RE}".format(
 					PRECISION = "PRECISE", 
 					SVTYPE = i[1], 
@@ -101,14 +112,16 @@ def generate_output(args, semi_result, contigINFO):
 				if i[1] == "INS":
 					cal_end = int(i[2]) + 1
 				else:
-					cal_end = int(i[2]) + abs(int(i[3]))
+					cal_end = int(i[2]) + abs(int(float(i[3])))
 				info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};BREAKPOINT_STD={BPSTD};SVLEN_STD={LENSTD};RE={RE}".format(
 					PRECISION = "PRECISE", 
 					SVTYPE = i[1], 
 					SVLEN = i[3], 
 					END = str(cal_end), 
-					BPSTD = i[5], 
-					LENSTD = i[6], 
+					# BPSTD = i[5], 
+					# LENSTD = i[6], 
+					BPSTD = 0, 
+					LENSTD = 0, 
 					RE = i[4])
 				file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t.\tPASS\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}\n".format(
 					CHR = i[0], 

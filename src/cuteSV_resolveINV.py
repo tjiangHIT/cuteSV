@@ -159,7 +159,7 @@ def generate_semi_inv_cluster_2(semi_inv_cluster, chr, svtype, read_count, sv_si
 					candidate_single_SV.append([chr, 
 												svtype, 
 												str(int(breakpoint_1)), 
-												str(inv_len), 
+												str(int(inv_len)), 
 												str(max_count_id)])
 
 			temp_id = dict()
@@ -186,7 +186,7 @@ def generate_semi_inv_cluster_2(semi_inv_cluster, chr, svtype, read_count, sv_si
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpoint_1)), 
-										str(inv_len), 
+										str(int(inv_len)), 
 										str(max_count_id)])
 
 def run_inv(args):

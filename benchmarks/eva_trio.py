@@ -80,7 +80,7 @@ def load_callset_cuteSV(path, filter, confbed):
 			if info["RE"] >= filter:
 				callset[ALT][chr][info["CHR2"]].append([pos, info["END"], 0])
 		else:
-			if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000 and info["RE"] >= filter:
+			if info["SVLEN"] >= 50 and info["RE"] >= filter:
 				callset[ALT][chr].append([pos, info["SVLEN"], info["END"], 0])
 	file.close()
 	return callset
@@ -132,7 +132,7 @@ def load_callset_sniffles(path, filter, confbed):
 				callset[svtype] = dict()
 			if chr not in callset[svtype]:
 				callset[svtype][chr] = list()
-			if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000 and info["RE"] >= filter:
+			if info["SVLEN"] >= 50 and info["RE"] >= filter:
 				callset[svtype][chr].append([pos, info["SVLEN"], END, 0])
 
 	file.close()
@@ -169,7 +169,7 @@ def load_callset_svim(path, filter, confbed):
 		if ALT == "INV":
 			base_call[ALT][chr].append([pos, info["END"] - pos + 1, info["END"], 0])
 		else:
-			if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000:
+			if info["SVLEN"] >= 50:
 				base_call[ALT][chr].append([pos, info["SVLEN"], info["END"], 0])
 	file.close()
 	return base_call
@@ -193,7 +193,10 @@ def load_callset_pbsv(path, filter, confbed):
 			readcount = int(seq[-1].split(':')[1].split(',')[1])
 		except:
 			continue
-		if readcount < filter:
+		# if readcount < filter:
+		# 	continue
+
+		if info["SVTYPE"] == 'BND' and readcount < filter:
 			continue
 
 		if info["SVTYPE"] == "DUP":
@@ -227,7 +230,7 @@ def load_callset_pbsv(path, filter, confbed):
 					continue
 				if judge_bed(pos, info["END"], confbed[chr]) == 0:
 					continue
-			if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000:
+			if info["SVLEN"] >= 50:
 				callset[info["SVTYPE"]][chr].append([pos, info["SVLEN"], info["END"], 0])
 
 	file.close()
