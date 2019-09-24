@@ -1,6 +1,7 @@
 # cuteSV
 
-
+---
+### Getting Start
 	                                               __________    __       __
 	                                              |   ____   |  |  |     |  |
 	                          _                   |  |    |__|  |  |     |  |
@@ -12,15 +13,28 @@
 	| |___| |  | |___| |     | |_| |  \ \____/ |  |  |____|  |    \  \_/  /
 	|_______|  |_______|     |_____|   \______/   |__________|     \_____/
 
+	
+	$ git clone https://github.com/tjiangHIT/cuteSV.git
+	$ cd cuteSV/
+	$ python cuteSV.py
 
-### Giab HG002 benchmarks
+---	
+### Introduction
+TBD
 
-|Run|F1|Precision|Recall|FP|FN|FP+FN|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|pbsv-2.2.0|96.61|95.24|98.02|475|191|666|
-|svim-0.4.3|94.25|94.02|94.48|581|532|1113|
-|sniffles-1.0.10|93.29|92.80|93.80|704|598|1302|
-|cuteSV|94.24|94.40|94.08|541|571|1112|
-|cuteSV-0520|94.58|94.92|94.24|488|555|1043|
-|cuteSV-0521|95.53|94.28|96.83|570|306|876|
-|cuteSV-0601|96.58|95.58|97.60|438|231|669|
+---
+### Dependences
+	
+	1. python
+	2. pysam
+	3. Biopython
+	4. cigar
+	5. numpy
+
+---
+### Synopsis
+	python cuteSV.py <alignment> <output.vcf> <work_dir>
+	
+---
+### Contact
+For advising, bug reporting and requiring help, please post on [Github Issue](https://github.com/tjiangHIT/cuteSV/issues) or contact tjiang@hit.edu.cn.
