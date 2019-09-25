@@ -12,15 +12,15 @@
 
 import pysam
 import cigar
-from cuteSV_Description import parseArgs
+from cuteSV.cuteSV_Description import parseArgs
 from multiprocessing import Pool
-from CommandRunner import *
+from cuteSV.CommandRunner import *
 # from resolution_type import * 
-from cuteSV_resolveINV import run_inv
-from cuteSV_resolveTRA import run_tra
-from cuteSV_resolveINDEL import run_ins, run_del
-from cuteSV_resolveDUP import run_dup
-from cuteSV_genotype import generate_output
+from cuteSV.cuteSV_resolveINV import run_inv
+from cuteSV.cuteSV_resolveTRA import run_tra
+from cuteSV.cuteSV_resolveINDEL import run_ins, run_del
+from cuteSV.cuteSV_resolveDUP import run_dup
+from cuteSV.cuteSV_genotype import generate_output
 import os
 import argparse
 import logging

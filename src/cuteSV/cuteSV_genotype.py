@@ -1,5 +1,5 @@
 
-from cuteSV_Description import Generation_VCF_header
+from cuteSV.cuteSV_Description import Generation_VCF_header
 
 def count_coverage(chr, s, e, f):
 	read_count = set()
