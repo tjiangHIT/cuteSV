@@ -16,7 +16,7 @@
 	
 	$ git clone https://github.com/tjiangHIT/cuteSV.git
 	$ cd cuteSV/
-	$ python cuteSV.py
+	$ pip install .
 
 ---	
 ### Introduction
