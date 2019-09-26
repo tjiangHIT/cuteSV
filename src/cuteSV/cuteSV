@@ -2,12 +2,10 @@
 
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
- * @Title:  extract.py
- * @Package: argparse, pysam, sys, Bio, os, logging
- * @Description: Parse the ME signals from alignments
+ * @Title: cuteSV 
  * @author: tjiang
- * @date: Apr 24 2018
- * @version V1.0.0   
+ * @date: Sep 26 2019
+ * @version V1.0.1   
 '''
 
 import pysam

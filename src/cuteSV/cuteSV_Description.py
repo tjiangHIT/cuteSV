@@ -1,8 +1,6 @@
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
- * @Package: NULL
- * @Description: Descriptions of cuteSV parameters.
  * @author: tjiang
  * @date: May 1st 2019
  * @version V1.0.1   
