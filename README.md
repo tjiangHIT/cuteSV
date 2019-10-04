@@ -21,7 +21,7 @@
 
 
 ---	
-### Introduction
+### Installation
 	$ pip install cuteSV
 	or
 	$ conda install -c bioconda cutesv
