@@ -45,6 +45,19 @@ Long-read sequencing technologies enable to comprehensively discover structural 
 ### Usage
 	python cuteSV.py <sorted.bam> <output.vcf> <work_dir>
 	
+*Suggestions*
+
+	> For PacBio CLR data:
+		--max_cluster_bias_INS		100
+		--diff_ratio_merging_INS	0.2
+		--diff_ratio_filtering_INS	0.6
+		--diff_ratio_filtering_DEL	0.7
+	> For PacBio CCS(HIFI) data:
+		--max_cluster_bias_INS		200
+		--diff_ratio_merging_INS	0.65
+		--diff_ratio_filtering_INS	0.65
+		--diff_ratio_filtering_DEL	0.35
+	
 | Parameter | Description | Default |
 | :------------ |:---------------|-------------:|
 |--threads|Number of threads to use.| 16 |
