@@ -32,6 +32,12 @@
 ### Introduction
 Long-read sequencing technologies enable to comprehensively discover structural variations (SVs). However, it is still non-trivial for state-of-the-art approaches to detect SVs with high sensitivity or high performance or both. Herein, we propose cuteSV, a sensitive, fast and lightweight SV detection approach. cuteSV uses tailored methods to comprehensively collect various types of SV signatures, and a clustering-and-refinement method to implement a stepwise SV detection, which enables to achieve high sensitivity without loss of accuracy. Benchmark results demonstrate that cuteSV has better yields on real datasets. Further, its speed and scalability are outstanding and promising to large-scale data analysis.
 
+The benchmark results of cuteSV on the HG002 human sample are below:
+
+<img src="hg2_cuteSV_assessments.png" width="1000px">
+
+BTW, we used [Truvari](https://github.com/spiralgenetics/truvari) to calculate the recall, precision, and f-measure.
+
 ---
 ### Dependence
 	
