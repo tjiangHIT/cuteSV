@@ -34,7 +34,7 @@ Long-read sequencing technologies enable to comprehensively discover structural 
 
 The benchmark results of cuteSV on the HG002 human sample are below:
 
-<img src="hg2_cuteSV_assessments.png" width="1000px">
+<img src="hg2_cuteSV_assessments.png" width="800px">
 
 BTW, we used [Truvari](https://github.com/spiralgenetics/truvari) to calculate the recall, precision, and f-measure.
 
