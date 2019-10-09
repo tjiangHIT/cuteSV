@@ -81,6 +81,15 @@ Long-read sequencing technologies enable to comprehensively discover structural 
 |--diff_ratio_filtering_TRA|Filter breakpoints with basepair identity less than the ratio of *default* for translocation.|0.6|
 
 ---
+### Datasets generated from cuteSV
+We provided the SV callsets of the HG002 human sample produced by cuteSV form three different long-read sequencing platforms (i.e. PacBio CLR, PacBio CCS, and ONT PromethION). 
+
+You can download them at: 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3477781.svg)](https://doi.org/10.5281/zenodo.3477781)
+
+Please cite the manuscript of cuteSV before using these callsets.
+
+---
 ### Citation
 Long Read based Human Genomic Structural Variation Detection with cuteSV. Tao Jiang, et al. bioRxiv 780700; doi: https://doi.org/10.1101/780700
 	
