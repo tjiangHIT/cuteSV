@@ -96,12 +96,13 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
-cuteSV (v1.0.2)
-Improve the genotyping performance and enable it to be default option.
-Make the description of parameters better.
-Modify the header description of vcf file.
-Add two new indicators, i.e., BREAKPOINT_STD and SVLEN_STD, to further characterise deletion and insertion.
-Remove a few redundant functions which will reduce code readability.
+
+	cuteSV (v1.0.2):
+	1.Improve the genotyping performance and enable it to be default option.
+	2.Make the description of parameters better.
+	3.Modify the header description of vcf file.
+	4.Add two new indicators, i.e., BREAKPOINT_STD and SVLEN_STD, to further characterise deletion and insertion.
+	5.Remove a few redundant functions which will reduce code readability.
 
 
 ---
