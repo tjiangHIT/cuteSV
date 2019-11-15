@@ -49,7 +49,7 @@ BTW, we used [Truvari](https://github.com/spiralgenetics/truvari) to calculate t
 
 ---
 ### Usage
-	cuteSV.py <sorted.bam> <output.vcf> <work_dir>
+	cuteSV <sorted.bam> <output.vcf> <work_dir>
 	
 *Suggestions*
 
