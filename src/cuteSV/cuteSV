@@ -165,33 +165,33 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 
 
 
-	if len(SP_list) >= 3 and trigger_INS_TRA == 1:
-		if SP_list[0][4] == SP_list[-1][4]:
-			# print(SP_list[0])
-			# print(SP_list[-1])
-			if SP_list[0][5] != SP_list[-1][5]:
-				pass
-			else:
-				if SP_list[0][5] == '+':
-					ele_1 = SP_list[0]
-					ele_2 = SP_list[-1]
-				else:
-					ele_1 = [RLength-SP_list[-1][1], RLength-SP_list[-1][0]]+SP_list[-1][2:]
-					ele_2 = [RLength-SP_list[0][1],RLength-SP_list[0][0]]+SP_list[0][2:]
-				# print(ele_1)
-				# print(ele_2)
-				dis_ref = ele_2[2] - ele_1[3]
-				dis_read = ele_2[0] - ele_1[1]
-				if dis_ref < 100 and dis_read - dis_ref >= SV_size and dis_read - dis_ref <= 100000:
-					# print(min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name)
-					if ele_1[4] not in candidate['INS']:
-						candidate['INS'][ele_1[4]] = list()
-					candidate["INS"][ele_2[4]].append([min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name])
+	# if len(SP_list) >= 3 and trigger_INS_TRA == 1:
+	# 	if SP_list[0][4] == SP_list[-1][4]:
+	# 		# print(SP_list[0])
+	# 		# print(SP_list[-1])
+	# 		if SP_list[0][5] != SP_list[-1][5]:
+	# 			pass
+	# 		else:
+	# 			if SP_list[0][5] == '+':
+	# 				ele_1 = SP_list[0]
+	# 				ele_2 = SP_list[-1]
+	# 			else:
+	# 				ele_1 = [RLength-SP_list[-1][1], RLength-SP_list[-1][0]]+SP_list[-1][2:]
+	# 				ele_2 = [RLength-SP_list[0][1],RLength-SP_list[0][0]]+SP_list[0][2:]
+	# 			# print(ele_1)
+	# 			# print(ele_2)
+	# 			dis_ref = ele_2[2] - ele_1[3]
+	# 			dis_read = ele_2[0] - ele_1[1]
+	# 			if dis_ref < 100 and dis_read - dis_ref >= SV_size and dis_read - dis_ref <= 100000:
+	# 				# print(min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name)
+	# 				if ele_1[4] not in candidate['INS']:
+	# 					candidate['INS'][ele_1[4]] = list()
+	# 				candidate["INS"][ele_2[4]].append([min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name])
 
-				if dis_ref <= -SV_size:
-					if ele_2[4] not in candidate["DUP"]:
-						candidate["DUP"][ele_2[4]] = list()
-					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
+	# 			if dis_ref <= -SV_size:
+	# 				if ele_2[4] not in candidate["DUP"]:
+	# 					candidate["DUP"][ele_2[4]] = list()
+	# 				candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
 
 def acquire_clip_pos(deal_cigar):
 	seq = list(cigar.Cigar(deal_cigar).items())
@@ -395,10 +395,10 @@ def main_ctrl(args):
 	Task_list = list()
 	chr_name_list = list()
 	contigINFO = list()
-	if args.temp_dir[-1] == '/':
-		temporary_dir = args.temp_dir
+	if args.work_dir[-1] == '/':
+		temporary_dir = args.work_dir
 	else:
-		temporary_dir = args.temp_dir+'/'
+		temporary_dir = args.work_dir+'/'
 
 	ref_ = samfile.get_index_statistics()
 	for i in ref_:
@@ -452,27 +452,28 @@ def main_ctrl(args):
 		for svtype in ["DEL", "INS", "INV"]:
 			if svtype == "INV":
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
-					args.max_cluster_bias_INV, args.min_size)]
+					args.max_cluster_bias_INV, args.min_size, args.input)]
 				result.append(analysis_pools.map_async(run_inv, para))
 				pass
 			if svtype == 'DEL':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.diff_ratio_merging_DEL, args.max_cluster_bias_DEL, args.diff_ratio_filtering_DEL, 
-					min(args.min_support, 5))]
+					min(args.min_support, 5), args.input)]
 				result.append(analysis_pools.map_async(run_del, para))
 			if svtype == 'INS':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.diff_ratio_merging_INS, args.max_cluster_bias_INS, args.diff_ratio_filtering_INS, 
-					min(args.min_support, 5))]
+					min(args.min_support, 5), args.input)]
 				result.append(analysis_pools.map_async(run_ins, para))
 		# DUP
-		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias_DUP, args.min_size)]
+		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias_DUP,
+		 args.min_size, args.input)]
 		result.append(analysis_pools.map_async(run_dup, para))
 
 	for i in process_tra:
 		# TRA
 		para = [("%s%s.sigs"%(temporary_dir, "TRA"), i[0], i[1], args.min_support, 
-			args.diff_ratio_filtering_TRA, args.max_cluster_bias_TRA)]
+			args.diff_ratio_filtering_TRA, args.max_cluster_bias_TRA, args.input)]
 		result.append(analysis_pools.map_async(run_tra, para))
 
 	analysis_pools.close()
@@ -485,7 +486,7 @@ def main_ctrl(args):
 		except:
 			pass
 
-	logging.info("Writing into disk.")
+	logging.info("Writing to your output file.")
 
 	# sort SVs by [chr] and [pos]
 	semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))

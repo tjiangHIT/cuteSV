@@ -2,12 +2,12 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang
- * @date: May 1st 2019
- * @version V1.0.1   
+ * @date: Nov 15th 2019
+ * @version V1.0.2   
 '''
 import argparse
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 class cuteSVdp(object):
 	'''
@@ -39,7 +39,7 @@ class cuteSVdp(object):
 
 	"""%(VERSION)
 
-	MinSizeDel = 'For current version of cuteSV, it can detect deletions larger than this size.'
+	# MinSizeDel = 'For current version of cuteSV, it can detect deletions larger than this size.'
 
 def parseArgs(argv):
 	parser = argparse.ArgumentParser(prog="cuteSV", description=cuteSVdp.USAGE, 
@@ -52,10 +52,10 @@ def parseArgs(argv):
 		help ="Sorted .bam file form NGMLR or Minimap2.")
 	parser.add_argument('output', 
 		type = str, 
-		help = "the path of [Output]")
-	parser.add_argument('temp_dir', 
+		help = "Output VCF format file.")
+	parser.add_argument('work_dir', 
 		type = str, 
-		help = "temporary directory to use for distributed jobs")
+		help = "Work-directory for distributed jobs")
 
 	# ************** Other Parameters******************
 	parser.add_argument('-t', '--threads', 
@@ -63,7 +63,7 @@ def parseArgs(argv):
 		default = 16, 
 		type = int)
 	parser.add_argument('-b', '--batches', 
-		help = "A batches of reads to load.[%(default)s]", 
+		help = "Batch of genome segmentation interval.[%(default)s]", 
 		default = 10000000, 
 		type = int)
 	# The description of batches needs to improve.
@@ -71,10 +71,10 @@ def parseArgs(argv):
 		help = "Sample name/id",
 		default = "NULL",
 		type = str)
-	parser.add_argument('-g', '--genotype',
-		help = "Enable generate genotype (True/False).[%(default)s]",
-		default = "False",
-		type = str)
+	# parser.add_argument('-g', '--genotype',
+	# 	help = "Enable generate genotype (True/False).[%(default)s]",
+	# 	default = "False",
+	# 	type = str)
 
 	# **************Parameters in signatures collection******************
 	GroupSignaturesCollect = parser.add_argument_group('Collection of SV signatures')
@@ -206,9 +206,9 @@ def Generation_VCF_header(file, contiginfo, sample):
 	file.write("##INFO=<ID=SVLEN,Number=1,Type=Integer,Description=\"Difference in length between REF and ALT alleles\">\n")
 	file.write("##INFO=<ID=CHR2,Number=1,Type=String,Description=\"Chromosome for END coordinate in case of a translocation\">\n")
 	file.write("##INFO=<ID=END,Number=1,Type=Integer,Description=\"End position of the variant described in this record\">\n")
-	file.write("##INFO=<ID=CIPOS,Number=2,Type=Integer,Description=\"Confidence interval around POS for imprecise variants\">\n")
-	file.write("##INFO=<ID=CIEND,Number=2,Type=Integer,Description=\"Confidence interval around END for imprecise variants\">\n")
-	file.write("##INFO=<ID=MATEID,Number=.,Type=String,Description=\"ID of mate breakends\">\n")
+	file.write("##INFO=<ID=BREAKPOINT_STD,Number=2,Type=Integer,Description=\"Standard deviation of SV start position (breakpoint)\">\n")
+	file.write("##INFO=<ID=SVLEN_STD,Number=2,Type=Integer,Description=\"Standard deviation of SV length\">\n")
+	# file.write("##INFO=<ID=MATEID,Number=.,Type=String,Description=\"ID of mate breakends\">\n")
 	file.write("##INFO=<ID=RE,Number=1,Type=Integer,Description=\"Number of read support this record\">\n")
 
 	# FORMAT

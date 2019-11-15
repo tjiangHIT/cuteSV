@@ -14,7 +14,7 @@ from collections import Counter
 '''
 
 def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, 
-	threshold_local, minimum_support_reads):
+	threshold_local, minimum_support_reads, bam_path):
 
 	'''
 	cluster DEL
@@ -57,178 +57,38 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 		
 		if pos - semi_del_cluster[-1][0] > max_cluster_bias:
 			if len(semi_del_cluster) >= read_count:
-				generate_del_cluster_2(semi_del_cluster, 
+				generate_del_cluster(semi_del_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
 										threshold_gloab, 
 										threshold_local, 
 										minimum_support_reads, 
-										candidate_single_SV)
+										candidate_single_SV,
+										bam_path,
+										max_cluster_bias)
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_del_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_del_cluster) >= read_count:
-		generate_del_cluster_2(semi_del_cluster, 
+		generate_del_cluster(semi_del_cluster, 
 								chr, 
 								svtype, 
 								read_count, 
 								threshold_gloab, 
 								threshold_local, 
 								minimum_support_reads, 
-								candidate_single_SV)
+								candidate_single_SV,
+								bam_path,
+								max_cluster_bias)
 	file.close()
 	return candidate_single_SV
 
-def generate_del_cluster_ccs(semi_del_cluster, chr, svtype, read_count, threshold_gloab,
- threshold_local, minimum_support_reads, candidate_single_SV):
-	
-	# calculate support reads
-	support_read = len(list(set([i[2] for i in semi_del_cluster])))
-	# print(support_read)
-	if support_read < read_count:
-		return
-
-	del_cluster_len = sorted(semi_del_cluster, key = lambda x:x[1])
-
-	last_len = del_cluster_len[0][1]
-	temp_list = dict()
-	temp_list[del_cluster_len[0][2]] = 0
-	temp_count = 1
-	subcluster_bp = list()
-	subcluster_bp.append(del_cluster_len[0][0])
-	# temp_LEN_sum = last_len
-	subcluster_len = list()
-	subcluster_len.append(last_len)
-
-	predictions = list()
-	for i in del_cluster_len[1:]:
-		if last_len < 1000:
-			bias = max(20, int(last_len*0.05))
-		elif last_len < 5000:
-			bias = max(50, int(last_len*0.02))
-		elif last_len < 10000:
-			bias = max(100,int(last_len*0.02))
-		else:
-			bias = 200
-		if i[1] - last_len > bias:
-			if temp_count >= read_count:
-				if len(temp_list) >= read_count:
-					# breakpoint = round(temp_sum / temp_count)
-					breakpoint = Counter(subcluster_bp).most_common(1)[0]
-					# del_len = round(temp_LEN_sum / temp_count)
-					del_len = Counter(subcluster_len).most_common(1)[0]
-					predictions.append([breakpoint, del_len, len(temp_list)])
-
-			temp_list = dict()
-			temp_count = 1
-			subcluster_bp = list()
-			subcluster_bp.append(i[0])
-			subcluster_len = list()
-			subcluster_len.append(i[1])
-			temp_list[i[2]] = 0
-		else:
-			if i[2] not in temp_list:
-				temp_list[i[2]] = 0
-			else:
-				temp_list[i[2]] += 1
-			temp_count += 1
-			subcluster_bp.append(i[0])
-			subcluster_len.append(i[1])
-		last_len = i[1]
-
-	if temp_count >= read_count:
-		if len(temp_list) >= read_count:
-			breakpoint = Counter(subcluster_bp).most_common(1)[0]
-			del_len = Counter(subcluster_len).most_common(1)[0]
-			predictions.append([breakpoint, del_len, len(temp_list)])
-
-	predictions = sorted(predictions, key = lambda x:-x[2])
-
-	for i in predictions:
-		if i[2] >= read_count and i[2] >= int(support_read / 3):
-			if min(i[0][1], i[1][1]) * 2 >= i[2]:
-				reliability = "PRECISION"
-			else:
-				reliability = "IMPRECISION"
-
-			candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % 
-				(chr, svtype, i[0][0], -i[1][0], i[2], reliability))
-
-
-
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
-
-	'''
-	generate deletion
-	*************************************************************
-	threshold_gloab 	threshold_local 	minimum_support_reads
-	-------------------------------------------------------------
-		0.3					0.7 					5		CLR
-		0.4					0.5 				  <=5		CCS
-	*************************************************************
-	'''
-
-	# Remove duplicates
-	read_tag = dict()
-	for element in semi_del_cluster:
-		if element[2] not in read_tag:
-			read_tag[element[2]] = element
-		else:
-			if element[1] > read_tag[element[2]][1]:
-				read_tag[element[2]] = element
-
-	if len(read_tag) < read_count:
-		return
-
-	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
-	global_len = [i[1] for i in read_tag2SortedList]
-	DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP = threshold_gloab * np.mean(global_len)
-
-	last_len = -DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP
-	max_conut = 0
-	max_LEN_sum = 0
-	max_bps_sum = 0
-	temp_count = 0
-	temp_LEN_sum = 0
-	temp_bps_sum = 0
-	for i in read_tag2SortedList:
-		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP:
-			if temp_count > max_conut:
-				max_conut = temp_count
-				max_LEN_sum = temp_LEN_sum
-				max_bps_sum = temp_bps_sum
-			temp_count = 1
-			temp_LEN_sum = i[1]
-			temp_bps_sum = i[0]
-		else:
-			temp_count += 1
-			temp_LEN_sum += i[1]
-			temp_bps_sum += i[0]
-		last_len = i[1]
-	if temp_count > max_conut:
-		max_conut = temp_count
-		max_LEN_sum = temp_LEN_sum
-		max_bps_sum = temp_bps_sum
-
-	breakpoint_starts = round(max_bps_sum / max_conut)
-	signal_len = round(max_LEN_sum / max_conut)
-	overlap_score = float(max_conut * 1.0 / len(read_tag))
-
-	if max_conut >= minimum_support_reads and overlap_score >= threshold_local:
-		# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\n'%
-		# 	(chr, svtype, breakpoint_starts, -signal_len, len(read_tag), max_conut, overlap_score))
-		candidate_single_SV.append([chr, 
-									svtype, 
-									str(int(breakpoint_starts)), 
-									str(-int(signal_len)), 
-									str(len(read_tag))])
-
-def generate_del_cluster_2(semi_del_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
+	bam_path, max_cluster_bias):
 
 	'''
 	generate deletion
@@ -259,15 +119,24 @@ def generate_del_cluster_2(semi_del_cluster, chr, svtype, read_count,
 	last_len = read_tag2SortedList[0][1]
 
 	alelle_collect = list()
-	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[]])
+	'''
+	*************************************************************
+		#1 				#2			#3			#4
+	-------------------------------------------------------------
+		del-breakpoint	del-len		#support 	read-id
+	*************************************************************
+	'''
+	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[],
+		[read_tag2SortedList[0][2]]])
 
 	for i in read_tag2SortedList[1:]:
 		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP:
 			alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
-			alelle_collect.append([[],[],[]])
+			alelle_collect.append([[],[],[],[]])
 
 		alelle_collect[-1][0].append(i[0])
 		alelle_collect[-1][1].append(i[1])
+		alelle_collect[-1][3].append(i[2])
 		last_len = i[1]
 	alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
 	alelle_sort = sorted(alelle_collect, key = lambda x:x[2])
@@ -275,16 +144,23 @@ def generate_del_cluster_2(semi_del_cluster, chr, svtype, read_count,
 	if alelle_sort[-1][2][0] >= minimum_support_reads and float(alelle_sort[-1][2][0] * 1.0 / len(read_tag)) >= threshold_local:
 		breakpointStart = np.mean(alelle_sort[-1][0])
 		breakpointStart_STD = np.std(alelle_sort[-1][0])
+		search_threshold = np.min(alelle_sort[-1][0])
 		signalLen = np.mean(alelle_sort[-1][1])
 		signalLen_STD = np.std(alelle_sort[-1][1])
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+
+		'''genotyping'''
+		DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], max_cluster_bias)
+		# print(DV, DR, GT)
 		candidate_single_SV.append([chr, 
 									svtype, 
 									str(int(breakpointStart)), 
 									str(int(-signalLen)), 
 									str(alelle_sort[-1][2][0]), 
 									"%.3f"%breakpointStart_STD, 
-									"%.3f"%signalLen_STD])
+									"%.3f"%signalLen_STD,
+									str(DR),
+									str(GT)])
 
 		# extend to next alelle
 		if (len(alelle_sort) > 1 and alelle_sort[-2][2][0] >= minimum_support_reads 
@@ -292,53 +168,68 @@ def generate_del_cluster_2(semi_del_cluster, chr, svtype, read_count,
 			and alelle_sort[-2][2][0] >= 0.3*len(read_tag)):
 			breakpointStart = np.mean(alelle_sort[-2][0])
 			breakpointStart_STD = np.std(alelle_sort[-2][0])
+			search_threshold = np.min(alelle_sort[-2][0])
 			signalLen = np.mean(alelle_sort[-2][1])
 			last_signalLen_STD = signalLen_STD
 			signalLen_STD = np.std(alelle_sort[-2][1])
 			# if signalLen_STD < last_signalLen_STD:
 			# 	# pass
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+			'''genotyping'''
+			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], max_cluster_bias)
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(-signalLen)), 
 										str(alelle_sort[-2][2][0]), 
 										"%.3f"%breakpointStart_STD, 
-										"%.3f"%signalLen_STD])
+										"%.3f"%signalLen_STD,
+										str(DR),
+										str(GT)])
 
 	elif alelle_sort[-2][2][0] >= minimum_support_reads and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag):
 		if alelle_sort[-2][2][0] >= 0.4*len(read_tag):
 			breakpointStart = np.mean(alelle_sort[-1][0])
 			breakpointStart_STD = np.std(alelle_sort[-1][0])
+			search_threshold = np.min(alelle_sort[-1][0])
 			signalLen = np.mean(alelle_sort[-1][1])
 			signalLen_STD = np.std(alelle_sort[-1][1])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+			'''genotyping'''
+			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], max_cluster_bias)
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(-signalLen)), 
 										str(alelle_sort[-1][2][0]), 
 										"%.3f"%breakpointStart_STD, 
-										"%.3f"%signalLen_STD])
+										"%.3f"%signalLen_STD,
+										str(DR),
+										str(GT)])
 
 			breakpointStart = np.mean(alelle_sort[-2][0])
 			breakpointStart_STD = np.std(alelle_sort[-2][0])
+			search_threshold = np.min(alelle_sort[-2][0])
 			signalLen = np.mean(alelle_sort[-2][1])
 			signalLen_STD = np.std(alelle_sort[-2][1])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+			'''genotyping'''
+			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], max_cluster_bias)
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(-signalLen)), 
 										str(alelle_sort[-2][2][0]), 
 										"%.3f"%breakpointStart_STD, 
-										"%.3f"%signalLen_STD])
+										"%.3f"%signalLen_STD,
+										str(DR),
+										str(GT)])
 
 
 	
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-	max_cluster_bias, threshold_local, minimum_support_reads):
+	max_cluster_bias, threshold_local, minimum_support_reads, bam_path):
 	
 	'''
 	cluster INS
@@ -381,180 +272,38 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 		
 		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
 			if len(semi_ins_cluster) >= read_count:
-				generate_ins_cluster_2(semi_ins_cluster, 
+				generate_ins_cluster(semi_ins_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
 										threshold_gloab, 
 										threshold_local, 
 										minimum_support_reads, 
-										candidate_single_SV)
+										candidate_single_SV,
+										bam_path,
+										max_cluster_bias)
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_ins_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_ins_cluster) >= read_count:
-		generate_ins_cluster_2(semi_ins_cluster, 
+		generate_ins_cluster(semi_ins_cluster, 
 								chr, 
 								svtype, 
 								read_count, 
 								threshold_gloab, 
 								threshold_local, 
 								minimum_support_reads, 
-								candidate_single_SV)
+								candidate_single_SV,
+								bam_path,
+								max_cluster_bias)
 	file.close()
 	return candidate_single_SV
 
-def generate_ins_cluster_ccs(semi_ins_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
-
-	# calculate support reads
-	support_read = len(list(set([i[2] for i in semi_ins_cluster])))
-	if support_read < read_count:
-		return
-
-	del_cluster_len = sorted(semi_ins_cluster, key = lambda x:x[1])
-
-	last_len = del_cluster_len[0][1]
-	temp_list = dict()
-	temp_list[del_cluster_len[0][2]] = 0
-	temp_count = 1
-	subcluster_bp = list()
-	subcluster_bp.append(del_cluster_len[0][0])
-	# temp_LEN_sum = last_len
-	subcluster_len = list()
-	subcluster_len.append(last_len)
-
-	predictions = list()
-	for i in del_cluster_len[1:]:
-		if last_len < 1000:
-			bias = max(20, int(last_len*0.05))
-		elif last_len < 5000:
-			bias = max(50, int(last_len*0.02))
-		elif last_len < 10000:
-			bias = max(100,int(last_len*0.02))
-		else:
-			bias = 200
-		if i[1] - last_len > bias:
-			if temp_count >= read_count:
-				if len(temp_list) >= read_count:
-					# breakpoint = round(temp_sum / temp_count)
-					breakpoint = Counter(subcluster_bp).most_common(1)[0]
-					# del_len = round(temp_LEN_sum / temp_count)
-					del_len = Counter(subcluster_len).most_common(1)[0]
-					predictions.append([breakpoint, del_len, len(temp_list)])
-
-			temp_list = dict()
-			temp_count = 1
-			subcluster_bp = list()
-			subcluster_bp.append(i[0])
-			subcluster_len = list()
-			subcluster_len.append(i[1])
-			temp_list[i[2]] = 0
-		else:
-			if i[2] not in temp_list:
-				temp_list[i[2]] = 0
-			else:
-				temp_list[i[2]] += 1
-			temp_count += 1
-			subcluster_bp.append(i[0])
-			subcluster_len.append(i[1])
-		last_len = i[1]
-
-	if temp_count >= read_count:
-		if len(temp_list) >= read_count:
-			breakpoint = Counter(subcluster_bp).most_common(1)[0]
-			del_len = Counter(subcluster_len).most_common(1)[0]
-			predictions.append([breakpoint, del_len, len(temp_list)])
-
-	predictions = sorted(predictions, key = lambda x:-x[2])
-
-	for i in predictions:
-		# print(i)
-		# print(support_read)
-		# if i[2] >= read_count and i[2] >= int(support_read / 3):
-		if i[2] >= read_count:
-			if min(i[0][1], i[1][1]) * 2 >= i[2]:
-				reliability = "PRECISION"
-			else:
-				reliability = "IMPRECISION"
-
-			if i[0][1] == 1 and i[1][1] == 1:
-				return
-
-			candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % 
-				(chr, svtype, i[0][0], i[1][0], i[2], reliability))
-
-
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
-		
-	'''
-	generate deletion
-	*************************************************************
-	threshold_gloab 	threshold_local 	minimum_support_reads
-	-------------------------------------------------------------
-		0.2					0.6 					5		CLR
-		0.65				0.7 				  <=5		CCS
-	*************************************************************
-	'''
-
-	# Remove duplicates
-	read_tag = dict()
-	for element in semi_ins_cluster:
-		if element[2] not in read_tag:
-			read_tag[element[2]] = element
-		else:
-			if element[1] > read_tag[element[2]][1]:
-				read_tag[element[2]] = element
-
-	if len(read_tag) < read_count:
-		return
-
-	read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[1])
-	# start&end breakpoint
-	breakpoint_starts = [i[0] for i in read_tag2SortedList]
-	global_len = [i[1] for i in read_tag2SortedList]
-
-	DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP = threshold_gloab * np.mean(global_len)
-
-	last_len = -DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP
-	max_conut = 0
-	max_LEN_sum = 0
-	temp_count = 0
-	temp_LEN_sum = 0
-	for i in read_tag2SortedList:
-		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP:
-			if temp_count > max_conut:
-				max_conut = temp_count
-				max_LEN_sum = temp_LEN_sum
-			temp_count = 1
-			temp_LEN_sum = i[1]
-		else:
-			temp_count += 1
-			temp_LEN_sum += i[1]
-		last_len = i[1]
-	if temp_count > max_conut:
-		max_conut = temp_count
-		max_LEN_sum = temp_LEN_sum
-
-	breakpointStart = np.mean(breakpoint_starts)
-	breakpointStart_STD = np.std(breakpoint_starts)
-	signal_len = round(max_LEN_sum / max_conut)
-	overlap_score = float(max_conut * 1.0 / len(read_tag))
-
-	if max_conut >= minimum_support_reads and overlap_score >= threshold_local:
-		# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%d\t%.3f\t%.3f\t%d\n' % 
-		# 	(chr, svtype, breakpointStart, signal_len, len(read_tag), max_conut, overlap_score, breakpointStart_STD, np.mean(global_len)))
-		candidate_single_SV.append([chr, 
-									svtype, 
-									str(int(breakpointStart)), 
-									str(int(signal_len)), 
-									str(len(read_tag))])
-
-def generate_ins_cluster_2(semi_ins_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV):
+	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
+	bam_path, max_cluster_bias):
 		
 	'''
 	generate deletion
@@ -586,15 +335,17 @@ def generate_ins_cluster_2(semi_ins_cluster, chr, svtype, read_count,
 	last_len = read_tag2SortedList[0][1]
 
 	alelle_collect = list()
-	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[]])
+	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[],
+		[read_tag2SortedList[0][2]]])
 
 	for i in read_tag2SortedList[1:]:
 		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP:
 			alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
-			alelle_collect.append([[],[],[]])
+			alelle_collect.append([[],[],[],[]])
 
 		alelle_collect[-1][0].append(i[0])
 		alelle_collect[-1][1].append(i[1])
+		alelle_collect[-1][3].append(i[2])
 		last_len = i[1]
 	alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
 	alelle_sort = sorted(alelle_collect, key = lambda x:x[2])
@@ -612,14 +363,19 @@ def generate_ins_cluster_2(semi_ins_cluster, chr, svtype, read_count,
 		breakpointStart_STD = np.std(alelle_sort[-1][0])
 		signalLen = np.mean(alelle_sort[-1][1])
 		signalLen_STD = np.std(alelle_sort[-1][1])
+		# search_threshold = np.min(alelle_sort[-1][0])
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+		'''genotyping'''
+		DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], max_cluster_bias)
 		candidate_single_SV.append([chr, 
 									svtype, 
 									str(int(breakpointStart)), 
 									str(int(signalLen)), 
 									str(alelle_sort[-1][2][0]), 
 									"%.3f"%breakpointStart_STD, 
-									"%.3f"%signalLen_STD])
+									"%.3f"%signalLen_STD,
+									str(DR),
+									str(GT)])
 
 		# extend to next alelle
 		if (len(alelle_sort) > 1 and alelle_sort[-2][2][0] >= minimum_support_reads 
@@ -630,16 +386,21 @@ def generate_ins_cluster_2(semi_ins_cluster, chr, svtype, read_count,
 			signalLen = np.mean(alelle_sort[-2][1])
 			last_signalLen_STD = signalLen_STD
 			signalLen_STD = np.std(alelle_sort[-2][1])
+			# search_threshold = np.min(alelle_sort[-2][0])
 			if signalLen_STD < last_signalLen_STD:
 				# pass
 				# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+				'''genotyping'''
+				DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], max_cluster_bias)
 				candidate_single_SV.append([chr, 
 											svtype, 
 											str(int(breakpointStart)), 
 											str(int(signalLen)), 
 											str(alelle_sort[-2][2][0]), 
 											"%.3f"%breakpointStart_STD, 
-											"%.3f"%signalLen_STD])
+											"%.3f"%signalLen_STD,
+											str(DR),
+											str(GT)])
 
 	elif alelle_sort[-2][2][0] >= minimum_support_reads and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag):
 		if alelle_sort[-2][2][0] >= 0.4*len(read_tag):
@@ -647,30 +408,71 @@ def generate_ins_cluster_2(semi_ins_cluster, chr, svtype, read_count,
 			breakpointStart_STD = np.std(alelle_sort[-1][0])
 			signalLen = np.mean(alelle_sort[-1][1])
 			signalLen_STD = np.std(alelle_sort[-1][1])
+			# search_threshold = np.min(alelle_sort[-1][0])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
+			'''genotyping'''
+			DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], max_cluster_bias)
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(signalLen)), 
 										str(alelle_sort[-1][2][0]), 
 										"%.3f"%breakpointStart_STD, 
-										"%.3f"%signalLen_STD])
+										"%.3f"%signalLen_STD,
+										str(DR),
+										str(GT)])
 
 			breakpointStart = np.mean(alelle_sort[-2][0])
 			breakpointStart_STD = np.std(alelle_sort[-2][0])
 			signalLen = np.mean(alelle_sort[-2][1])
 			signalLen_STD = np.std(alelle_sort[-2][1])
+			# search_threshold = np.min(alelle_sort[-2][0])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
+			'''genotyping'''
+			DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], max_cluster_bias)
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(signalLen)), 
 										str(alelle_sort[-2][2][0]), 
 										"%.3f"%breakpointStart_STD, 
-										"%.3f"%signalLen_STD])
+										"%.3f"%signalLen_STD,
+										str(DR),
+										str(GT)])
 
 def run_del(args):
 	return resolution_DEL(*args)
 
 def run_ins(args):
 	return resolution_INS(*args)
+
+def count_coverage(chr, s, e, f):
+	read_count = set()
+	for i in f.fetch(chr, s, e):
+		read_count.add(i.query_name)
+	return read_count
+
+def assign_gt(a, b):
+	if b == 0:
+		return "1/1"
+	if a*1.0/b < 0.3:
+		return "0/0"
+	elif a*1.0/b >= 0.3 and a*1.0/b < 0.8:
+		return "0/1"
+	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
+		return "1/1"
+	else:
+		return "1/1"
+
+def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias):
+	import pysam
+	bamfile = pysam.AlignmentFile(bam_path)
+	search_start = max(int(search_threshold) - max_cluster_bias, 0)
+	search_end = min(int(search_threshold) + max_cluster_bias, bamfile.get_reference_length(chr))
+	querydata = count_coverage(chr, search_start, search_end, bamfile)
+	bamfile.close()
+	DR = 0
+	for query in querydata:
+		if query not in read_id_list:
+			DR += 1
+	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list))
