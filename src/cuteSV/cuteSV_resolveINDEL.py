@@ -449,15 +449,18 @@ def run_ins(args):
 def count_coverage(chr, s, e, f):
 	read_count = set()
 	for i in f.fetch(chr, s, e):
-		read_count.add(i.query_name)
+		if i.flag not in [0,16]:
+			continue
+		if i.reference_start < s and i.reference_end > e:
+			read_count.add(i.query_name)
 	return read_count
 
 def assign_gt(a, b):
 	if b == 0:
 		return "1/1"
-	if a*1.0/b < 0.3:
+	if a*1.0/b < 0.2:
 		return "0/0"
-	elif a*1.0/b >= 0.3 and a*1.0/b < 0.8:
+	elif a*1.0/b >= 0.2 and a*1.0/b < 0.8:
 		return "0/1"
 	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
 		return "1/1"

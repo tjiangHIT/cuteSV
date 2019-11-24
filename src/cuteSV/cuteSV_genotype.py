@@ -11,9 +11,9 @@ def count_coverage(chr, s, e, f):
 def cal_GT(a, b):
 	if b == 0:
 		return "1/1"
-	if a*1.0/b < 0.3:
+	if a*1.0/b < 0.2:
 		return "0/0"
-	elif a*1.0/b >= 0.3 and a*1.0/b < 0.8:
+	elif a*1.0/b >= 0.2 and a*1.0/b < 0.8:
 		return "0/1"
 	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
 		return "1/1"
