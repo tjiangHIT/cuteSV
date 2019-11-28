@@ -7,7 +7,7 @@
 '''
 import argparse
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 
 class cuteSVdp(object):
 	'''
@@ -97,7 +97,7 @@ def parseArgs(argv):
 	GroupSVCluster = parser.add_argument_group('Generation of SV clusters')
 	GroupSVCluster.add_argument('-s', '--min_support', 
 		help = "Minimum number of reads that support a SV to be reported.[%(default)s]", 
-		default = 3, 
+		default = 10, 
 		type = int)
 	GroupSVCluster.add_argument('-l', '--min_size', 
 		help = "Minimum size of SV to be reported.[%(default)s]", 

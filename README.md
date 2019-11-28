@@ -73,7 +73,7 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 |--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored.|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
 |--min_read_len|Ignores reads that only report alignments with not longer then bp.|500|
-|--min_support|Minimum number of reads that support a SV to be reported.|3|
+|--min_support|Minimum number of reads that support a SV to be reported.|10|
 |--min_length|Minimum length of SV to be reported.|30|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
 |--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.2|
@@ -97,6 +97,10 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cuteSV (v1.0.3):
+	1.Refine the genotyping model.
+	2.Adjust the threshold value of heterozygosis alleles.
 
 	cuteSV (v1.0.2):
 	1.Improve the genotyping performance and enable it to be default option.

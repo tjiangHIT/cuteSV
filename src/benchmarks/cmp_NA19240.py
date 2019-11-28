@@ -30,7 +30,7 @@ def pase_base_info(seq):
 			except:
 				pass
 		if i.split('=')[0] == "SVTYPE":
-			info[i.split('=')[0]] = i.split('=')[1]
+			info[i.split('=')[0]] = i.split('=')[1][0:3]
 	return info
 
 
@@ -45,6 +45,8 @@ def load_base(base_path):
 		chr = seq[0]
 		pos = int(seq[1])
 		ALT = seq[4][1:4]
+		if ALT not in ["INS", "INV", "DEL", "DUP"]:
+			continue
 		if ALT == "DUP":
 			ALT = "INS"
 		info = pase_base_info(seq[7])
@@ -184,6 +186,8 @@ def cmp_callsets(base, call, flag, Bias, Offect):
 				total_base += 1
 				if i[3] == flag:
 					tp_base += 1
+				# else:
+				# 	print(flag, svtype, chr, i[0], i[1], i[2])
 	# logging.info("Base count: %d"%(total_base))
 	# logging.info("TP-base count: %d"%(tp_base))
 	logging.info("====%s===="%(callset[flag]))

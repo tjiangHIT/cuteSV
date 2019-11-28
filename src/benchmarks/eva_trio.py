@@ -43,6 +43,23 @@ def pase_info(seq):
 			info[i.split('=')[0]] = i.split('=')[1]
 	return info
 
+def pase_info_2(seq, seq2):
+	info = {'SVLEN': 0, 'END': 0, "SVTYPE": '', "SUPPORT": 0, "CHR2": ''}
+	for i in seq.split(';'):
+		if i.split('=')[0] in ["SVLEN", "END", "SUPPORT"]:
+			try:
+				info[i.split('=')[0]] = abs(int(i.split('=')[1]))
+			except:
+				pass
+		if i.split('=')[0] in ["SVTYPE"]:
+			info[i.split('=')[0]] = i.split('=')[1]
+			if i.split('=')[1] == 'BND':
+				if seq2[0] == 'N':
+					info['CHR2'] = seq[2].split(':')[0][2:]
+				else:
+					info['CHR2'] = seq[2].split(':')[0][1:]
+	return info
+
 def load_callset_cuteSV(path, filter, confbed):
 	callset = dict()
 	file = open(path, 'r')
@@ -148,11 +165,7 @@ def load_callset_svim(path, filter, confbed):
 
 		chr = seq[0]
 		pos = int(seq[1])
-		ALT = seq[4][1:4]
-
-		if ALT == "DUP":
-			ALT = "INS"
-		info = pase_info(seq[7])
+		info = pase_info_2(seq[7], seq[4])
 
 		if len(confbed) > 0:
 			if chr not in confbed:
@@ -160,17 +173,39 @@ def load_callset_svim(path, filter, confbed):
 			if judge_bed(pos, info["END"], confbed[chr]) == 0:
 				continue
 
-		if ALT not in base_call:
-			base_call[ALT] = dict()
+		svtype = info["SVTYPE"]
+		if svtype == "BND":
+			chr_2, pos_2 = parse_BND(seq[4])
+			if len(confbed) > 0:
+				if chr not in confbed:
+					continue
+				if judge_bed(pos, pos_2, confbed[chr]) == 0:
+					continue
 
-		if chr not in base_call[ALT]:
-			base_call[ALT][chr] = list()
+			if svtype not in base_call:
+				base_call[svtype] = dict()
+			if chr not in base_call[svtype]:
+				base_call[svtype][chr] = dict()
+			if chr_2 not in base_call[svtype][chr]:
+				base_call[svtype][chr][chr_2] = list()
 
-		if ALT == "INV":
-			base_call[ALT][chr].append([pos, info["END"] - pos + 1, info["END"], 0])
+			if info["SUPPORT"] >= filter:
+				base_call[svtype][chr][chr_2].append([pos, pos_2, 0])
+
+		elif info["SVTYPE"] == "INV":
+			if info["SVTYPE"] not in base_call:
+				base_call[info["SVTYPE"]] = dict()
+			if chr not in base_call[info["SVTYPE"]]:
+				base_call[info["SVTYPE"]][chr] = list()
+			if info["END"] - pos + 1 >= 50:
+				base_call[info["SVTYPE"]][chr].append([pos, info["END"] - pos + 1, info["END"], 0])
 		else:
+			if info["SVTYPE"] not in base_call:
+				base_call[info["SVTYPE"]] = dict()
+			if chr not in base_call[info["SVTYPE"]]:
+				base_call[info["SVTYPE"]][chr] = list()
 			if info["SVLEN"] >= 50:
-				base_call[ALT][chr].append([pos, info["SVLEN"], info["END"], 0])
+				base_call[info["SVTYPE"]][chr].append([pos, info["SVLEN"], info["END"], 0])
 	file.close()
 	return base_call
 
@@ -265,6 +300,7 @@ def eva_record(call_A, call_B, bias, offect):
 					else:
 						for i in call_A[svtype][chr]:
 							for j in call_B[svtype][chr]:
+								# if min(i[2], j[2]) >= max(i[0], j[0]):
 								if i[0] - offect <= j[0] <= i[2] + offect or i[0] - offect <= j[2] <= i[2] + offect or j[0] - offect <= i[0] <= j[2] + offect:
 									if min(i[1], j[1])*1.0/max(i[1], j[1]) >= bias:
 										i[3] = 1
@@ -377,7 +413,7 @@ def main_ctrl(args):
 		logging.info("Evaluate accuracy and sensitivity.")
 		eva_record(call_child, call_father, args.bias, args.offect)
 		eva_record(call_child, call_mother, args.bias, args.offect)
-		svtype = ["DEL", "INS", "INV"]
+		svtype = ["DEL", "INS", "INV", "BND"]
 		for i in svtype:
 			child_r, child_tr = statistics_true_possitive(call_child, i)
 			father_r, father_tr = statistics_true_possitive(call_father, i)
