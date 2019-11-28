@@ -91,7 +91,7 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 We provided the SV callsets of the HG002 human sample produced by cuteSV form three different long-read sequencing platforms (i.e. PacBio CLR, PacBio CCS, and ONT PromethION). 
 
 You can download them at: 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3477781.svg)](https://doi.org/10.5281/zenodo.3477781)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3556403.svg)](https://doi.org/10.5281/zenodo.3556403)
 
 Please cite the manuscript of cuteSV before using these callsets.
 
