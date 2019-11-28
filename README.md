@@ -34,7 +34,7 @@ Long-read sequencing enables the comprehensive discovery of structural variation
 
 The benchmark results of cuteSV on the HG002 human sample are below:
 
-<img src="hg2_cuteSV_assessments_v2.png" width="800px">
+<img src="hg2_assessments.png" width="800px">
 
 BTW, we used [Truvari](https://github.com/spiralgenetics/truvari) to calculate the recall, precision, and f-measure.
 For more detailed implementation of SV benchmarks, we show an example [here](https://github.com/tjiangHIT/sv-benchmark).
