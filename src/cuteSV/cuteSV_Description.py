@@ -25,7 +25,7 @@ class cuteSVdp(object):
 
 	Suggestions:
 
-	For PacBio CLR data:
+	For PacBio CLR/ONT data:
 		--max_cluster_bias_INS		100
 		--diff_ratio_merging_INS	0.2
 		--diff_ratio_filtering_INS	0.6
