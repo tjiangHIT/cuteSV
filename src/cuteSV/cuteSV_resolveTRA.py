@@ -25,7 +25,7 @@ import numpy as np
 			*****************************
 			'''
 
-def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, bam_path):
+def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, bam_path, action, hom, het):
 	semi_tra_cluster = list()
 	semi_tra_cluster.append([0,0,'','N'])
 	candidate_single_SV = list()
@@ -52,7 +52,10 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 											overlap_size, 
 											max_cluster_bias, 
 											candidate_single_SV,
-											bam_path)
+											bam_path,
+											action,
+											hom,
+											het)
 			semi_tra_cluster = []
 			semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
 		else:
@@ -66,12 +69,15 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 									overlap_size, 
 									max_cluster_bias, 
 									candidate_single_SV,
-									bam_path)
+									bam_path,
+									action,
+									hom,
+									het)
 	file.close()
 	return candidate_single_SV
 
 def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, 
-	max_cluster_bias, candidate_single_SV, bam_path):
+	max_cluster_bias, candidate_single_SV, bam_path, action, hom, het):
 	BND_type = semi_tra_cluster[0][3]
 	semi_tra_cluster = sorted(semi_tra_cluster, key = lambda x:x[1])
 	read_tag = dict()
@@ -117,7 +123,14 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 			else:
 				return
 
-			DV, DR, GT = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
+					int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
+
 			candidate_single_SV.append([chr_1, 
 										TRA_1, 
 										str(int(temp[0][0]/len(temp[0][2]))), 
@@ -127,7 +140,14 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(DR),
 										str(GT)])
 
-			DV, DR, GT = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, temp[1][2], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), 
+					int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, temp[1][2], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
+
 			candidate_single_SV.append([chr_1, 
 										TRA_2, 
 										str(int(temp[1][0]/len(temp[1][2]))), 
@@ -152,9 +172,14 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 			else:
 				return
 
-			# print(chr_1, int(temp[0][0]/len(temp[0][2])), chr_2, int(temp[0][1]/len(temp[0][2])), len(temp[0][2]))
-			DV, DR, GT = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], max_cluster_bias)
-			# print(DV,DR,GT)
+			if action:
+				DV, DR, GT = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
+					int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
+
 			candidate_single_SV.append([chr_1, 
 										TRA, 
 										str(int(temp[0][0]/len(temp[0][2]))), 
@@ -176,19 +201,19 @@ def count_coverage(chr, s, e, f, read_count):
 		if i.reference_start < s and i.reference_end > e:
 			read_count.add(i.query_name)
 
-def assign_gt(a, b):
+def assign_gt(a, b, hom, het):
 	if b == 0:
 		return "1/1"
-	if a*1.0/b < 0.2:
+	if a*1.0/b < het:
 		return "0/0"
-	elif a*1.0/b >= 0.2 and a*1.0/b < 0.8:
+	elif a*1.0/b >= het and a*1.0/b < hom:
 		return "0/1"
-	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
+	elif a*1.0/b >= hom and a*1.0/b < 1.0:
 		return "1/1"
 	else:
 		return "1/1"
 
-def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias):
+def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias, hom, het):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	querydata = set()
@@ -204,4 +229,4 @@ def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias
 	for query in querydata:
 		if query not in read_id_list:
 			DR += 1
-	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list))
+	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)

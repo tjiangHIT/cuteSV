@@ -1,7 +1,8 @@
 import sys
 import numpy as np
 
-def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, bam_path):
+def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, 
+	bam_path, action, hom, het):
 	'''
 	cluster INV
 	************************************************************************
@@ -52,7 +53,10 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, bam
 											sv_size, 
 											candidate_single_SV, 
 											max_cluster_bias,
-											bam_path)
+											bam_path,
+											action,
+											hom,
+											het)
 			semi_inv_cluster = []
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id])
 		else:
@@ -65,12 +69,15 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, bam
 									sv_size, 
 									candidate_single_SV, 
 									max_cluster_bias,
-									bam_path)
+									bam_path,
+									action,
+									hom,
+									het)
 	file.close()
 	return candidate_single_SV
 
 def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size, 
-	candidate_single_SV, max_cluster_bias, bam_path):
+	candidate_single_SV, max_cluster_bias, bam_path, action, hom, het):
 
 	read_id = [i[2] for i in semi_inv_cluster]
 	support_read = len(list(set(read_id)))
@@ -101,7 +108,13 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 				if inv_len >= sv_size and max_count_id >= read_count:
 					# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
 					if inv_len <= 100000:
-						DV, DR, GT = call_gt(bam_path, int(breakpoint_1), int(breakpoint_2), chr, list(temp_id.keys()), max_cluster_bias)
+						if action:
+							DV, DR, GT = call_gt(bam_path, int(breakpoint_1), 
+								int(breakpoint_2), chr, list(temp_id.keys()), 
+								max_cluster_bias, hom, het)
+						else:
+							DR = '.'
+							GT = './.'
 						candidate_single_SV.append([chr, 
 													svtype, 
 													str(int(breakpoint_1)), 
@@ -132,7 +145,13 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 		if inv_len >= sv_size and max_count_id >= read_count:
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
 			if inv_len <= 100000:
-				DV, DR, GT = call_gt(bam_path, int(breakpoint_1), int(breakpoint_2), chr, list(temp_id.keys()), max_cluster_bias)
+				if action:
+					DV, DR, GT = call_gt(bam_path, int(breakpoint_1), 
+						int(breakpoint_2), chr, list(temp_id.keys()), 
+						max_cluster_bias, hom, het)
+				else:
+					DR = '.'
+					GT = './.'
 				candidate_single_SV.append([chr, 
 											svtype, 
 											str(int(breakpoint_1)), 
@@ -153,19 +172,19 @@ def count_coverage(chr, s, e, f):
 			read_count.add(i.query_name)
 	return read_count
 
-def assign_gt(a, b):
+def assign_gt(a, b, hom, het):
 	if b == 0:
 		return "1/1"
-	if a*1.0/b < 0.2:
+	if a*1.0/b < het:
 		return "0/0"
-	elif a*1.0/b >= 0.2 and a*1.0/b < 0.8:
+	elif a*1.0/b >= het and a*1.0/b < hom:
 		return "0/1"
-	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
+	elif a*1.0/b >= hom and a*1.0/b < 1.0:
 		return "1/1"
 	else:
 		return "1/1"
 
-def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias):
+def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias, hom, het):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	search_start = max(int(pos_1) - max_cluster_bias, 0)
@@ -176,5 +195,5 @@ def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias):
 	for query in querydata:
 		if query not in read_id_list:
 			DR += 1
-	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list))
+	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
 	

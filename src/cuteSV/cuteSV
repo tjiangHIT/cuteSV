@@ -282,7 +282,7 @@ def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_di
 											read_name])
 
 
-def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength):
+def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_threshold):
 	if read.query_length < min_read_len:
 		return 0
 
@@ -327,8 +327,8 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 			softclip_right = read.cigar[-1][1]
 
 	# ************Combine signals in same read********************
-	generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate, 500)
-	generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, read.query_name, "DEL", candidate, 500)
+	generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate, merge_threshold)
+	generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, read.query_name, "DEL", candidate, merge_threshold)
 
 	if process_signal == 1 or process_signal == 2:
 		Tags = read.get_tags()
@@ -348,7 +348,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, 
 					SV_size, min_mapq, max_split_parts, read.query_name, candidate)
 
-def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, task, min_siglength):
+def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, task, min_siglength, merge_threshold):
 	# args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i
 	candidate = dict()
 	candidate["DEL"] = dict()
@@ -361,7 +361,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 	Chr_length = samfile.get_reference_length(Chr_name)
 
 	for read in samfile.fetch(Chr_name, task[1], task[2]):
-		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, candidate, min_siglength)
+		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_threshold)
 
 	logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))
 	samfile.close()
@@ -420,7 +420,7 @@ def main_ctrl(args):
 	analysis_pools = Pool(processes=int(args.threads))
 	os.mkdir("%ssignatures"%temporary_dir)
 	for i in Task_list:
-		para = [(args.input, args.min_size, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i, args.min_siglength)]
+		para = [(args.input, args.min_size, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i, args.min_siglength, args.merge_threshold)]
 		analysis_pools.map_async(multi_run_wrapper, para)
 	analysis_pools.close()
 	analysis_pools.join()
@@ -452,28 +452,30 @@ def main_ctrl(args):
 		for svtype in ["DEL", "INS", "INV"]:
 			if svtype == "INV":
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
-					args.max_cluster_bias_INV, args.min_size, args.input)]
+					args.max_cluster_bias_INV, args.min_size, args.input, args.genotype,
+					args.hom, args.het)]
 				result.append(analysis_pools.map_async(run_inv, para))
 				# pass
 			if svtype == 'DEL':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.diff_ratio_merging_DEL, args.max_cluster_bias_DEL, args.diff_ratio_filtering_DEL, 
-					min(args.min_support, 5), args.input)]
+					min(args.min_support, 5), args.input, args.genotype, args.hom, args.het)]
 				result.append(analysis_pools.map_async(run_del, para))
 			if svtype == 'INS':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.diff_ratio_merging_INS, args.max_cluster_bias_INS, args.diff_ratio_filtering_INS, 
-					min(args.min_support, 5), args.input)]
+					min(args.min_support, 5), args.input, args.genotype, args.hom, args.het)]
 				result.append(analysis_pools.map_async(run_ins, para))
 		# DUP
 		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias_DUP,
-		 args.min_size, args.input)]
+		 args.min_size, args.input, args.genotype, args.hom, args.het)]
 		result.append(analysis_pools.map_async(run_dup, para))
 
 	for i in process_tra:
 		# TRA
 		para = [("%s%s.sigs"%(temporary_dir, "TRA"), i[0], i[1], args.min_support, 
-			args.diff_ratio_filtering_TRA, args.max_cluster_bias_TRA, args.input)]
+			args.diff_ratio_filtering_TRA, args.max_cluster_bias_TRA, args.input, args.genotype
+			, args.hom, args.het)]
 		result.append(analysis_pools.map_async(run_tra, para))
 
 	analysis_pools.close()

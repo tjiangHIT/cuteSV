@@ -30,7 +30,7 @@
 
 ---	
 ### Introduction
-Long-read sequencing enables the comprehensive discovery of structural variations (SVs). However, it is still non-trivial to achieve high sensitivity and performance simultaneously due to the complex SV signatures implied by the noisy long reads. Therefore, we propose cuteSV, a sensitive, fast and scalable long read-based SV detection approach. cuteSV uses tailored methods to collect the signatures of various types of SVs and it employs a clustering-and-refinement method to analyze the signatures to implement sensitive SV detection. Benchmark on real PacBio and ONT datasets demonstrate that cuteSV has better yields and scalability than state-of-the-art tools.
+Long-read sequencing enables the comprehensive discovery of structural variations (SVs). However, it is still non-trivial to achieve high sensitivity and performance simultaneously due to the complex SV characteristics implied by noisy long reads. Therefore, we propose cuteSV, a sensitive, fast and scalable long-read-based SV detection approach. cuteSV uses tailored methods to collect the signatures of various types of SVs and employs a clustering-and-refinement method to analyze the signatures to implement sensitive SV detection. Benchmarks on real Pacific Biosciences (PacBio) and Oxford Nanopore Technology (ONT) datasets demonstrate that cuteSV has better yields and scalability than state-of-the-art tools.
 
 The benchmark results of cuteSV on the HG002 human sample are below:
 
@@ -72,9 +72,13 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 |--sample| Sample name/id |NULL|
 |--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored.|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
-|--min_read_len|Ignores reads that only report alignments with not longer then bp.|500|
+|--min_read_len|Ignores reads that only report alignments with not longer than bp.|500|
+|--merge_threshold|Maximum distance of SV signals to be merged.|500|
 |--min_support|Minimum number of reads that support a SV to be reported.|10|
 |--min_length|Minimum length of SV to be reported.|30|
+|--genotype|Enable to generate genotypes.|False|
+|--hom|Threshold on allele frequency for homozygous.|0.8|
+|--het|Threshold on allele frequency for heterozygous.|0.2|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
 |--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.2|
 |--diff_ratio_filtering_INS|Filter breakpoints with basepair identity less than the ratio of *default* for insertion.|0.6|
@@ -97,6 +101,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cuteSV (v1.0.4):
+	1.Add a new option for specificly setting the threshold of SV signals merging in the same read. The default parameter is 500 bp. You can reduce it for high-quality sequencing datasets like PacBio HiFi (CCS).
+	2.Make the genotyping function optional.
+	3.Enable users to set the threshold of SV allele frequency of homozygous/heterozygous.
+	4.Update the description of recommendation parameters in processing ONT data.
 
 	cuteSV (v1.0.3):
 	1.Refine the genotyping model.

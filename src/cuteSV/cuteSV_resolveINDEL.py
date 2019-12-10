@@ -14,7 +14,7 @@ from collections import Counter
 '''
 
 def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, 
-	threshold_local, minimum_support_reads, bam_path):
+	threshold_local, minimum_support_reads, bam_path, action, hom, het):
 
 	'''
 	cluster DEL
@@ -66,7 +66,10 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 										minimum_support_reads, 
 										candidate_single_SV,
 										bam_path,
-										max_cluster_bias)
+										max_cluster_bias,
+										action,
+										hom,
+										het)
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
@@ -82,13 +85,16 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 								minimum_support_reads, 
 								candidate_single_SV,
 								bam_path,
-								max_cluster_bias)
+								max_cluster_bias,
+								action,
+								hom,
+								het)
 	file.close()
 	return candidate_single_SV
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias):
+	bam_path, max_cluster_bias, action, hom, het):
 
 	'''
 	generate deletion
@@ -150,7 +156,12 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 
 		'''genotyping'''
-		DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], max_cluster_bias)
+		if action:
+			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], 
+				max_cluster_bias, hom, het)
+		else:
+			DR = '.'
+			GT = './.'
 		# print(DV, DR, GT)
 		candidate_single_SV.append([chr, 
 									svtype, 
@@ -176,7 +187,12 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			# 	# pass
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
-			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
@@ -196,7 +212,12 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			signalLen_STD = np.std(alelle_sort[-1][1])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
-			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
@@ -214,7 +235,12 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			signalLen_STD = np.std(alelle_sort[-2][1])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
-			DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
@@ -229,7 +255,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 	
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-	max_cluster_bias, threshold_local, minimum_support_reads, bam_path):
+	max_cluster_bias, threshold_local, minimum_support_reads, bam_path, action, hom, het):
 	
 	'''
 	cluster INS
@@ -281,7 +307,10 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										minimum_support_reads, 
 										candidate_single_SV,
 										bam_path,
-										max_cluster_bias)
+										max_cluster_bias,
+										action,
+										hom,
+										het)
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id])
 		else:
@@ -297,13 +326,16 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 								minimum_support_reads, 
 								candidate_single_SV,
 								bam_path,
-								max_cluster_bias)
+								max_cluster_bias,
+								action,
+								hom,
+								het)
 	file.close()
 	return candidate_single_SV
 
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias):
+	bam_path, max_cluster_bias, action, hom, het):
 		
 	'''
 	generate deletion
@@ -366,7 +398,12 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 		# search_threshold = np.min(alelle_sort[-1][0])
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 		'''genotyping'''
-		DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], max_cluster_bias)
+		if action:
+			DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], 
+				max_cluster_bias, hom, het)
+		else:
+			DR = '.'
+			GT = './.'
 		candidate_single_SV.append([chr, 
 									svtype, 
 									str(int(breakpointStart)), 
@@ -391,7 +428,12 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 				# pass
 				# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 				'''genotyping'''
-				DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], max_cluster_bias)
+				if action:
+					DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], 
+						max_cluster_bias, hom, het)
+				else:
+					DR = '.'
+					GT = './.'
 				candidate_single_SV.append([chr, 
 											svtype, 
 											str(int(breakpointStart)), 
@@ -411,7 +453,12 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			# search_threshold = np.min(alelle_sort[-1][0])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
-			DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
@@ -429,7 +476,12 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			# search_threshold = np.min(alelle_sort[-2][0])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
-			DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], max_cluster_bias)
+			if action:
+				DV, DR, GT = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], 
+					max_cluster_bias, hom, het)
+			else:
+				DR = '.'
+				GT = './.'
 			candidate_single_SV.append([chr, 
 										svtype, 
 										str(int(breakpointStart)), 
@@ -455,19 +507,19 @@ def count_coverage(chr, s, e, f):
 			read_count.add(i.query_name)
 	return read_count
 
-def assign_gt(a, b):
+def assign_gt(a, b, hom, het):
 	if b == 0:
 		return "1/1"
-	if a*1.0/b < 0.2:
+	if a*1.0/b < het:
 		return "0/0"
-	elif a*1.0/b >= 0.2 and a*1.0/b < 0.8:
+	elif a*1.0/b >= het and a*1.0/b < hom:
 		return "0/1"
-	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
+	elif a*1.0/b >= hom and a*1.0/b < 1.0:
 		return "1/1"
 	else:
 		return "1/1"
 
-def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias):
+def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias, hom, het):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	search_start = max(int(search_threshold) - max_cluster_bias, 0)
@@ -478,4 +530,4 @@ def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias):
 	for query in querydata:
 		if query not in read_id_list:
 			DR += 1
-	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list))
+	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)

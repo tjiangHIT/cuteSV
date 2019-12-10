@@ -7,7 +7,7 @@
 '''
 import argparse
 
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 
 class cuteSVdp(object):
 	'''
@@ -42,8 +42,13 @@ class cuteSVdp(object):
 	# MinSizeDel = 'For current version of cuteSV, it can detect deletions larger than this size.'
 
 def parseArgs(argv):
-	parser = argparse.ArgumentParser(prog="cuteSV", description=cuteSVdp.USAGE, 
+	parser = argparse.ArgumentParser(prog="cuteSV", 
+		description=cuteSVdp.USAGE, 
 		formatter_class=argparse.RawDescriptionHelpFormatter)
+
+	parser.add_argument('--version', '-v', 
+		action = 'version', 
+		version = '%(prog)s {version}'.format(version=VERSION))
 
 	# **************Parameters of input******************
 	parser.add_argument("input", 
@@ -71,10 +76,6 @@ def parseArgs(argv):
 		help = "Sample name/id",
 		default = "NULL",
 		type = str)
-	# parser.add_argument('-g', '--genotype',
-	# 	help = "Enable generate genotype (True/False).[%(default)s]",
-	# 	default = "False",
-	# 	type = str)
 
 	# **************Parameters in signatures collection******************
 	GroupSignaturesCollect = parser.add_argument_group('Collection of SV signatures')
@@ -87,7 +88,11 @@ def parseArgs(argv):
 		default = 20, 
 		type = int)
 	GroupSignaturesCollect.add_argument('-r', '--min_read_len', 
-		help = "Ignores reads that only report alignments with not longer then bp.[%(default)s]", 
+		help = "Ignores reads that only report alignments with not longer than bp.[%(default)s]", 
+		default = 500, 
+		type = int)
+	GroupSignaturesCollect.add_argument('-m', '--merge_threshold', 
+		help = "Maximum distance of SV signals to be merged.[%(default)s]", 
 		default = 500, 
 		type = int)
 	# The min_read_len in last version is 2000.
@@ -107,6 +112,20 @@ def parseArgs(argv):
 		help = "Minimum length of SV signal to be extracted.[%(default)s]", 
 		default = 10, 
 		type = int)
+
+	# **************Parameters in genotyping******************
+	GroupGenotype = parser.add_argument_group('Computing genotypes')
+	GroupGenotype.add_argument('--genotype',
+		help = "Enable to generate genotypes.",
+		action="store_true")
+	GroupGenotype.add_argument('--hom', 
+		help = "Threshold on allele frequency for homozygous.[%(default)s]", 
+		default = 0.8, 
+		type = float)
+	GroupGenotype.add_argument('--het', 
+		help = "Threshold on allele frequency for heterozygous.[%(default)s].", 
+		default = 0.2, 
+		type = float)
 
 	# Just a parameter for debug.
 	# Will be removed in future.

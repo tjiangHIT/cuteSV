@@ -13,7 +13,8 @@ from collections import Counter
 *******************************************
 '''
 
-def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, bam_path):
+def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, 
+	bam_path, action, hom, het):
 	semi_dup_cluster = list()
 	semi_dup_cluster.append([0,0,''])
 	candidate_single_SV = list()
@@ -36,7 +37,10 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, bam_path):
 										max_cluster_bias, 
 										sv_size, 
 										candidate_single_SV,
-										bam_path)
+										bam_path,
+										action,
+										hom,
+										het)
 			semi_dup_cluster = []
 			semi_dup_cluster.append([pos_1, pos_2, read_id])
 		else:
@@ -48,12 +52,15 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, bam_path):
 								max_cluster_bias, 
 								sv_size, 
 								candidate_single_SV,
-								bam_path)
+								bam_path,
+								action,
+								hom,
+								het)
 	file.close()
 	return candidate_single_SV
 
-def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv_size, 
-	candidate_single_SV, bam_path):
+def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, 
+	sv_size, candidate_single_SV, bam_path, action, hom, het):
 	# calculate support reads
 	support_read = list(set([i[2] for i in semi_dup_cluster]))
 	# print(support_read)
@@ -122,7 +129,12 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, sv
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % (chr, 'DUP', i[0][0], i[1][0] - i[0][0], i[2], reliability))
 			'''genotyping'''
 			if i[1][0] - i[0][0] <= 100000:
-				DV, DR, GT = call_gt(bam_path, int(i[0][0]), int(i[1][0]), chr, support_read, max_cluster_bias)
+				if action:
+					DV, DR, GT = call_gt(bam_path, int(i[0][0]), int(i[1][0]), 
+						chr, support_read, max_cluster_bias, hom, het)
+				else:
+					DR = '.'
+					GT = './.'
 				candidate_single_SV.append([chr,
 											'DUP', 
 											str(i[0][0]), 
@@ -144,19 +156,19 @@ def count_coverage(chr, s, e, f):
 			read_count.add(i.query_name)
 	return read_count
 
-def assign_gt(a, b):
+def assign_gt(a, b, hom, het):
 	if b == 0:
 		return "1/1"
-	if a*1.0/b < 0.2:
+	if a*1.0/b < het:
 		return "0/0"
-	elif a*1.0/b >= 0.2 and a*1.0/b < 0.8:
+	elif a*1.0/b >= het and a*1.0/b < hom:
 		return "0/1"
-	elif a*1.0/b >= 0.8 and a*1.0/b < 1.0:
+	elif a*1.0/b >= hom and a*1.0/b < 1.0:
 		return "1/1"
 	else:
 		return "1/1"
 
-def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias):
+def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias, hom, het):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	search_start = max(int(pos_1) - max_cluster_bias, 0)
@@ -167,4 +179,4 @@ def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias):
 	for query in querydata:
 		if query not in read_id_list:
 			DR += 1
-	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list))
+	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
