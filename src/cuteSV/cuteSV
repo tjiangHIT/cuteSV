@@ -4,8 +4,8 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang
- * @date: Sep 26 2019
- * @version V1.0.1   
+ * @data: Apr 17th 2020
+ * @version V1.0.5   
 '''
 
 import pysam
@@ -43,7 +43,34 @@ def detect_flag(Flag):
 	back_sig = signal[Flag] if Flag in signal else 0
 	return back_sig
 
-def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
+def analysis_inv(ele_1, ele_2, read_name, candidate, SV_size):
+	if ele_1[5] == '+':
+		# +-
+		if ele_1[3] - ele_2[3] >= SV_size:
+			if ele_2[0] + 0.5 * (ele_1[3] - ele_2[3]) >= ele_1[1]:
+				if ele_1[4] not in candidate["INV"]:
+					candidate["INV"][ele_1[4]] = list()
+				candidate["INV"][ele_1[4]].append([ele_2[3], ele_1[3], read_name])
+		if ele_2[3] - ele_1[3] >= SV_size:
+			if ele_2[0] + 0.5 * (ele_2[3] - ele_1[3]) >= ele_1[1]:
+				if ele_1[4] not in candidate["INV"]:
+					candidate["INV"][ele_1[4]] = list()
+				candidate["INV"][ele_1[4]].append([ele_1[3], ele_2[3], read_name])
+	else:
+		# -+
+		if ele_2[2] - ele_1[2] >= SV_size:
+			if ele_2[0] + 0.5 * (ele_2[2] - ele_1[2]) >= ele_1[1]:
+				if ele_1[4] not in candidate["INV"]:
+					candidate["INV"][ele_1[4]] = list()
+				candidate["INV"][ele_1[4]].append([ele_1[2], ele_2[2], read_name])
+		if ele_1[2] - ele_2[2] >= SV_size:
+			if ele_2[0] + 0.5 * (ele_1[2] - ele_2[2]) >= ele_1[1]:
+				if ele_1[4] not in candidate["INV"]:
+					candidate["INV"][ele_1[4]] = list()
+				candidate["INV"][ele_1[4]].append([ele_2[2], ele_1[2], read_name])
+
+
+def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxSize):
 	'''
 	read_start	read_end	ref_start	ref_end	chr	strand
 	#0			#1			#2			#3		#4	#5
@@ -56,32 +83,53 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 	# detect INS involoved in a translocation
 	trigger_INS_TRA = 0	
 
+	# Store Strands of INV
+
+	if len(SP_list) == 2:
+		ele_1 = SP_list[0]
+		ele_2 = SP_list[1]
+		if ele_1[4] == ele_2[4] and ele_1[5] != ele_2[5]:
+			analysis_inv(ele_1, ele_2, read_name, candidate, SV_size)
+	else:
+		for a in range(len(SP_list[1:-1])):
+			ele_1 = SP_list[a-1]
+			ele_2 = SP_list[a]
+			ele_3 = SP_list[a+1]
+			if ele_1[4] == ele_2[4] == ele_3[4]:
+				if ele_1[5] == ele_3[5] and ele_1[5] != ele_2[5]:
+					if ele_2[5] == '-':
+						# +-+
+						if ele_2[0] + 0.5 * (ele_3[2] - ele_1[3]) >= ele_1[1] and ele_3[0] + 0.5 * (ele_3[2] - ele_1[3]) >= ele_2[1]:
+							# No overlaps in split reads
+							if ele_1[4] not in candidate["INV"]:
+								candidate["INV"][ele_1[4]] = list()
+							candidate["INV"][ele_1[4]].append([ele_1[3], ele_3[2], read_name])
+					else:
+						# -+-
+						if ele_1[1] <= ele_2[0] + 0.5 * (ele_1[2] - ele_3[3]) and ele_3[0] + 0.5 * (ele_1[2] - ele_3[3]) >= ele_2[1]:
+							# No overlaps in split reads
+							if ele_1[4] not in candidate["INV"]:
+								candidate["INV"][ele_1[4]] = list()
+							candidate["INV"][ele_1[4]].append([ele_3[3], ele_1[2], read_name])						
+
+				if ele_1[5] != ele_3[5]:
+					if ele_2[5] == ele_1[5]:
+						# ++-/--+
+						analysis_inv(ele_2, ele_3, read_name, candidate, SV_size)
+					else:
+						# +--/-++
+						analysis_inv(ele_1, ele_2, read_name, candidate, SV_size)
+			
+
 	for a in range(len(SP_list[:-1])):
 		ele_1 = SP_list[a]
 		ele_2 = SP_list[a+1]
 		if ele_1[4] == ele_2[4]:
-			# INV
-			if ele_1[5] != ele_2[5]:
-				# exist a bug 
-				if ele_2[3] - ele_1[3] >= SV_size:
-					if ele_2[0] >= ele_1[1]:
-						if ele_1[4] not in candidate["INV"]:
-							candidate["INV"][ele_1[4]] = list()
-						candidate["INV"][ele_1[4]].append([ele_1[3], ele_2[3], read_name])
-						candidate["INV"][ele_1[4]].append([ele_1[2], ele_2[2], read_name])
-
-				if ele_1[3] - ele_2[3] >= SV_size:
-					if ele_2[0] >= ele_1[1]:
-						if ele_1[4] not in candidate["INV"]:
-							candidate["INV"][ele_1[4]] = list()
-						candidate["INV"][ele_1[4]].append([ele_2[3], ele_1[3], read_name])
-						candidate["INV"][ele_1[4]].append([ele_2[2], ele_1[2], read_name])
-
-			else:
+			if ele_1[5] == ele_2[5]:
 				# dup & ins & del 
 				if ele_1[5] == '-':
 					ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
-					ele_2 = [RLength-SP_list[a][1],RLength-SP_list[a][0]]+SP_list[a][2:]
+					ele_2 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
 
 				if ele_1[3] - ele_2[2] >= SV_size and ele_2[0] - ele_1[1] <= 100:
 					if ele_2[4] not in candidate["DUP"]:
@@ -93,13 +141,13 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 						if ele_2[4] not in candidate["INS"]:
 							candidate["INS"][ele_2[4]] = list()
 
-						if ele_2[2] - ele_1[3] <= 100 and ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= 100000:
+						if ele_2[2] - ele_1[3] <= 100 and ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize:
 							candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], read_name])
 					if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
 						if ele_2[4] not in candidate["DEL"]:
 							candidate["DEL"][ele_2[4]] = list()
 
-						if ele_2[0] - ele_1[1] <= 100 and ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= 100000:
+						if ele_2[0] - ele_1[1] <= 100 and ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize:
 							candidate["DEL"][ele_2[4]].append([ele_1[3], ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], read_name])
 		else:
 			trigger_INS_TRA = 1
@@ -182,7 +230,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate):
 				# print(ele_2)
 				dis_ref = ele_2[2] - ele_1[3]
 				dis_read = ele_2[0] - ele_1[1]
-				if dis_ref < 100 and dis_read - dis_ref >= SV_size and dis_read - dis_ref <= 100000:
+				if dis_ref < 100 and dis_read - dis_ref >= SV_size and dis_read - dis_ref <= MaxSize:
 					# print(min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name)
 					if ele_1[4] not in candidate['INS']:
 						candidate['INS'][ele_1[4]] = list()
@@ -211,7 +259,7 @@ def acquire_clip_pos(deal_cigar):
 	return [first_pos, last_pos, bias]
 
 def organize_split_signal(chr, primary_info, Supplementary_info, total_L, SV_size, 
-	min_mapq, max_split_parts, read_name, candidate):
+	min_mapq, max_split_parts, read_name, candidate, MaxSize):
 	split_read = list()
 	if len(primary_info) > 0:
 		split_read.append(primary_info)
@@ -236,7 +284,7 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, SV_siz
 				except:
 					pass
 	if len(split_read) <= max_split_parts:
-		analysis_split_read(split_read, SV_size, total_L, read_name, candidate)
+		analysis_split_read(split_read, SV_size, total_L, read_name, candidate, MaxSize)
 
 def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_dis):
 	# for i in sigs:
@@ -282,7 +330,7 @@ def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_di
 											read_name])
 
 
-def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_threshold):
+def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
 	if read.query_length < min_read_len:
 		return 0
 
@@ -327,8 +375,8 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 			softclip_right = read.cigar[-1][1]
 
 	# ************Combine signals in same read********************
-	generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate, merge_threshold)
-	generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, read.query_name, "DEL", candidate, merge_threshold)
+	generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate, merge_ins_threshold)
+	generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, read.query_name, "DEL", candidate, merge_del_threshold)
 
 	if process_signal == 1 or process_signal == 2:
 		Tags = read.get_tags()
@@ -346,9 +394,10 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 			if i[0] == 'SA':
 				Supplementary_info = i[1].split(';')[:-1]
 				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, 
-					SV_size, min_mapq, max_split_parts, read.query_name, candidate)
+					SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize)
 
-def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, task, min_siglength, merge_threshold):
+def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
+				task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
 	# args.input, args.min_length, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i
 	candidate = dict()
 	candidate["DEL"] = dict()
@@ -361,7 +410,9 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 	Chr_length = samfile.get_reference_length(Chr_name)
 
 	for read in samfile.fetch(Chr_name, task[1], task[2]):
-		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_threshold)
+		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, 
+					min_read_len, candidate, min_siglength, merge_del_threshold, 
+					merge_ins_threshold, MaxSize)
 
 	logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))
 	samfile.close()
@@ -420,7 +471,9 @@ def main_ctrl(args):
 	analysis_pools = Pool(processes=int(args.threads))
 	os.mkdir("%ssignatures"%temporary_dir)
 	for i in Task_list:
-		para = [(args.input, args.min_size, args.min_mapq, args.max_split_parts, args.min_read_len, temporary_dir, i, args.min_siglength, args.merge_threshold)]
+		para = [(args.input, args.min_size, args.min_mapq, args.max_split_parts, 
+				args.min_read_len, temporary_dir, i, args.min_siglength, 
+				args.merge_del_threshold, args.merge_ins_threshold, args.max_size)]
 		analysis_pools.map_async(multi_run_wrapper, para)
 	analysis_pools.close()
 	analysis_pools.join()
@@ -453,7 +506,7 @@ def main_ctrl(args):
 			if svtype == "INV":
 				para = [("%s%s.sigs"%(temporary_dir, svtype), chr, svtype, args.min_support, 
 					args.max_cluster_bias_INV, args.min_size, args.input, args.genotype,
-					args.hom, args.het)]
+					args.hom, args.het, args.max_size)]
 				result.append(analysis_pools.map_async(run_inv, para))
 				# pass
 			if svtype == 'DEL':
@@ -468,7 +521,7 @@ def main_ctrl(args):
 				result.append(analysis_pools.map_async(run_ins, para))
 		# DUP
 		para = [("%s%s.sigs"%(temporary_dir, "DUP"), chr, args.min_support, args.max_cluster_bias_DUP,
-		 args.min_size, args.input, args.genotype, args.hom, args.het)]
+		 args.min_size, args.input, args.genotype, args.hom, args.het, args.max_size)]
 		result.append(analysis_pools.map_async(run_dup, para))
 
 	for i in process_tra:

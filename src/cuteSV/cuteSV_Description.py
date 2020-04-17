@@ -2,12 +2,12 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang
- * @date: Nov 15th 2019
- * @version V1.0.2   
+ * @date: Apr 17th 2020
+ * @version V1.0.5   
 '''
 import argparse
 
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 
 class cuteSVdp(object):
 	'''
@@ -91,9 +91,13 @@ def parseArgs(argv):
 		help = "Ignores reads that only report alignments with not longer than bp.[%(default)s]", 
 		default = 500, 
 		type = int)
-	GroupSignaturesCollect.add_argument('-m', '--merge_threshold', 
-		help = "Maximum distance of SV signals to be merged.[%(default)s]", 
-		default = 500, 
+	GroupSignaturesCollect.add_argument('-md', '--merge_del_threshold', 
+		help = "Maximum distance of deletion signals to be merged.[%(default)s]", 
+		default = 0, 
+		type = int)
+	GroupSignaturesCollect.add_argument('-mi', '--merge_ins_threshold', 
+		help = "Maximum distance of insertion signals to be merged.[%(default)s]", 
+		default = 100, 
 		type = int)
 	# The min_read_len in last version is 2000.
 	# signatures with overlap need to be filtered
@@ -108,7 +112,11 @@ def parseArgs(argv):
 		help = "Minimum size of SV to be reported.[%(default)s]", 
 		default = 30, 
 		type = int)
-	GroupSVCluster.add_argument('-L', '--min_siglength', 
+	GroupSVCluster.add_argument('-L', '--max_size', 
+		help = "Maximum size of SV to be reported.[%(default)s]", 
+		default = 100000, 
+		type = int)
+	GroupSVCluster.add_argument('-sl', '--min_siglength', 
 		help = "Minimum length of SV signal to be extracted.[%(default)s]", 
 		default = 10, 
 		type = int)

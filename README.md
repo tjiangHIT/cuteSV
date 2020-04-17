@@ -26,7 +26,7 @@
 	or
 	$ conda install -c bioconda cutesv
 	or 
-	$ git clone https://github.com/tjiangHIT/cuteSV.git && cd cuteSV/ && pip install .
+	$ git clone https://github.com/tjiangHIT/cuteSV.git && cd cuteSV/ && python setup.py install 
 
 ---	
 ### Introduction
@@ -68,14 +68,16 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 | Parameter | Description | Default |
 | :------------ |:---------------|-------------:|
 |--threads|Number of threads to use.| 16 |
-|--batches| Batch of genome segmentation interval.        |10,000,000|
+|--batches| Batch of genome segmentation interval.|10,000,000|
 |--sample| Sample name/id |NULL|
 |--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored.|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
 |--min_read_len|Ignores reads that only report alignments with not longer than bp.|500|
-|--merge_threshold|Maximum distance of SV signals to be merged.|500|
+|--merge_del_threshold|Maximum distance of deletion signals to be merged.|0|
+|--merge_ins_threshold|Maximum distance of insertion signals to be merged.|100|
 |--min_support|Minimum number of reads that support a SV to be reported.|10|
-|--min_length|Minimum length of SV to be reported.|30|
+|--min_size|Minimum length of SV to be reported.|30|
+|--max_size|Minimum length of SV to be reported.|100000|
 |--genotype|Enable to generate genotypes.|False|
 |--hom|Threshold on allele frequency for homozygous.|0.8|
 |--het|Threshold on allele frequency for heterozygous.|0.2|
@@ -101,6 +103,13 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cuteSV (v1.0.5):
+	1.Add new options for specificly setting the threshold of deletion/insertion signals merging in the same read. The default parameters are 0 bp for deletion and 100 bp for insertion.
+	2.Remove parameter --merge_threshold.
+	3.Fix bugs in inversion and translocation calling.
+	4.Add new option for specificly setting the maximum size of SV to be discovered. The default value is 100,000 bp. 
+
 
 	cuteSV (v1.0.4):
 	1.Add a new option for specificly setting the threshold of SV signals merging in the same read. The default parameter is 500 bp. You can reduce it for high-quality sequencing datasets like PacBio HiFi (CCS).

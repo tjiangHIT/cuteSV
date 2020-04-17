@@ -14,7 +14,7 @@ from collections import Counter
 '''
 
 def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, 
-	bam_path, action, hom, het):
+	bam_path, action, hom, het, MaxSize):
 	semi_dup_cluster = list()
 	semi_dup_cluster.append([0,0,''])
 	candidate_single_SV = list()
@@ -40,7 +40,8 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
 										bam_path,
 										action,
 										hom,
-										het)
+										het,
+										MaxSize)
 			semi_dup_cluster = []
 			semi_dup_cluster.append([pos_1, pos_2, read_id])
 		else:
@@ -55,12 +56,13 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
 								bam_path,
 								action,
 								hom,
-								het)
+								het,
+								MaxSize)
 	file.close()
 	return candidate_single_SV
 
 def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, 
-	sv_size, candidate_single_SV, bam_path, action, hom, het):
+	sv_size, candidate_single_SV, bam_path, action, hom, het, MaxSize):
 	# calculate support reads
 	support_read = list(set([i[2] for i in semi_dup_cluster]))
 	# print(support_read)
@@ -128,7 +130,7 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % (chr, 'DUP', i[0][0], i[1][0] - i[0][0], i[2], reliability))
 			'''genotyping'''
-			if i[1][0] - i[0][0] <= 100000:
+			if i[1][0] - i[0][0] <= MaxSize:
 				if action:
 					DV, DR, GT = call_gt(bam_path, int(i[0][0]), int(i[1][0]), 
 						chr, support_read, max_cluster_bias, hom, het)

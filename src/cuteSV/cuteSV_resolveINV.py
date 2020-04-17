@@ -2,7 +2,7 @@ import sys
 import numpy as np
 
 def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, 
-	bam_path, action, hom, het):
+	bam_path, action, hom, het, MaxSize):
 	'''
 	cluster INV
 	************************************************************************
@@ -56,7 +56,8 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 											bam_path,
 											action,
 											hom,
-											het)
+											het,
+											MaxSize)
 			semi_inv_cluster = []
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id])
 		else:
@@ -72,12 +73,13 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 									bam_path,
 									action,
 									hom,
-									het)
+									het,
+									MaxSize)
 	file.close()
 	return candidate_single_SV
 
 def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size, 
-	candidate_single_SV, max_cluster_bias, bam_path, action, hom, het):
+	candidate_single_SV, max_cluster_bias, bam_path, action, hom, het, MaxSize):
 
 	read_id = [i[2] for i in semi_inv_cluster]
 	support_read = len(list(set(read_id)))
@@ -107,7 +109,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 				inv_len = breakpoint_2 - breakpoint_1
 				if inv_len >= sv_size and max_count_id >= read_count:
 					# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
-					if inv_len <= 100000:
+					if inv_len <= MaxSize:
 						if action:
 							DV, DR, GT = call_gt(bam_path, int(breakpoint_1), 
 								int(breakpoint_2), chr, list(temp_id.keys()), 
@@ -144,7 +146,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 		inv_len = breakpoint_2 - breakpoint_1
 		if inv_len >= sv_size and max_count_id >= read_count:
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
-			if inv_len <= 100000:
+			if inv_len <= MaxSize:
 				if action:
 					DV, DR, GT = call_gt(bam_path, int(breakpoint_1), 
 						int(breakpoint_2), chr, list(temp_id.keys()), 
