@@ -165,14 +165,13 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 def run_inv(args):
 	return resolution_INV(*args)
 
-def count_coverage(chr, s, e, f):
-	read_count = set()
+def count_coverage(chr, s, e, f, read_count):
 	for i in f.fetch(chr, s, e):
+		# read_count.add(i.query_name)
 		if i.flag not in [0,16]:
 			continue
 		if i.reference_start < s and i.reference_end > e:
 			read_count.add(i.query_name)
-	return read_count
 
 def assign_gt(a, b, hom, het):
 	if b == 0:
@@ -189,9 +188,14 @@ def assign_gt(a, b, hom, het):
 def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias, hom, het):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
+	querydata = set()
 	search_start = max(int(pos_1) - max_cluster_bias, 0)
+	search_end = min(int(pos_1) + max_cluster_bias, bamfile.get_reference_length(chr))
+	count_coverage(chr, search_start, search_end, bamfile, querydata)
+
+	search_start = max(int(pos_2) - max_cluster_bias, 0)
 	search_end = min(int(pos_2) + max_cluster_bias, bamfile.get_reference_length(chr))
-	querydata = count_coverage(chr, search_start, search_end, bamfile)
+	count_coverage(chr, search_start, search_end, bamfile, querydata)
 	bamfile.close()
 	DR = 0
 	for query in querydata:
