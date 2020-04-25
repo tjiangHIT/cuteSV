@@ -155,7 +155,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 		search_threshold = np.min(alelle_sort[-1][0])
 		signalLen = np.mean(alelle_sort[-1][1])
 		CILEN = cal_CIPOS(np.std(alelle_sort[-1][1]), len(alelle_sort[-1][1]))
-		# signalLen_STD = np.std(alelle_sort[-1][1])
+		signalLen_STD = np.std(alelle_sort[-1][1])
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 
 		'''genotyping'''
