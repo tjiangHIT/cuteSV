@@ -96,7 +96,7 @@ def generate_output(args, semi_result, contigINFO):
 				GT = i[8],
 				DR = i[7],
 				RE = i[4],
-				GL = i[9],
+				PL = i[9],
 				GQ = i[10],
 				QUAL = i[11]))
 			svid[i[1]] += 1
