@@ -209,7 +209,7 @@ def parseArgs(argv):
 	args = parser.parse_args(argv)
 	return args
 
-def Generation_VCF_header(file, contiginfo, sample):
+def Generation_VCF_header(file, contiginfo, sample, argv):
 	# General header
 	file.write("##fileformat=VCFv4.2\n")
 	file.write("##source=cuteSV-%s\n"%(VERSION))
@@ -247,4 +247,5 @@ def Generation_VCF_header(file, contiginfo, sample):
 	file.write("##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"# Phred-scaled genotype likelihoods rounded to the closest integer\">\n")
 	file.write("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"# Genotype quality\">\n")
 
+	file.write("##CommandLine=\"cuteSV %s\"\n"%(" ".join(argv)))
 	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(sample))

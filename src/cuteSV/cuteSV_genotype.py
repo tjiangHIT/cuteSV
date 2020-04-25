@@ -51,7 +51,7 @@ def cal_CIPOS(std, num):
 	pos = int(1.96 * std / num ** 0.5)
 	return "-%d,%d"%(pos,pos)
 
-def generate_output(args, semi_result, contigINFO):
+def generate_output(args, semi_result, contigINFO, argv):
 	
 	'''
 	Generation of VCF format file.
@@ -68,7 +68,7 @@ def generate_output(args, semi_result, contigINFO):
 	svid["INV"] = 0
 
 	file = open(args.output, 'w')
-	Generation_VCF_header(file, contigINFO, args.sample)
+	Generation_VCF_header(file, contigINFO, args.sample, argv)
 
 	for i in semi_result:
 		if i[1] in ["DEL", "INS"]:
