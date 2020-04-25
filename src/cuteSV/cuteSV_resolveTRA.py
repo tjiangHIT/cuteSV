@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from cuteSV.cuteSV_genotype import cal_GL
 
 '''
 *******************************************
@@ -124,13 +125,15 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 				return
 
 			if action:
-				DV, DR, GT = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
-					int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
-					max_cluster_bias, hom, het)
+				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
+											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
+											max_cluster_bias, hom, het)
 			else:
 				DR = '.'
 				GT = './.'
-
+				GL = '.,.,.'
+				GQ = "."
+				QUAL = "."
 			candidate_single_SV.append([chr_1, 
 										TRA_1, 
 										str(int(temp[0][0]/len(temp[0][2]))), 
@@ -138,16 +141,21 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(int(temp[0][1]/len(temp[0][2]))), 
 										str(len(temp[0][2])),
 										str(DR),
-										str(GT)])
+										str(GT),
+										str(GL),
+										str(GQ),
+										str(QUAL)])
 
 			if action:
-				DV, DR, GT = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), 
-					int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, temp[1][2], 
-					max_cluster_bias, hom, het)
+				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), 
+											int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, temp[1][2], 
+											max_cluster_bias, hom, het)
 			else:
 				DR = '.'
 				GT = './.'
-
+				GL = '.,.,.'
+				GQ = "."
+				QUAL = "."
 			candidate_single_SV.append([chr_1, 
 										TRA_2, 
 										str(int(temp[1][0]/len(temp[1][2]))), 
@@ -155,7 +163,10 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(int(temp[1][1]/len(temp[1][2]))), 
 										str(len(temp[1][2])),
 										str(DR),
-										str(GT)])
+										str(GT),
+										str(GL),
+										str(GQ),
+										str(QUAL)])
 	else:
 		if len(temp[0][2]) >= len(semi_tra_cluster)*overlap_size:
 			# print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
@@ -173,13 +184,15 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 				return
 
 			if action:
-				DV, DR, GT = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
-					int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
-					max_cluster_bias, hom, het)
+				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
+											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
+											max_cluster_bias, hom, het)
 			else:
 				DR = '.'
 				GT = './.'
-
+				GL = '.,.,.'
+				GQ = "."
+				QUAL = "."
 			candidate_single_SV.append([chr_1, 
 										TRA, 
 										str(int(temp[0][0]/len(temp[0][2]))), 
@@ -187,7 +200,10 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(int(temp[0][1]/len(temp[0][2]))), 
 										str(len(temp[0][2])),
 										str(DR),
-										str(GT)])
+										str(GT),
+										str(GL),
+										str(GQ),
+										str(QUAL)])
 
 
 def run_tra(args):
@@ -229,4 +245,6 @@ def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias
 	for query in querydata:
 		if query not in read_id_list:
 			DR += 1
-	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
+	# return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
+	GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
+	return len(read_id_list), DR, GT, GL, GQ, QUAL

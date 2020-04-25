@@ -224,7 +224,7 @@ def Generation_VCF_header(file, contiginfo, sample):
 	file.write("##ALT=<ID=DEL,Description=\"Deletion relative to the reference\">\n")
 	file.write("##ALT=<ID=DUP,Description=\"Region of elevated copy number relative to the reference\">\n")
 	file.write("##ALT=<ID=INV,Description=\"Inversion of reference sequence\">\n")
-	file.write("##ALT=<ID=TRA,Description=\"Translocation\">\n")
+	file.write("##ALT=<ID=BND,Description=\"Breakend of translocation\">\n")
 
 	# INFO
 	file.write("##INFO=<ID=PRECISE,Number=0,Type=Flag,Description=\"Precise structural variant\">\n")
@@ -233,14 +233,18 @@ def Generation_VCF_header(file, contiginfo, sample):
 	file.write("##INFO=<ID=SVLEN,Number=1,Type=Integer,Description=\"Difference in length between REF and ALT alleles\">\n")
 	file.write("##INFO=<ID=CHR2,Number=1,Type=String,Description=\"Chromosome for END coordinate in case of a translocation\">\n")
 	file.write("##INFO=<ID=END,Number=1,Type=Integer,Description=\"End position of the variant described in this record\">\n")
-	file.write("##INFO=<ID=BREAKPOINT_STD,Number=2,Type=Integer,Description=\"Standard deviation of SV start position (breakpoint)\">\n")
-	file.write("##INFO=<ID=SVLEN_STD,Number=2,Type=Integer,Description=\"Standard deviation of SV length\">\n")
+	file.write("##INFO=<ID=CIPOS,Number=2,Type=Integer,Description=\"Confidence interval around POS for imprecise variants\">\n")
+	file.write("##INFO=<ID=CILEN,Number=2,Type=Integer,Description=\"Confidence interval around inserted/deleted material between breakends\">\n")
 	# file.write("##INFO=<ID=MATEID,Number=.,Type=String,Description=\"ID of mate breakends\">\n")
 	file.write("##INFO=<ID=RE,Number=1,Type=Integer,Description=\"Number of read support this record\">\n")
-
+	file.write("##INFO=<ID=STRANDS,Number=1,Type=String,Description=\"Strand orientation of the adjacency in BEDPE format (DEL:+-, DUP:-+, INV:++/--)\">>\n")
+	
 	# FORMAT
 	# file.write("\n")
 	file.write("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n")
-	file.write("##FORMAT=<ID=DR,Number=1,Type=Integer,Description=\"# high-quality reference reads\">\n")
-	file.write("##FORMAT=<ID=DV,Number=1,Type=Integer,Description=\"# high-quality variant reads\">\n")
+	file.write("##FORMAT=<ID=DR,Number=1,Type=Integer,Description=\"# High-quality reference reads\">\n")
+	file.write("##FORMAT=<ID=DV,Number=1,Type=Integer,Description=\"# High-quality variant reads\">\n")
+	file.write("##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"# Phred-scaled genotype likelihoods rounded to the closest integer\">\n")
+	file.write("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"# Genotype quality\">\n")
+
 	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(sample))

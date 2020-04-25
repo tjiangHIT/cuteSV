@@ -50,24 +50,35 @@ def analysis_inv(ele_1, ele_2, read_name, candidate, SV_size):
 			if ele_2[0] + 0.5 * (ele_1[3] - ele_2[3]) >= ele_1[1]:
 				if ele_1[4] not in candidate["INV"]:
 					candidate["INV"][ele_1[4]] = list()
-				candidate["INV"][ele_1[4]].append([ele_2[3], ele_1[3], read_name])
+				# candidate["INV"][ele_1[4]].append([ele_2[3], ele_1[3], read_name])
+				candidate["INV"][ele_1[4]].append(["++", ele_2[3], ele_1[3], read_name])
+				# head-to-head
+				# 5'->5'
 		if ele_2[3] - ele_1[3] >= SV_size:
 			if ele_2[0] + 0.5 * (ele_2[3] - ele_1[3]) >= ele_1[1]:
 				if ele_1[4] not in candidate["INV"]:
 					candidate["INV"][ele_1[4]] = list()
-				candidate["INV"][ele_1[4]].append([ele_1[3], ele_2[3], read_name])
+				# candidate["INV"][ele_1[4]].append([ele_1[3], ele_2[3], read_name])
+				candidate["INV"][ele_1[4]].append(["++", ele_1[3], ele_2[3], read_name])
+				# head-to-head
+				# 5'->5'
 	else:
 		# -+
 		if ele_2[2] - ele_1[2] >= SV_size:
 			if ele_2[0] + 0.5 * (ele_2[2] - ele_1[2]) >= ele_1[1]:
 				if ele_1[4] not in candidate["INV"]:
 					candidate["INV"][ele_1[4]] = list()
-				candidate["INV"][ele_1[4]].append([ele_1[2], ele_2[2], read_name])
+				# candidate["INV"][ele_1[4]].append([ele_1[2], ele_2[2], read_name])
+				candidate["INV"][ele_1[4]].append(["--", ele_1[2], ele_2[2], read_name])
+				# tail-to-tail
+				# 3'->3'
 		if ele_1[2] - ele_2[2] >= SV_size:
 			if ele_2[0] + 0.5 * (ele_1[2] - ele_2[2]) >= ele_1[1]:
 				if ele_1[4] not in candidate["INV"]:
 					candidate["INV"][ele_1[4]] = list()
-				candidate["INV"][ele_1[4]].append([ele_2[2], ele_1[2], read_name])
+				candidate["INV"][ele_1[4]].append(["--", ele_2[2], ele_1[2], read_name])
+				# tail-to-tail
+				# 3'->3'
 
 
 def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxSize):
@@ -92,9 +103,10 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 			analysis_inv(ele_1, ele_2, read_name, candidate, SV_size)
 	else:
 		for a in range(len(SP_list[1:-1])):
-			ele_1 = SP_list[a-1]
-			ele_2 = SP_list[a]
-			ele_3 = SP_list[a+1]
+			ele_1 = SP_list[a]
+			ele_2 = SP_list[a+1]
+			ele_3 = SP_list[a+2]
+
 			if ele_1[4] == ele_2[4] == ele_3[4]:
 				if ele_1[5] == ele_3[5] and ele_1[5] != ele_2[5]:
 					if ele_2[5] == '-':
@@ -103,14 +115,27 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 							# No overlaps in split reads
 							if ele_1[4] not in candidate["INV"]:
 								candidate["INV"][ele_1[4]] = list()
-							candidate["INV"][ele_1[4]].append([ele_1[3], ele_3[2], read_name])
+							# candidate["INV"][ele_1[4]].append([ele_1[3], ele_3[2], read_name])
+							candidate["INV"][ele_1[4]].append(["++", ele_1[3], ele_2[3], read_name])
+							# head-to-head
+							# 5'->5'
+							candidate["INV"][ele_1[4]].append(["--", ele_2[2], ele_3[2], read_name])
+							# tail-to-tail
+							# 3'->3'
 					else:
 						# -+-
 						if ele_1[1] <= ele_2[0] + 0.5 * (ele_1[2] - ele_3[3]) and ele_3[0] + 0.5 * (ele_1[2] - ele_3[3]) >= ele_2[1]:
 							# No overlaps in split reads
 							if ele_1[4] not in candidate["INV"]:
 								candidate["INV"][ele_1[4]] = list()
-							candidate["INV"][ele_1[4]].append([ele_3[3], ele_1[2], read_name])						
+							# candidate["INV"][ele_1[4]].append([ele_3[3], ele_1[2], read_name])
+							candidate["INV"][ele_1[4]].append(["++", ele_3[3], ele_2[3], read_name])
+							# head-to-head
+							# 5'->5'
+							candidate["INV"][ele_1[4]].append(["--", ele_2[2], ele_1[2], read_name])
+							# tail-to-tail
+							# 3'->3'
+											
 
 				if ele_1[5] != ele_3[5]:
 					if ele_2[5] == ele_1[5]:
@@ -131,7 +156,16 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 					ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
 					ele_2 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
 
-				if ele_1[3] - ele_2[2] >= SV_size and ele_2[0] - ele_1[1] <= 100:
+				# 	print("reverse")
+				# else:
+				# 	print("forward")
+				# print(ele_1)
+				# print(ele_2)
+				# print("Ref", ele_1[3] - ele_2[2])
+				# print("Read", ele_2[0] - ele_1[1])
+
+				# if ele_1[3] - ele_2[2] >= SV_size and ele_2[0] - ele_1[1] <= 100:
+				if ele_1[3] - ele_2[2] >= SV_size:
 					if ele_2[4] not in candidate["DUP"]:
 						candidate["DUP"][ele_2[4]] = list()
 					candidate["DUP"][ele_2[4]].append([ele_2[2], ele_1[3], read_name])
@@ -430,6 +464,9 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 					elif len(ele) == 5:
 						file.write("%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(sv_type, chr, ele[0], 
 							ele[1], ele[2], ele[3], ele[4]))
+					elif len(ele) == 4:
+						file.write("%s\t%s\t%s\t%d\t%d\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2], ele[3]))
+						# INV chr strand pos1 pos2 read_ID
 		except:
 			pass
 	file.close()	
@@ -483,7 +520,7 @@ def main_ctrl(args):
 	analysis_pools = Pool(processes=int(args.threads))
 	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
 	cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
-	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3n > %sINV.sigs"%(temporary_dir, temporary_dir))
+	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3 -k 4,4n > %sINV.sigs"%(temporary_dir, temporary_dir))
 	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 5,5 -k 3,3 -k 4,4n > %sTRA.sigs"%(temporary_dir, temporary_dir))
 	cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
 	for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:

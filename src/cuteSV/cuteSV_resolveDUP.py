@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from collections import Counter
+from cuteSV.cuteSV_genotype import cal_GL
 
 '''
 *******************************************
@@ -73,25 +74,27 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 	# for i in dup_cluster_len:
 	# 	print(i)
 
-	last_len = dup_cluster_len[0][1]
+	last_p2 = dup_cluster_len[0][1]
 	temp_list = dict()
 	temp_list[dup_cluster_len[0][2]] = 0
 	temp_count = 1
 	subcluster_bp1 = list()
 	subcluster_bp1.append(dup_cluster_len[0][0])
-	# temp_LEN_sum = last_len
+	# temp_LEN_sum = last_p2
 	subcluster_bp2 = list()
-	subcluster_bp2.append(last_len)
+	subcluster_bp2.append(last_p2)
 
 	predictions = list()
 	for i in dup_cluster_len[1:]:
-		if i[1] - last_len > max_cluster_bias:
+		if i[1] - last_p2 > max_cluster_bias:
 			if temp_count >= read_count:
 				if len(temp_list) >= read_count:
-					# breakpoint = round(temp_sum / temp_count)
-					breakpoint_1 = Counter(subcluster_bp1).most_common(1)[0]
-					# del_len = round(temp_LEN_sum / temp_count)
-					breakpoint_2 = Counter(subcluster_bp2).most_common(1)[0]
+					# breakpoint_1 = Counter(subcluster_bp1).most_common(1)[0]
+					# breakpoint_2 = Counter(subcluster_bp2).most_common(1)[0]
+					breakpoint_1 = (int(sum(subcluster_bp1[int(len(subcluster_bp1)*0.4):int(len(subcluster_bp1)*0.6)])
+									 / len(subcluster_bp1[int(len(subcluster_bp1)*0.4):int(len(subcluster_bp1)*0.6)])))
+					breakpoint_2 = (int(sum(subcluster_bp2[int(len(subcluster_bp2)*0.4):int(len(subcluster_bp2)*0.6)])
+									 / len(subcluster_bp2[int(len(subcluster_bp2)*0.4):int(len(subcluster_bp2)*0.6)])))
 					predictions.append([breakpoint_1, breakpoint_2, len(temp_list)])
 					# print(breakpoint_1, breakpoint_2, len(temp_list))
 
@@ -110,40 +113,52 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 			temp_count += 1
 			subcluster_bp1.append(i[0])
 			subcluster_bp2.append(i[1])
-		last_len = i[1]
+		last_p2 = i[1]
 
 	if temp_count >= read_count:
 		if len(temp_list) >= read_count:
-			breakpoint_1 = Counter(subcluster_bp1).most_common(1)[0]
-			breakpoint_2 = Counter(subcluster_bp2).most_common(1)[0]
+			# breakpoint_1 = Counter(subcluster_bp1).most_common(1)[0]
+			# breakpoint_2 = Counter(subcluster_bp2).most_common(1)[0]
+			breakpoint_1 = (int(sum(subcluster_bp1[int(len(subcluster_bp1)*0.4):int(len(subcluster_bp1)*0.6)])
+							 / len(subcluster_bp1[int(len(subcluster_bp1)*0.4):int(len(subcluster_bp1)*0.6)])))
+			breakpoint_2 = (int(sum(subcluster_bp2[int(len(subcluster_bp2)*0.4):int(len(subcluster_bp2)*0.6)])
+							 / len(subcluster_bp2[int(len(subcluster_bp2)*0.4):int(len(subcluster_bp2)*0.6)])))
 			predictions.append([breakpoint_1, breakpoint_2, len(temp_list)])
+			# print(breakpoint_1, breakpoint_2, len(temp_list))
 
 	predictions = sorted(predictions, key = lambda x:-x[2])
 
 	for i in predictions:
 		# print(i)
-		if i[2] >= read_count and i[2] >= int(len(support_read) / 3) and i[1][0] - i[0][0] >= sv_size:
-			if min(i[0][1], i[1][1]) * 2 >= i[2]:
-				reliability = "PRECISION"
-			else:
-				reliability = "IMPRECISION"
+		# if i[2] >= read_count and i[2] >= int(len(support_read) / 3) and i[1] - i[0] >= sv_size:
+		if i[2] >= read_count and i[1] - i[0] >= sv_size:
+			# if min(i[0][1], i[1][1]) * 2 >= i[2]:
+			# 	reliability = "PRECISION"
+			# else:
+			# 	reliability = "IMPRECISION"
 
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\t%s\n' % (chr, 'DUP', i[0][0], i[1][0] - i[0][0], i[2], reliability))
 			'''genotyping'''
-			if i[1][0] - i[0][0] <= MaxSize:
+			if i[1] - i[0] <= MaxSize:
 				if action:
-					DV, DR, GT = call_gt(bam_path, int(i[0][0]), int(i[1][0]), 
-						chr, support_read, max_cluster_bias, hom, het)
+					DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(i[0]), int(i[1]), 
+												chr, support_read, min(max_cluster_bias, i[1] - i[0]), hom, het)
 				else:
 					DR = '.'
 					GT = './.'
+					GL = '.,.,.'
+					GQ = "."
+					QUAL = "."
 				candidate_single_SV.append([chr,
 											'DUP', 
-											str(i[0][0]), 
-											str(i[1][0] - i[0][0]), 
+											str(i[0]), 
+											str(i[1] - i[0]), 
 											str(i[2]),
 											str(DR),
-											str(GT)])
+											str(GT),
+											str(GL),
+											str(GQ),
+											str(QUAL)])
 
 def run_dup(args):
 	return resolution_DUP(*args)
@@ -172,16 +187,18 @@ def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias, hom, he
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	querydata = set()
-	search_start = max(int(pos_1) - max_cluster_bias, 0)
-	search_end = min(int(pos_1) + max_cluster_bias, bamfile.get_reference_length(chr))
+	search_start = max(int(pos_1) - max_cluster_bias/2, 0)
+	search_end = min(int(pos_1) + max_cluster_bias/2, bamfile.get_reference_length(chr))
 	count_coverage(chr, search_start, search_end, bamfile, querydata)
 
-	search_start = max(int(pos_2) - max_cluster_bias, 0)
-	search_end = min(int(pos_2) + max_cluster_bias, bamfile.get_reference_length(chr))
+	search_start = max(int(pos_2) - max_cluster_bias/2, 0)
+	search_end = min(int(pos_2) + max_cluster_bias/2, bamfile.get_reference_length(chr))
 	count_coverage(chr, search_start, search_end, bamfile, querydata)
 	bamfile.close()
 	DR = 0
 	for query in querydata:
 		if query not in read_id_list:
 			DR += 1
-	return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
+	# return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
+	GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
+	return len(read_id_list), DR, GT, GL, GQ, QUAL

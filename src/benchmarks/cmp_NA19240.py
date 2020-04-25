@@ -176,11 +176,11 @@ def cmp_callsets(base, call, flag, Bias, Offect):
 	tp_base = 0
 	# for svtype in ["INS"]:
 	# for svtype in ["DUP"]:
-	# for svtype in ["DEL"]:
+	#for svtype in ["DEL"]:
 	# for svtype in ["INS", "DEL"]:
-	for svtype in ["INS", "DEL", "INV"]:
+	# for svtype in ["INS", "DEL", "INV"]:
 	# for svtype in ["INS", "DEL", "INV", "DUP"]:
-	# for svtype in ["INV"]:
+	for svtype in ["INV"]:
 		for chr in base[svtype]:
 			for i in base[svtype][chr]:
 				total_base += 1
@@ -197,9 +197,9 @@ def cmp_callsets(base, call, flag, Bias, Offect):
 	# for svtype in ["DUP"]:
 	# for svtype in ["DEL"]:
 	# for svtype in ["INS", "DEL"]:
-	for svtype in ["INS", "DEL", "INV"]:
+	# for svtype in ["INS", "DEL", "INV"]:
 	# for svtype in ["INS", "DEL", "INV", "DUP"]:
-	# for svtype in ["INV"]:
+	for svtype in ["INV"]:
 		for chr in call[svtype]:
 			for i in call[svtype][chr]:
 				total_call += 1
