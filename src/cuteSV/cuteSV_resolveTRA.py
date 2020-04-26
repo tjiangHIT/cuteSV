@@ -26,7 +26,7 @@ from cuteSV.cuteSV_genotype import cal_GL
 			*****************************
 			'''
 
-def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, bam_path, action, hom, het):
+def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, bam_path, action):
 	semi_tra_cluster = list()
 	semi_tra_cluster.append([0,0,'','N'])
 	candidate_single_SV = list()
@@ -43,10 +43,13 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 		pos_2 = int(seq[5])
 		read_id = seq[6]
 		BND_type = seq[2]
-		
+	
 		if pos_1 - semi_tra_cluster[-1][0] > max_cluster_bias or BND_type != semi_tra_cluster[-1][3]:
 			if len(semi_tra_cluster) >= read_count:
-				generate_semi_tra_cluster(semi_tra_cluster, 
+				if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
+					pass
+				else:
+					generate_semi_tra_cluster(semi_tra_cluster, 
 											chr_1, 
 											chr_2, 
 											read_count, 
@@ -54,16 +57,17 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 											max_cluster_bias, 
 											candidate_single_SV,
 											bam_path,
-											action,
-											hom,
-											het)
+											action)
 			semi_tra_cluster = []
 			semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
 		else:
 			semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
 
 	if len(semi_tra_cluster) >= read_count:
-		generate_semi_tra_cluster(semi_tra_cluster, 
+		if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
+			pass
+		else:
+			generate_semi_tra_cluster(semi_tra_cluster, 
 									chr_1, 
 									chr_2, 
 									read_count, 
@@ -71,14 +75,12 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 									max_cluster_bias, 
 									candidate_single_SV,
 									bam_path,
-									action,
-									hom,
-									het)
+									action)
 	file.close()
 	return candidate_single_SV
 
 def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, 
-	max_cluster_bias, candidate_single_SV, bam_path, action, hom, het):
+	max_cluster_bias, candidate_single_SV, bam_path, action):
 	BND_type = semi_tra_cluster[0][3]
 	semi_tra_cluster = sorted(semi_tra_cluster, key = lambda x:x[1])
 	read_tag = dict()
@@ -127,7 +129,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
 											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
-											max_cluster_bias, hom, het)
+											max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -149,7 +151,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), 
 											int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, temp[1][2], 
-											max_cluster_bias, hom, het)
+											max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -186,7 +188,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
 											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
-											max_cluster_bias, hom, het)
+											max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -229,7 +231,7 @@ def assign_gt(a, b, hom, het):
 	else:
 		return "1/1"
 
-def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias, hom, het):
+def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	querydata = set()

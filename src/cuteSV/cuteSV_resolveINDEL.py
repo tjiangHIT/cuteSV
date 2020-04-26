@@ -15,7 +15,7 @@ from cuteSV.cuteSV_genotype import cal_GL, cal_CIPOS
 '''
 
 def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, 
-	threshold_local, minimum_support_reads, bam_path, action, hom, het):
+	threshold_local, minimum_support_reads, bam_path, action):
 
 	'''
 	cluster DEL
@@ -58,7 +58,10 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 		
 		if pos - semi_del_cluster[-1][0] > max_cluster_bias:
 			if len(semi_del_cluster) >= read_count:
-				generate_del_cluster(semi_del_cluster, 
+				if semi_del_cluster[-1][0] == semi_del_cluster[-1][1] == 0:
+					pass
+				else:
+					generate_del_cluster(semi_del_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
@@ -68,16 +71,17 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 										candidate_single_SV,
 										bam_path,
 										max_cluster_bias,
-										action,
-										hom,
-										het)
+										action)
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_del_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_del_cluster) >= read_count:
-		generate_del_cluster(semi_del_cluster, 
+		if semi_del_cluster[-1][0] == semi_del_cluster[-1][1] == 0:
+			pass
+		else:
+			generate_del_cluster(semi_del_cluster, 
 								chr, 
 								svtype, 
 								read_count, 
@@ -87,15 +91,13 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 								candidate_single_SV,
 								bam_path,
 								max_cluster_bias,
-								action,
-								hom,
-								het)
+								action)
 	file.close()
 	return candidate_single_SV
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias, action, hom, het):
+	bam_path, max_cluster_bias, action):
 
 	'''
 	generate deletion
@@ -161,7 +163,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 		'''genotyping'''
 		if action:
 			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], 
-												max_cluster_bias, hom, het)
+												max_cluster_bias)
 		else:
 			DR = '.'
 			GT = './.'
@@ -200,7 +202,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			'''genotyping'''
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], 
-													max_cluster_bias, hom, het)
+													max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -233,7 +235,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			'''genotyping'''
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], 
-													max_cluster_bias, hom, het)
+													max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -264,7 +266,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			'''genotyping'''
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], 
-												max_cluster_bias, hom, het)
+												max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -288,7 +290,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 	
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-	max_cluster_bias, threshold_local, minimum_support_reads, bam_path, action, hom, het):
+	max_cluster_bias, threshold_local, minimum_support_reads, bam_path, action):
 	
 	'''
 	cluster INS
@@ -331,7 +333,10 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 		
 		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
 			if len(semi_ins_cluster) >= read_count:
-				generate_ins_cluster(semi_ins_cluster, 
+				if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:
+					pass
+				else:
+					generate_ins_cluster(semi_ins_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
@@ -341,16 +346,17 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										candidate_single_SV,
 										bam_path,
 										max_cluster_bias,
-										action,
-										hom,
-										het)
+										action)
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id])
 		else:
 			semi_ins_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_ins_cluster) >= read_count:
-		generate_ins_cluster(semi_ins_cluster, 
+		if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:
+			pass
+		else:
+			generate_ins_cluster(semi_ins_cluster, 
 								chr, 
 								svtype, 
 								read_count, 
@@ -360,15 +366,13 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 								candidate_single_SV,
 								bam_path,
 								max_cluster_bias,
-								action,
-								hom,
-								het)
+								action)
 	file.close()
 	return candidate_single_SV
 
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias, action, hom, het):
+	bam_path, max_cluster_bias, action):
 		
 	'''
 	generate deletion
@@ -435,7 +439,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 		'''genotyping'''
 		if action:
 			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], 
-											max_cluster_bias, hom, het)
+											max_cluster_bias)
 		else:
 			DR = '.'
 			GT = './.'
@@ -473,7 +477,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 				'''genotyping'''
 				if action:
 					DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], 
-													max_cluster_bias, hom, het)
+													max_cluster_bias)
 				else:
 					DR = '.'
 					GT = './.'
@@ -506,7 +510,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			'''genotyping'''
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], 
-												max_cluster_bias, hom, het)
+												max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -537,7 +541,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			'''genotyping'''
 			if action:
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], 
-												max_cluster_bias, hom, het)
+												max_cluster_bias)
 			else:
 				DR = '.'
 				GT = './.'
@@ -572,7 +576,7 @@ def count_coverage(chr, s, e, f):
 			read_count.add(i.query_name)
 	return read_count
 
-def assign_gt(a, b, hom, het):
+def assign_gt(a, b):
 	if b == 0:
 		return "1/1"
 	if a*1.0/b < het:
@@ -584,7 +588,7 @@ def assign_gt(a, b, hom, het):
 	else:
 		return "1/1"
 
-def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias, hom, het):
+def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	search_start = max(int(search_threshold) - max_cluster_bias, 0)

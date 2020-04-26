@@ -2,12 +2,12 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang
- * @date: Apr 17th 2020
- * @version V1.0.5   
+ * @date: Apr 26th 2020
+ * @version V1.0.6   
 '''
 import argparse
 
-VERSION = '1.0.5'
+VERSION = '1.0.6'
 
 class cuteSVdp(object):
 	'''
@@ -77,6 +77,10 @@ def parseArgs(argv):
 		default = "NULL",
 		type = str)
 
+	parser.add_argument('--retain_work_dir',
+		help = "Enable to retain temporary folder and files.",
+		action="store_true")
+
 	# **************Parameters in signatures collection******************
 	GroupSignaturesCollect = parser.add_argument_group('Collection of SV signatures')
 	GroupSignaturesCollect.add_argument('-p', '--max_split_parts', 
@@ -126,14 +130,14 @@ def parseArgs(argv):
 	GroupGenotype.add_argument('--genotype',
 		help = "Enable to generate genotypes.",
 		action="store_true")
-	GroupGenotype.add_argument('--hom', 
-		help = "Threshold on allele frequency for homozygous.[%(default)s]", 
-		default = 0.8, 
-		type = float)
-	GroupGenotype.add_argument('--het', 
-		help = "Threshold on allele frequency for heterozygous.[%(default)s].", 
-		default = 0.2, 
-		type = float)
+	# GroupGenotype.add_argument('--hom', 
+	# 	help = "Threshold on allele frequency for homozygous.[%(default)s]", 
+	# 	default = 0.8, 
+	# 	type = float)
+	# GroupGenotype.add_argument('--het', 
+	# 	help = "Threshold on allele frequency for heterozygous.[%(default)s].", 
+	# 	default = 0.2, 
+	# 	type = float)
 
 	# Just a parameter for debug.
 	# Will be removed in future.
@@ -238,7 +242,7 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	# file.write("##INFO=<ID=MATEID,Number=.,Type=String,Description=\"ID of mate breakends\">\n")
 	file.write("##INFO=<ID=RE,Number=1,Type=Integer,Description=\"Number of read support this record\">\n")
 	file.write("##INFO=<ID=STRANDS,Number=1,Type=String,Description=\"Strand orientation of the adjacency in BEDPE format (DEL:+-, DUP:-+, INV:++/--)\">>\n")
-	
+	file.write("##FILTER=<ID=q5,Description=\"Quality below 5\">\n")
 	# FORMAT
 	# file.write("\n")
 	file.write("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n")

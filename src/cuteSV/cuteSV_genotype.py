@@ -43,7 +43,7 @@ def cal_GL(c0, c1):
 	GL_P = [pow(10, i) for i in prob]
 	PL = [int(np.around(-10*log10(i))) for i in GL_P]
 	GQ = [int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]
-	QUAL = np.around(-10*log10(GL_P[0]), 1)
+	QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
 
 	return Genotype[prob.index(max(prob))], "%d,%d,%d"%(PL[0], PL[1], PL[2]), max(GQ), QUAL
 
@@ -77,7 +77,7 @@ def generate_output(args, semi_result, contigINFO, argv):
 			else:
 				cal_end = int(i[2]) + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE}".format(
-				PRECISION = "IMPRECISE" if i[-1] == "0/0" else "PRECISE", 
+				PRECISION = "IMPRECISE" if i[8] == "0/0" else "PRECISE", 
 				SVTYPE = i[1], 
 				SVLEN = i[3], 
 				END = str(cal_end), 
@@ -86,7 +86,11 @@ def generate_output(args, semi_result, contigINFO, argv):
 				RE = i[4])
 			if i[1] =="DEL":
 				info_list += ";STRAND=+-"
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\tPASS\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			if i[11] == ".":
+				filter_lable = "PASS"
+			else:
+				filter_lable = "PASS" if float(i[11]) >= 5.0 else "q5"
+			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
@@ -98,17 +102,22 @@ def generate_output(args, semi_result, contigINFO, argv):
 				RE = i[4],
 				PL = i[9],
 				GQ = i[10],
-				QUAL = i[11]))
+				QUAL = i[11],
+				PASS = filter_lable))
 			svid[i[1]] += 1
 		elif i[1] == "DUP":
 			cal_end = int(i[2]) + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND=-+".format(
-				PRECISION = "IMPRECISE" if i[-1] == "0/0" else "PRECISE", 
+				PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
 				SVTYPE = i[1], 
 				SVLEN = i[3], 
 				END = str(cal_end), 
 				RE = i[4])
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\tPASS\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			if i[9] == ".":
+				filter_lable = "PASS"
+			else:
+				filter_lable = "PASS" if float(i[9]) >= 5.0 else "q5"
+			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
@@ -120,18 +129,23 @@ def generate_output(args, semi_result, contigINFO, argv):
 				RE = i[4],
 				PL = i[7],
 				GQ = i[8],
-				QUAL = i[9]))
+				QUAL = i[9],
+				PASS = filter_lable))
 			svid[i[1]] += 1
 		elif i[1] == "INV":
 			cal_end = int(i[2]) + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND}".format(
-				PRECISION = "IMPRECISE" if i[-1] == "0/0" else "PRECISE", 
+				PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
 				SVTYPE = i[1], 
 				SVLEN = i[3], 
 				END = str(cal_end), 
 				RE = i[4],
 				STRAND = i[7])
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\tPASS\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			if i[10] == ".":
+				filter_lable = "PASS"
+			else:
+				filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
+			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
@@ -143,17 +157,22 @@ def generate_output(args, semi_result, contigINFO, argv):
 				RE = i[4],
 				PL = i[8],
 				GQ = i[9],
-				QUAL = i[10]))
+				QUAL = i[10],
+				PASS = filter_lable))
 			svid[i[1]] += 1
 		else:
 			# BND
 			info_list = "{PRECISION};SVTYPE={SVTYPE};CHR2={CHR2};END={END};RE={RE}".format(
-				PRECISION = "IMPRECISE" if i[-1] == "0/0" else "PRECISE", 
+				PRECISION = "IMPRECISE" if i[7] == "0/0" else "PRECISE", 
 				SVTYPE = "BND", 
 				CHR2 = i[3], 
 				END = i[4], 
 				RE = i[5])
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\tPASS\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			if i[10] == ".":
+				filter_lable = "PASS"
+			else:
+				filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
+			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%("BND", svid["BND"]), 
@@ -165,5 +184,6 @@ def generate_output(args, semi_result, contigINFO, argv):
 				RE = i[5],
 				PL = i[8],
 				GQ = i[9],
-				QUAL = i[10]))
+				QUAL = i[10],
+				PASS = filter_lable))
 			svid["BND"] += 1

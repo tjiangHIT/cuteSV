@@ -3,7 +3,7 @@ import numpy as np
 from cuteSV.cuteSV_genotype import cal_GL
 
 def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, 
-	bam_path, action, hom, het, MaxSize):
+	bam_path, action, MaxSize):
 	'''
 	cluster INV
 	************************************************************************
@@ -52,7 +52,10 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 
 		if breakpoint_1_in_read - semi_inv_cluster[-1][0] > max_cluster_bias or breakpoint_2_in_read - semi_inv_cluster[-1][1] > max_cluster_bias or strand != semi_inv_cluster[-1][-1]:
 			if len(semi_inv_cluster) >= read_count:
-				generate_semi_inv_cluster(semi_inv_cluster, 
+				if semi_inv_cluster[-1][0] == semi_inv_cluster[-1][1] == 0:
+					pass
+				else:
+					generate_semi_inv_cluster(semi_inv_cluster, 
 											chr, 
 											svtype, 
 											read_count, 
@@ -61,8 +64,6 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 											max_cluster_bias,
 											bam_path,
 											action,
-											hom,
-											het,
 											MaxSize)
 			semi_inv_cluster = []
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id, strand])
@@ -70,7 +71,10 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id, strand])
 
 	if len(semi_inv_cluster) >= read_count:
-		generate_semi_inv_cluster(semi_inv_cluster, 
+		if semi_inv_cluster[-1][0] == semi_inv_cluster[-1][1] == 0:
+			pass
+		else:
+			generate_semi_inv_cluster(semi_inv_cluster, 
 									chr, svtype, 
 									read_count, 
 									sv_size, 
@@ -78,14 +82,12 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 									max_cluster_bias,
 									bam_path,
 									action,
-									hom,
-									het,
 									MaxSize)
 	file.close()
 	return candidate_single_SV
 
 def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size, 
-	candidate_single_SV, max_cluster_bias, bam_path, action, hom, het, MaxSize):
+	candidate_single_SV, max_cluster_bias, bam_path, action, MaxSize):
 
 	strand = semi_inv_cluster[0][-1]
 
@@ -121,7 +123,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 						if action:
 							DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpoint_1), 
 															int(breakpoint_2), chr, list(temp_id.keys()), 
-															max_cluster_bias, hom, het)
+															max_cluster_bias)
 							# print(DV, DR, GT, GL, GQ, QUAL)
 						else:
 							DR = '.'
@@ -167,7 +169,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 				if action:
 					DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpoint_1), 
 													int(breakpoint_2), chr, list(temp_id.keys()), 
-													max_cluster_bias, hom, het)
+													max_cluster_bias)
 					# print(DV, DR, GT, GL, GQ, QUAL)
 				else:
 					DR = '.'
@@ -211,7 +213,7 @@ def assign_gt(a, b, hom, het):
 	else:
 		return "1/1"
 
-def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias, hom, het):
+def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	querydata = set()
