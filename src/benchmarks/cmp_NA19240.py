@@ -75,8 +75,8 @@ def load_cuteSV(cuteSV_path):
 		chr = seq[0]
 		pos = int(seq[1])
 		ALT = seq[2][7:10]
-		if ALT == "DUP":
-			ALT = "INS"
+		# if ALT == "DUP":
+		# 	ALT = "INS"
 		if ALT not in ["INS", "INV", "DEL", "DUP"]:
 			continue
 
@@ -107,8 +107,8 @@ def load_sniffles(sniffles_path):
 		if info["SVTYPE"] not in ["INS", "INV", "DEL", "DUP"]:
 			continue
 
-		if info["SVTYPE"] == "DUP":
-			info["SVTYPE"] = "INS"
+		# if info["SVTYPE"] == "DUP":
+		# 	info["SVTYPE"] = "INS"
 
 		if info["SVTYPE"] not in sniffles_call:
 			sniffles_call[info["SVTYPE"]] = dict()
@@ -137,8 +137,8 @@ def load_pbsv(pbsv_path):
 		if info["SVTYPE"] not in ["INS", "INV", "DEL", "DUP"]:
 			continue
 
-		if info["SVTYPE"] == "DUP":
-			info["SVTYPE"] = "INS"
+		# if info["SVTYPE"] == "DUP":
+		# 	info["SVTYPE"] = "INS"
 
 		if info["SVTYPE"] not in pbsv_call:
 			pbsv_call[info["SVTYPE"]] = dict()
@@ -154,6 +154,35 @@ def load_pbsv(pbsv_path):
 	file.close()
 	return pbsv_call
 
+def load_svim(base_path):
+	base_call = dict()
+	file = open(base_path, 'r')
+	for line in file:
+		seq = line.strip('\n').split("\t")
+		if seq[0][0] == '#':
+			continue
+
+		chr = seq[0]
+		pos = int(seq[1])
+		ALT = seq[4][1:4]
+		if ALT not in ["INS", "INV", "DEL", "DUP"]:
+			continue
+		# if ALT == "DUP":
+		# 	ALT = "INS"
+		info = pase_base_info(seq[7])
+		if ALT not in base_call:
+			base_call[ALT] = dict()
+
+		if chr not in base_call[ALT]:
+			base_call[ALT][chr] = list()
+
+		if ALT == "INV":
+			base_call[ALT][chr].append([pos, info["END"] - pos + 1, info["END"], 0])
+		else:
+			if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000:
+				base_call[ALT][chr].append([pos, info["SVLEN"], info["END"], 0])
+	file.close()
+	return base_call
 
 def cmp_callsets(base, call, flag, Bias, Offect):
 	for svtype in base:
@@ -176,11 +205,11 @@ def cmp_callsets(base, call, flag, Bias, Offect):
 	tp_base = 0
 	# for svtype in ["INS"]:
 	# for svtype in ["DUP"]:
-	#for svtype in ["DEL"]:
+	# for svtype in ["DEL"]:
 	# for svtype in ["INS", "DEL"]:
-	# for svtype in ["INS", "DEL", "INV"]:
+	for svtype in ["INS", "DEL", "INV"]:
 	# for svtype in ["INS", "DEL", "INV", "DUP"]:
-	for svtype in ["INV"]:
+	# for svtype in ["INV"]:
 		for chr in base[svtype]:
 			for i in base[svtype][chr]:
 				total_base += 1
@@ -197,9 +226,9 @@ def cmp_callsets(base, call, flag, Bias, Offect):
 	# for svtype in ["DUP"]:
 	# for svtype in ["DEL"]:
 	# for svtype in ["INS", "DEL"]:
-	# for svtype in ["INS", "DEL", "INV"]:
+	for svtype in ["INS", "DEL", "INV"]:
 	# for svtype in ["INS", "DEL", "INV", "DUP"]:
-	for svtype in ["INV"]:
+	# for svtype in ["INV"]:
 		for chr in call[svtype]:
 			for i in call[svtype][chr]:
 				total_call += 1
@@ -221,7 +250,7 @@ def main_ctrl(args):
 	cuteSV_call = load_cuteSV(args.cuteSV)
 	sniffles_call = load_sniffles(args.sniffles)
 	pbsv_call = load_pbsv(args.pbsv)
-	svim_call = load_base(args.svim)
+	svim_call = load_svim(args.svim)
 	# for svtype in sniffles_call:
 	# 	for chr in sniffles_call[svtype]:
 	# 		for i in sniffles_call[svtype][chr]:

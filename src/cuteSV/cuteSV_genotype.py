@@ -51,6 +51,39 @@ def cal_CIPOS(std, num):
 	pos = int(1.96 * std / num ** 0.5)
 	return "-%d,%d"%(pos,pos)
 
+def threshold_ref_count(num):
+	if num <= 2:
+		return 10*num
+	elif 3 <= num <= 5:
+		return 5*num 
+	elif 6 <= num <= 15:
+		return 4*num
+	else:
+		return 3*num
+
+def count_coverage(chr, s, e, f, read_count, up_bound, itround):
+	status = 0
+	iteration = 0
+	primary_num = 0
+	for i in f.fetch(chr, s, e):
+		iteration += 1
+		if i.flag not in [0,16]:
+			continue
+		primary_num += 1
+		if i.reference_start < s and i.reference_end > e:
+			read_count.add(i.query_name)
+			if len(read_count) >= up_bound:
+				status = 1
+				break
+		if iteration >= itround:
+			if float(primary_num/iteration) <= 0.2:
+				status = 1
+			else:
+				status = -1
+			break
+
+	return status
+
 def generate_output(args, semi_result, contigINFO, argv):
 	
 	'''

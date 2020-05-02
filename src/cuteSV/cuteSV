@@ -610,7 +610,8 @@ def main_ctrl(args, argv):
 							args.min_size, 
 							args.input, 
 							args.genotype, 
-							args.max_size)]
+							args.max_size,
+							args.gt_round)]
 				result.append(analysis_pools.map_async(run_inv, para))
 				# pass
 			if svtype == 'DEL':
@@ -623,7 +624,8 @@ def main_ctrl(args, argv):
 							args.diff_ratio_filtering_DEL, 
 							min(args.min_support, 5), 
 							args.input, 
-							args.genotype)]
+							args.genotype,
+							args.gt_round)]
 				result.append(analysis_pools.map_async(run_del, para))
 			if svtype == 'INS':
 				para = [("%s%s.sigs"%(temporary_dir, svtype), 
@@ -635,7 +637,8 @@ def main_ctrl(args, argv):
 							args.diff_ratio_filtering_INS, 
 							min(args.min_support, 5), 
 							args.input, 
-							args.genotype)]
+							args.genotype,
+							args.gt_round)]
 				result.append(analysis_pools.map_async(run_ins, para))
 		# DUP
 		para = [("%s%s.sigs"%(temporary_dir, "DUP"), 
@@ -645,7 +648,8 @@ def main_ctrl(args, argv):
 					args.min_size, 
 					args.input, 
 					args.genotype, 
-					args.max_size)]
+					args.max_size,
+					args.gt_round)]
 		result.append(analysis_pools.map_async(run_dup, para))
 
 	for i in process_tra:
@@ -657,7 +661,8 @@ def main_ctrl(args, argv):
 					args.diff_ratio_filtering_TRA, 
 					args.max_cluster_bias_TRA, 
 					args.input, 
-					args.genotype)]
+					args.genotype,
+					args.gt_round)]
 		result.append(analysis_pools.map_async(run_tra, para))
 
 	analysis_pools.close()

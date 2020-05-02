@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from collections import Counter
-from cuteSV.cuteSV_genotype import cal_GL
+from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
 
 '''
 *******************************************
@@ -15,7 +15,7 @@ from cuteSV.cuteSV_genotype import cal_GL
 '''
 
 def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, 
-	bam_path, action, MaxSize):
+	bam_path, action, MaxSize, gt_round):
 	semi_dup_cluster = list()
 	semi_dup_cluster.append([0, 0, ''])
 	candidate_single_SV = list()
@@ -47,7 +47,8 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
 										candidate_single_SV,
 										bam_path,
 										action,
-										MaxSize)
+										MaxSize,
+										gt_round)
 			semi_dup_cluster = []
 			semi_dup_cluster.append([pos_1, pos_2, read_id])
 		else:
@@ -69,12 +70,13 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
 								candidate_single_SV,
 								bam_path,
 								action,
-								MaxSize)
+								MaxSize,
+								gt_round)
 	file.close()
 	return candidate_single_SV
 
 def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, 
-	sv_size, candidate_single_SV, bam_path, action, MaxSize):
+	sv_size, candidate_single_SV, bam_path, action, MaxSize, gt_round):
 	# calculate support reads
 	support_read = list(set([i[2] for i in semi_dup_cluster]))
 	# print(support_read)
@@ -98,13 +100,18 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 
 	if sv_size <= breakpoint_2 - breakpoint_1 <= MaxSize:
 		if action:
+			import time
+			# time_start = time.time()
 			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, 
 												breakpoint_1, 
 												breakpoint_2, 
 												chr, 
 												support_read, 
-												min(max_cluster_bias, breakpoint_2 - breakpoint_1))
+												min(max_cluster_bias, breakpoint_2 - breakpoint_1),
+												gt_round)
 			# print(DV, DR, GT, GL, GQ, QUAL)
+			# cost_time = time.time() - time_start
+			# print("DUP", chr, int(breakpoint_1), int(breakpoint_2), DR, DV, QUAL, "%.4f"%cost_time)
 		else:
 			DR = '.'
 			GT = './.'
@@ -224,43 +231,52 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 def run_dup(args):
 	return resolution_DUP(*args)
 
-def count_coverage(chr, s, e, f, read_count):
-	for i in f.fetch(chr, s, e):
-		# read_count.add(i.query_name)
-		if i.flag not in [0,16]:
-			continue
-		if i.reference_start < s and i.reference_end > e:
-			read_count.add(i.query_name)
-
-def assign_gt(a, b, hom, het):
-	if b == 0:
-		return "1/1"
-	if a*1.0/b < het:
-		return "0/0"
-	elif a*1.0/b >= het and a*1.0/b < hom:
-		return "0/1"
-	elif a*1.0/b >= hom and a*1.0/b < 1.0:
-		return "1/1"
-	else:
-		return "1/1"
-
-def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias):
+def call_gt(bam_path, pos_1, pos_2, chr, read_id_list, max_cluster_bias, gt_round):
 	import pysam
 	bamfile = pysam.AlignmentFile(bam_path)
 	querydata = set()
 	search_start = max(int(pos_1 - max_cluster_bias/2), 0)
 	search_end = min(int(pos_1 + max_cluster_bias/2), bamfile.get_reference_length(chr))
-	count_coverage(chr, search_start, search_end, bamfile, querydata)
 
-	search_start = max(int(pos_2 - max_cluster_bias/2), 0)
-	search_end = min(int(pos_2 + max_cluster_bias/2), bamfile.get_reference_length(chr))
-	count_coverage(chr, search_start, search_end, bamfile, querydata)
+	up_bound = threshold_ref_count(len(read_id_list))
+	status = count_coverage(chr, 
+							search_start, 
+							search_end, 
+							bamfile, 
+							querydata, 
+							up_bound, 
+							gt_round)
+
+	if status == -1:
+		DR = '.'
+		GT = "./."
+		GL = ".,.,."
+		GQ = "."
+		QUAL = "."
+
+	elif status == 1:
+		DR = 0
+		for query in querydata:
+			if query not in read_id_list:
+				DR += 1
+		GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
+
+	else:
+		search_start = max(int(pos_2 - max_cluster_bias/2), 0)
+		search_end = min(int(pos_2 + max_cluster_bias/2), bamfile.get_reference_length(chr))
+		status_2 = count_coverage(chr, 
+									search_start, 
+									search_end, 
+									bamfile, 
+									querydata, 
+									up_bound, 
+									gt_round)
+		# status_2 judgement
+		DR = 0
+		for query in querydata:
+			if query not in read_id_list:
+				DR += 1
+		GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
+
 	bamfile.close()
-	DR = 0
-	for query in querydata:
-		if query not in read_id_list:
-			DR += 1
-	# return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
-	# print("This", DR, len(read_id_list))
-	GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
 	return len(read_id_list), DR, GT, GL, GQ, QUAL

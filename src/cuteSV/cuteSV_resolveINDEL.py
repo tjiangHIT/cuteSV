@@ -1,7 +1,8 @@
 import sys
 import numpy as np
 from collections import Counter
-from cuteSV.cuteSV_genotype import cal_GL, cal_CIPOS
+from cuteSV.cuteSV_genotype import cal_GL, cal_CIPOS, threshold_ref_count, count_coverage
+import time
 
 '''
 *******************************************
@@ -15,7 +16,7 @@ from cuteSV.cuteSV_genotype import cal_GL, cal_CIPOS
 '''
 
 def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, 
-	threshold_local, minimum_support_reads, bam_path, action):
+	threshold_local, minimum_support_reads, bam_path, action, gt_round):
 
 	'''
 	cluster DEL
@@ -71,7 +72,8 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 										candidate_single_SV,
 										bam_path,
 										max_cluster_bias,
-										action)
+										action,
+										gt_round)
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
@@ -91,13 +93,14 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 								candidate_single_SV,
 								bam_path,
 								max_cluster_bias,
-								action)
+								action,
+								gt_round)
 	file.close()
 	return candidate_single_SV
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias, action):
+	bam_path, max_cluster_bias, action, gt_round):
 
 	'''
 	generate deletion
@@ -162,8 +165,11 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 
 		'''genotyping'''
 		if action:
+			# time_start = time.time()
 			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], 
-												max_cluster_bias)
+												max_cluster_bias, gt_round)
+			# cost_time = time.time() - time_start
+			# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 		else:
 			DR = '.'
 			GT = './.'
@@ -201,8 +207,11 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
 			if action:
+				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], 
-													max_cluster_bias)
+													max_cluster_bias, gt_round)
+				# cost_time = time.time() - time_start
+				# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 			else:
 				DR = '.'
 				GT = './.'
@@ -234,8 +243,11 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
 			if action:
+				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-1][3], 
-													max_cluster_bias)
+													max_cluster_bias, gt_round)
+				# cost_time = time.time() - time_start
+				# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 			else:
 				DR = '.'
 				GT = './.'
@@ -265,8 +277,11 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
 			if action:
+				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, alelle_sort[-2][3], 
-												max_cluster_bias)
+												max_cluster_bias, gt_round)
+				# cost_time = time.time() - time_start
+				# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 			else:
 				DR = '.'
 				GT = './.'
@@ -290,7 +305,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 	
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-	max_cluster_bias, threshold_local, minimum_support_reads, bam_path, action):
+	max_cluster_bias, threshold_local, minimum_support_reads, bam_path, action, gt_round):
 	
 	'''
 	cluster INS
@@ -346,7 +361,8 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										candidate_single_SV,
 										bam_path,
 										max_cluster_bias,
-										action)
+										action,
+										gt_round)
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id])
 		else:
@@ -366,13 +382,14 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 								candidate_single_SV,
 								bam_path,
 								max_cluster_bias,
-								action)
+								action,
+								gt_round)
 	file.close()
 	return candidate_single_SV
 
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
 	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias, action):
+	bam_path, max_cluster_bias, action, gt_round):
 		
 	'''
 	generate deletion
@@ -438,8 +455,11 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 		'''genotyping'''
 		if action:
+			# time_start = time.time()
 			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], 
-											max_cluster_bias)
+											max_cluster_bias, gt_round)
+			# cost_time = time.time() - time_start
+			# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 		else:
 			DR = '.'
 			GT = './.'
@@ -476,8 +496,11 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 				# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 				'''genotyping'''
 				if action:
+					# time_start = time.time()
 					DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], 
-													max_cluster_bias)
+													max_cluster_bias, gt_round)
+					# cost_time = time.time() - time_start
+					# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 				else:
 					DR = '.'
 					GT = './.'
@@ -509,8 +532,11 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
 			if action:
+				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-1][3], 
-												max_cluster_bias)
+												max_cluster_bias, gt_round)
+				# cost_time = time.time() - time_start
+				# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 			else:
 				DR = '.'
 				GT = './.'
@@ -540,8 +566,11 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
 			if action:
+				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, alelle_sort[-2][3], 
-												max_cluster_bias)
+												max_cluster_bias, gt_round)
+				# cost_time = time.time() - time_start
+				# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
 			else:
 				DR = '.'
 				GT = './.'
@@ -567,38 +596,37 @@ def run_del(args):
 def run_ins(args):
 	return resolution_INS(*args)
 
-def count_coverage(chr, s, e, f):
-	read_count = set()
-	for i in f.fetch(chr, s, e):
-		if i.flag not in [0,16]:
-			continue
-		if i.reference_start < s and i.reference_end > e:
-			read_count.add(i.query_name)
-	return read_count
-
-def assign_gt(a, b):
-	if b == 0:
-		return "1/1"
-	if a*1.0/b < het:
-		return "0/0"
-	elif a*1.0/b >= het and a*1.0/b < hom:
-		return "0/1"
-	elif a*1.0/b >= hom and a*1.0/b < 1.0:
-		return "1/1"
-	else:
-		return "1/1"
-
-def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias):
+def call_gt(bam_path, search_threshold, chr, read_id_list, max_cluster_bias, gt_round):
 	import pysam
+	querydata = set()
 	bamfile = pysam.AlignmentFile(bam_path)
 	search_start = max(int(search_threshold) - max_cluster_bias, 0)
 	search_end = min(int(search_threshold) + max_cluster_bias, bamfile.get_reference_length(chr))
-	querydata = count_coverage(chr, search_start, search_end, bamfile)
+
+	up_bound = threshold_ref_count(len(read_id_list))
+
+	status = count_coverage(chr, 
+							search_start, 
+							search_end, 
+							bamfile, 
+							querydata, 
+							up_bound, 
+							gt_round)
 	bamfile.close()
-	DR = 0
-	for query in querydata:
-		if query not in read_id_list:
-			DR += 1
-	# return len(read_id_list), DR, assign_gt(len(read_id_list), DR+len(read_id_list), hom, het)
-	GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
+
+	if status == -1:
+		DR = '.'
+		GT = "./."
+		GL = ".,.,."
+		GQ = "."
+		QUAL = "."
+
+	# elif status == 1:
+	# 	pass
+	else:
+		DR = 0
+		for query in querydata:
+			if query not in read_id_list:
+				DR += 1
+		GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
 	return len(read_id_list), DR, GT, GL, GQ, QUAL

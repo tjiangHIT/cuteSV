@@ -130,6 +130,10 @@ def parseArgs(argv):
 	GroupGenotype.add_argument('--genotype',
 		help = "Enable to generate genotypes.",
 		action="store_true")
+	GroupGenotype.add_argument('--gt_round', 
+		help = "Maximum round of iteration for alignments searching if perform genotyping.[%(default)s]", 
+		default = 500, 
+		type = int)
 	# GroupGenotype.add_argument('--hom', 
 	# 	help = "Threshold on allele frequency for homozygous.[%(default)s]", 
 	# 	default = 0.8, 
