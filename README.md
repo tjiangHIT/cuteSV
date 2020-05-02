@@ -70,6 +70,7 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 |--threads|Number of threads to use.| 16 |
 |--batches| Batch of genome segmentation interval.|10,000,000|
 |--sample| Sample name/id |NULL|
+|--retain_work_dir|Enable to retain temporary folder and files.|False
 |--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored.|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
 |--min_read_len|Ignores reads that only report alignments with not longer than bp.|500|
@@ -79,8 +80,7 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 |--min_size|Minimum length of SV to be reported.|30|
 |--max_size|Minimum length of SV to be reported.|100000|
 |--genotype|Enable to generate genotypes.|False|
-|--hom|Threshold on allele frequency for homozygous.|0.8|
-|--het|Threshold on allele frequency for heterozygous.|0.2|
+|--gt_round|Maximum round of iteration for alignments searching if perform genotyping.|500|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
 |--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.2|
 |--diff_ratio_filtering_INS|Filter breakpoints with basepair identity less than the ratio of *default* for insertion.|0.6|
@@ -103,6 +103,13 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cuteSV (v1.0.6):
+	1.Improvement of genotyping by calculation of likelihood.
+	2.Add variant quality value, phred-scaled genotype likelihood and genotype quality in order to filter false positive SV or quality control.
+	3.Add --gt_round parameter to control the number of read scans.
+	4.Add variant strand of DEL/DUP/INV.
+	5.Fix several bugs.
 
 	cuteSV (v1.0.5):
 	1.Add new options for specificly setting the threshold of deletion/insertion signals merging in the same read. The default parameters are 0 bp for deletion and 100 bp for insertion.
