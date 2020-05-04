@@ -22,9 +22,9 @@ def parseArgs(argv):
 	return args
 
 def pase_base_info(seq):
-	info = {'SVLEN': 0, 'END': 0, "SVTYPE": ''}
+	info = {'SVLEN': 0, 'END': 0, "SVTYPE": '', "RE": 0}
 	for i in seq.split(';'):
-		if i.split('=')[0] in ["SVLEN", "END"]:
+		if i.split('=')[0] in ["SVLEN", "END", "RE"]:
 			try:
 				info[i.split('=')[0]] = abs(int(i.split('=')[1]))
 			except:
@@ -65,6 +65,8 @@ def load_base(base_path):
 	return base_call
 
 def load_cuteSV(cuteSV_path):
+	# inv_tag = 0
+	last_inv = list()
 	cuteSV_call = dict()
 	file = open(cuteSV_path, 'r')
 	for line in file:
@@ -88,12 +90,22 @@ def load_cuteSV(cuteSV_path):
 			cuteSV_call[ALT][chr] = list()
 
 		if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000:
-			cuteSV_call[ALT][chr].append([pos, info["SVLEN"], info["END"], 0])
+			if ALT == "INV":
+				last_inv.append([ALT, chr, pos, info["SVLEN"], info["END"], info["RE"]])
+				# if inv_tag == 0
+			else:
+				cuteSV_call[ALT][chr].append([pos, info["SVLEN"], info["END"], 0])
+				# inv_tag = 0
+				if len(last_inv):
+					last_inv = sorted(last_inv, key = lambda x:-x[3])
+					cuteSV_call[last_inv[0][0]][last_inv[0][1]].append([last_inv[0][2], last_inv[0][3], last_inv[0][4], 0])
+					last_inv = list()
 	file.close()
 	return cuteSV_call
 
 def load_sniffles(sniffles_path):
 	sniffles_call = dict()
+	last_inv = list()
 	file = open(sniffles_path, 'r')
 	for line in file:
 		seq = line.strip('\n').split("\t")
@@ -117,7 +129,15 @@ def load_sniffles(sniffles_path):
 			sniffles_call[info["SVTYPE"]][chr] = list()
 
 		if info["SVLEN"] >= 50 and info["SVLEN"] <= 100000:
-			sniffles_call[info["SVTYPE"]][chr].append([pos, info["SVLEN"], info["END"], 0])
+			if info["SVTYPE"] == "INV":
+				last_inv.append([info["SVTYPE"], chr, pos, info["SVLEN"], info["END"], info["RE"]])
+			else:
+				sniffles_call[info["SVTYPE"]][chr].append([pos, info["SVLEN"], info["END"], 0])
+				if len(last_inv):
+					last_inv = sorted(last_inv, key = lambda x:-x[3])
+					sniffles_call[last_inv[0][0]][last_inv[0][1]].append([last_inv[0][2], last_inv[0][3], last_inv[0][4], 0])
+					last_inv = list()
+
 	file.close()
 	return sniffles_call
 
