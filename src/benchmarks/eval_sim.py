@@ -152,6 +152,8 @@ def statistics(call, ans, opt, res):
 			total += 1
 			if ele[-1] >= res:
 				tp += 1
+			# if ele[-1] < res and ele[-1] == 1:
+			# 	print(ele)
 		logging.info('TP-%d of %s:\t%d\t%d'%(res, svtype, tp, total))
 
 	for svtype in ans:
