@@ -252,7 +252,7 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n")
 	file.write("##FORMAT=<ID=DR,Number=1,Type=Integer,Description=\"# High-quality reference reads\">\n")
 	file.write("##FORMAT=<ID=DV,Number=1,Type=Integer,Description=\"# High-quality variant reads\">\n")
-	file.write("##FORMAT=<ID=PL,Number=3,Type=Integer,Description=\"# Phred-scaled genotype likelihoods rounded to the closest integer\">\n")
+	file.write("##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"# Phred-scaled genotype likelihoods rounded to the closest integer\">\n")
 	file.write("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"# Genotype quality\">\n")
 
 	file.write("##CommandLine=\"cuteSV %s\"\n"%(" ".join(argv)))
