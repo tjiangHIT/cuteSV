@@ -245,7 +245,7 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##INFO=<ID=CILEN,Number=2,Type=Integer,Description=\"Confidence interval around inserted/deleted material between breakends\">\n")
 	# file.write("##INFO=<ID=MATEID,Number=.,Type=String,Description=\"ID of mate breakends\">\n")
 	file.write("##INFO=<ID=RE,Number=1,Type=Integer,Description=\"Number of read support this record\">\n")
-	file.write("##INFO=<ID=STRANDS,Number=1,Type=String,Description=\"Strand orientation of the adjacency in BEDPE format (DEL:+-, DUP:-+, INV:++/--)\">>\n")
+	file.write("##INFO=<ID=STRAND,Number=1,Type=String,Description=\"Strand orientation of the adjacency in BEDPE format (DEL:+-, DUP:-+, INV:++/--)\">>\n")
 	file.write("##FILTER=<ID=q5,Description=\"Quality below 5\">\n")
 	# FORMAT
 	# file.write("\n")
