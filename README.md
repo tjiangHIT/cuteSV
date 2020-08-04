@@ -138,7 +138,7 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Citation
-Long Read based Human Genomic Structural Variation Detection with cuteSV. Tao Jiang, et al. bioRxiv 780700; doi: https://doi.org/10.1101/780700
+Jiang T et al. Long-read-based human genomic structural variation detection with cuteSV. Genome Biol 21, 189 (2020). https://doi.org/10.1186/s13059-020-02107-y
 	
 ---
 ### Contact
