@@ -7,7 +7,7 @@ with open('README.md') as f:
 
 setup(
     name = "cuteSV",
-    version = "1.0.6",
+    version = "1.0.7",
     description = "Long-Read-based Human Genomic Structural Variation Detection with cuteSV",
     author = "Jiang Tao",
     author_email = "tjiang@hit.edu.cn",

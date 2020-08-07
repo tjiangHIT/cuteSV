@@ -1,0 +1,4 @@
+pysam
+Biopython
+Cigar
+numpy
