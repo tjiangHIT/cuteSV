@@ -1,7 +1,7 @@
 Metadata-Version: 2.1
 Name: cuteSV
 Version: 1.0.7
-Summary: Long-Read-based Human Genomic Structural Variation Detection with cuteSV
+Summary: Long-read-based human genomic structural variation detection with cuteSV
 Home-page: https://github.com/tjiangHIT/cuteSV
 Author: Jiang Tao
 Author-email: tjiang@hit.edu.cn
@@ -111,6 +111,10 @@ Description: # cuteSV
         
         ---
         ### Changelog
+        
+        	cuteSV (v1.0.7):
+        	1. Add read name list for each SV call.
+        	2. Fix several descriptions in VCF header field.
         
         	cuteSV (v1.0.6):
         	1.Improvement of genotyping by calculation of likelihood.

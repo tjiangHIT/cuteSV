@@ -104,6 +104,10 @@ Please cite the manuscript of cuteSV before using these callsets.
 ---
 ### Changelog
 
+	cuteSV (v1.0.7):
+	1. Add read name list for each SV call.
+	2. Fix several descriptions in VCF header field.
+
 	cuteSV (v1.0.6):
 	1.Improvement of genotyping by calculation of likelihood.
 	2.Add variant quality value, phred-scaled genotype likelihood and genotype quality in order to filter false positive SV or quality control.

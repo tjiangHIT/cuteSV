@@ -3,7 +3,7 @@
  * @Title:  cuteSV_Description.py
  * @author: tjiang
  * @date: Apr 26th 2020
- * @version V1.0.7  
+ * @version V1.0.7
 '''
 import argparse
 
@@ -16,11 +16,14 @@ class cuteSVdp(object):
 	'''
 
 	USAGE="""\
-	Long read based fast and accurate SV detection with cuteSV.
-	
+		
 	Current version: v%s
 	Author: Tao Jiang
 	Contact: tjiang@hit.edu.cn
+
+	If you use cuteSV in your work, please cite:
+		Jiang T et al. Long-read-based human genomic structural variation detection with cuteSV. 
+		Genome Biol 21,189(2020). https://doi.org/10.1186/s13059-020-02107-y
 
 
 	Suggestions:
