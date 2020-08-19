@@ -10,6 +10,7 @@
 
 import pysam
 import cigar
+from Bio import SeqIO
 from cuteSV.cuteSV_Description import parseArgs
 from multiprocessing import Pool
 from cuteSV.CommandRunner import *
@@ -679,7 +680,9 @@ def main_ctrl(args, argv):
 
 	# sort SVs by [chr] and [pos]
 	semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
-	generate_output(args, semi_result, contigINFO, argv)	
+	logging.info("Loading reference genome...")
+	ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
+	generate_output(args, semi_result, contigINFO, argv, ref_g)	
 
 	if args.retain_work_dir:
 		pass

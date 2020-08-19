@@ -58,6 +58,9 @@ def parseArgs(argv):
 		metavar="[BAM]", 
 		type = str, 
 		help ="Sorted .bam file form NGMLR or Minimap2.")
+	parser.add_argument("reference",  
+		type = str, 
+		help ="The reference genome in fasta format.")
 	parser.add_argument('output', 
 		type = str, 
 		help = "Output VCF format file.")
