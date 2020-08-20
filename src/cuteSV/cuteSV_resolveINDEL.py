@@ -337,7 +337,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 	'''
 
 	semi_ins_cluster = list()
-	semi_ins_cluster.append([0,0,''])
+	semi_ins_cluster.append([0,0,'',''])
 	candidate_single_SV = list()
 
 	file = open(path, 'r')
@@ -349,6 +349,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 		pos = int(seq[2])
 		indel_len = int(seq[3])
 		read_id = seq[4]
+		ins_seq = seq[5]
 		
 		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
 			if len(semi_ins_cluster) >= read_count:
@@ -368,9 +369,9 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										action,
 										gt_round)
 			semi_ins_cluster = []
-			semi_ins_cluster.append([pos, indel_len, read_id])
+			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 		else:
-			semi_ins_cluster.append([pos, indel_len, read_id])
+			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 
 	if len(semi_ins_cluster) >= read_count:
 		if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:
@@ -425,17 +426,21 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 	last_len = read_tag2SortedList[0][1]
 
 	alelle_collect = list()
-	alelle_collect.append([[read_tag2SortedList[0][0]],[read_tag2SortedList[0][1]],[],
-		[read_tag2SortedList[0][2]]])
+	alelle_collect.append([[read_tag2SortedList[0][0]],
+							[read_tag2SortedList[0][1]],
+							[], 
+							[read_tag2SortedList[0][2]],
+							[read_tag2SortedList[0][3]]])
 
 	for i in read_tag2SortedList[1:]:
 		if i[1] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP:
 			alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
-			alelle_collect.append([[],[],[],[]])
+			alelle_collect.append([[],[],[],[],[]])
 
 		alelle_collect[-1][0].append(i[0])
 		alelle_collect[-1][1].append(i[1])
 		alelle_collect[-1][3].append(i[2])
+		alelle_collect[-1][4].append(i[3])
 		last_len = i[1]
 	alelle_collect[-1][2].append(len(alelle_collect[-1][0]))
 	alelle_sort = sorted(alelle_collect, key = lambda x:x[2])
@@ -455,6 +460,8 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 		signalLen = np.mean(alelle_sort[-1][1])
 		signalLen_STD = np.std(alelle_sort[-1][1])
 		CILEN = cal_CIPOS(np.std(alelle_sort[-1][1]), len(alelle_sort[-1][1]))
+
+		ideal_ins_seq = [i for i in alelle_sort[-1][4] if len(i) >= signalLen][0][0:int(signalLen)]
 		# search_threshold = np.min(alelle_sort[-1][0])
 		# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 		'''genotyping'''
@@ -482,7 +489,8 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 									str(GL),
 									str(GQ),
 									str(QUAL),
-									str(','.join(alelle_sort[-1][3]))])
+									str(','.join(alelle_sort[-1][3])),
+									ideal_ins_seq])
 
 		# extend to next alelle
 		if (len(alelle_sort) > 1 and alelle_sort[-2][2][0] >= minimum_support_reads 
@@ -496,6 +504,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen_STD = np.std(alelle_sort[-2][1])
 			CILEN = cal_CIPOS(np.std(alelle_sort[-2][1]), len(alelle_sort[-2][1]))
 			# search_threshold = np.min(alelle_sort[-2][0])
+			ideal_ins_seq = [i for i in alelle_sort[-2][4] if len(i) >= signalLen][0][0:int(signalLen)]
 			if signalLen_STD < last_signalLen_STD:
 				# pass
 				# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
@@ -524,7 +533,8 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 											str(GL),
 											str(GQ),
 											str(QUAL),
-											str(','.join(alelle_sort[-2][3]))])
+											str(','.join(alelle_sort[-2][3])),
+											ideal_ins_seq])
 
 	elif alelle_sort[-2][2][0] >= minimum_support_reads and alelle_sort[-2][2][0] + alelle_sort[-1][2][0] >= 0.95*len(read_tag):
 		if alelle_sort[-2][2][0] >= 0.4*len(read_tag):
@@ -534,6 +544,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen = np.mean(alelle_sort[-1][1])
 			signalLen_STD = np.std(alelle_sort[-1][1])
 			CILEN = cal_CIPOS(np.std(alelle_sort[-1][1]), len(alelle_sort[-1][1]))
+			ideal_ins_seq = [i for i in alelle_sort[-1][4] if len(i) >= signalLen][0][0:int(signalLen)]
 			# search_threshold = np.min(alelle_sort[-1][0])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-1][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
@@ -561,7 +572,8 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(alelle_sort[-1][3]))])
+										str(','.join(alelle_sort[-1][3])),
+										ideal_ins_seq])
 
 			breakpointStart = np.mean(alelle_sort[-2][0])
 			# breakpointStart_STD = np.std(alelle_sort[-2][0])
@@ -569,6 +581,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen = np.mean(alelle_sort[-2][1])
 			signalLen_STD = np.std(alelle_sort[-2][1])
 			CILEN = cal_CIPOS(np.std(alelle_sort[-2][1]), len(alelle_sort[-2][1]))
+			ideal_ins_seq = [i for i in alelle_sort[-2][4] if len(i) >= signalLen][0][0:int(signalLen)]
 			# search_threshold = np.min(alelle_sort[-2][0])
 			# print(chr, svtype, int(breakpointStart), int(signalLen), alelle_sort[-2][2][0], breakpointStart_STD, signalLen_STD)
 			'''genotyping'''
@@ -596,7 +609,8 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(alelle_sort[-2][3]))])
+										str(','.join(alelle_sort[-2][3])),
+										ideal_ins_seq])
 
 def run_del(args):
 	return resolution_DEL(*args)

@@ -128,8 +128,8 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
-				REF = 'N' if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2]):int(i[2])-int(i[3])]),
-				ALT = "%s"%('<'+i[1]+'>' if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2])])), 
+				REF = str(ref_g[i[0]].seq[int(i[2])]) if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2]):int(i[2])-int(i[3])]),
+				ALT = "%s"%(i[13] if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2])])), 
 				INFO = info_list, 
 				FORMAT = "GT:DR:DV:PL:GQ", 
 				GT = i[8],
@@ -153,10 +153,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS"
 			else:
 				filter_lable = "PASS" if float(i[9]) >= 5.0 else "q5"
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
+				REF = str(ref_g[i[0]].seq[int(i[2])]),
 				ALT = "<%s>"%(i[1]), 
 				INFO = info_list, 
 				FORMAT = "GT:DR:DV:PL:GQ", 
@@ -182,10 +183,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS"
 			else:
 				filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
+				REF = str(ref_g[i[0]].seq[int(i[2])]),
 				ALT = "<%s>"%(i[1]), 
 				INFO = info_list, 
 				FORMAT = "GT:DR:DV:PL:GQ", 
@@ -210,10 +212,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS"
 			else:
 				filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
-			file.write("{CHR}\t{POS}\t{ID}\tN\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%("BND", svid["BND"]), 
+				REF = str(ref_g[i[0]].seq[int(i[2])]),
 				ALT = i[1], 
 				INFO = info_list, 
 				FORMAT = "GT:DR:DV:PL:GQ", 

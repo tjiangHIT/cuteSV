@@ -91,7 +91,7 @@ def analysis_inv(ele_1, ele_2, read_name, candidate, SV_size):
 				# 3'->3'
 
 
-def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxSize):
+def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxSize, query):
 	'''
 	read_start	read_end	ref_start	ref_end	chr	strand
 	#0			#1			#2			#3		#4	#5
@@ -187,6 +187,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 				if ele_1[5] == '-':
 					ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
 					ele_2 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
+					query = query[::-1]
 
 				if ele_1[3] - ele_2[2] >= SV_size:
 					if ele_2[4] not in candidate["DUP"]:
@@ -203,7 +204,8 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 						if ele_2[2] - ele_1[3] <= 100 and ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize:
 							candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, 
 																ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
-																read_name])
+																read_name,
+																str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)])])
 					if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
 						if ele_2[4] not in candidate["DEL"]:
 							candidate["DEL"][ele_2[4]] = list()
@@ -321,6 +323,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 				else:
 					ele_1 = [RLength-SP_list[-1][1], RLength-SP_list[-1][0]]+SP_list[-1][2:]
 					ele_2 = [RLength-SP_list[0][1],RLength-SP_list[0][0]]+SP_list[0][2:]
+					query = query[::-1]
 				# print(ele_1)
 				# print(ele_2)
 				dis_ref = ele_2[2] - ele_1[3]
@@ -332,7 +335,8 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 					candidate["INS"][ele_2[4]].append([min(ele_2[2], 
 															ele_1[3]), 
 															dis_read - dis_ref, 
-															read_name])
+															read_name,
+															str(query[ele_1[1]+int(dis_ref/2):ele_2[0]-int(dis_ref/2)])])	
 
 				if dis_ref <= -SV_size:
 					if ele_2[4] not in candidate["DUP"]:
@@ -359,7 +363,7 @@ def acquire_clip_pos(deal_cigar):
 	return [first_pos, last_pos, bias]
 
 def organize_split_signal(chr, primary_info, Supplementary_info, total_L, SV_size, 
-	min_mapq, max_split_parts, read_name, candidate, MaxSize):
+	min_mapq, max_split_parts, read_name, candidate, MaxSize, query):
 	split_read = list()
 	if len(primary_info) > 0:
 		split_read.append(primary_info)
@@ -384,7 +388,7 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, SV_siz
 				except:
 					pass
 	if len(split_read) <= max_split_parts:
-		analysis_split_read(split_read, SV_size, total_L, read_name, candidate, MaxSize)
+		analysis_split_read(split_read, SV_size, total_L, read_name, candidate, MaxSize, query)
 
 def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_dis):
 	# for i in sigs:
@@ -394,39 +398,88 @@ def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_di
 	elif len(sigs) == 1:
 		if Chr_name not in candidate[svtype]:
 			candidate[svtype][Chr_name] = list()
-		candidate[svtype][Chr_name].append([sigs[0][0], 
+		if svtype == 'INS':
+			candidate[svtype][Chr_name].append([sigs[0][0], 
+											sigs[0][1], 
+											read_name,
+											sigs[0][2]])
+		else:
+			candidate[svtype][Chr_name].append([sigs[0][0], 
 											sigs[0][1], 
 											read_name])
 	else:
 		temp_sig = sigs[0]
 		if svtype == "INS":
 			temp_sig += [sigs[0][0]]
+			for i in sigs[1:]:
+				if i[0] - temp_sig[3] <= merge_dis:
+					temp_sig[1] += i[1]
+					temp_sig[2] += i[2]
+					temp_sig[3] = i[0]
+				else:
+					if Chr_name not in candidate[svtype]:
+						candidate[svtype][Chr_name] = list()
+					candidate[svtype][Chr_name].append([temp_sig[0], 
+														temp_sig[1], 
+														read_name,
+														temp_sig[2]])
+					temp_sig = i
+					temp_sig.append(i[0])
+			if Chr_name not in candidate[svtype]:
+				candidate[svtype][Chr_name] = list()
+			candidate[svtype][Chr_name].append([temp_sig[0], 
+												temp_sig[1], 
+												read_name,
+												temp_sig[2]])
 		else:
 			temp_sig += [sum(sigs[0])]
-		# merge_dis_bias = max([i[1]] for i in sigs)
-
-		for i in sigs[1:]:
-			if i[0] - temp_sig[2] <= merge_dis:
-				# 1000 ????
-				temp_sig[1] += i[1]
-				if svtype == "INS":
-					temp_sig[2] = i[0]
-				else:
+			# merge_dis_bias = max([i[1]] for i in sigs)
+			for i in sigs[1:]:
+				if i[0] - temp_sig[2] <= merge_dis:
+					temp_sig[1] += i[1]
 					temp_sig[2] = sum(i)
-			else:
-				if Chr_name not in candidate[svtype]:
-					candidate[svtype][Chr_name] = list()
-				candidate[svtype][Chr_name].append([temp_sig[0], 
-													temp_sig[1], 
-													read_name])
-				temp_sig = i
-				temp_sig.append(i[0])
+				else:
+					if Chr_name not in candidate[svtype]:
+						candidate[svtype][Chr_name] = list()
+					candidate[svtype][Chr_name].append([temp_sig[0], 
+														temp_sig[1], 
+														read_name])
+					temp_sig = i
+					temp_sig.append(i[0])
+			if Chr_name not in candidate[svtype]:
+				candidate[svtype][Chr_name] = list()
+			candidate[svtype][Chr_name].append([temp_sig[0], 
+												temp_sig[1], 
+												read_name])
+		# temp_sig = sigs[0]
+		# if svtype == "INS":
+		# 	temp_sig += [sigs[0][0]]
+		# else:
+		# 	temp_sig += [sum(sigs[0])]
+		# # merge_dis_bias = max([i[1]] for i in sigs)
 
-		if Chr_name not in candidate[svtype]:
-			candidate[svtype][Chr_name] = list()
-		candidate[svtype][Chr_name].append([temp_sig[0], 
-											temp_sig[1], 
-											read_name])
+		# for i in sigs[1:]:
+		# 	if i[0] - temp_sig[2] <= merge_dis:
+		# 		# 1000 ????
+		# 		temp_sig[1] += i[1]
+		# 		if svtype == "INS":
+		# 			temp_sig[2] = i[0]
+		# 		else:
+		# 			temp_sig[2] = sum(i)
+		# 	else:
+		# 		if Chr_name not in candidate[svtype]:
+		# 			candidate[svtype][Chr_name] = list()
+		# 		candidate[svtype][Chr_name].append([temp_sig[0], 
+		# 											temp_sig[1], 
+		# 											read_name])
+		# 		temp_sig = i
+		# 		temp_sig.append(i[0])
+
+		# if Chr_name not in candidate[svtype]:
+		# 	candidate[svtype][Chr_name] = list()
+		# candidate[svtype][Chr_name].append([temp_sig[0], 
+		# 									temp_sig[1], 
+		# 									read_name])
 
 
 def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
@@ -444,6 +497,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 		shift_ins = 0
 		softclip_left = 0
 		softclip_right = 0
+		shift_ins_read = 0
 		for element in read.cigar:
 			if element[0] in [0, 7 ,8]:
 				shift_del += element[1]
@@ -453,11 +507,16 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 				Combine_sig_in_same_read_del.append([pos_start+shift_del, element[1]])
 				shift_del += element[1]
 
+			# calculate offset of an ins sig in read
+			if element[0] != 2:
+				shift_ins_read += element[1]
+
 			if element[0] in [0, 2, 7, 8]:
 				shift_ins += element[1]
 			if element[0] == 1 and element[1] >= SV_size:
 				shift_ins += 1
-				Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1]])
+				Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
+					str(read.query_sequence[shift_ins_read-element[1]:shift_ins_read])])
 
 		if read.cigar[0][0] == 4:
 			softclip_left = read.cigar[0][1]
@@ -484,7 +543,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 			if i[0] == 'SA':
 				Supplementary_info = i[1].split(';')[:-1]
 				organize_split_signal(Chr_name, primary_info, Supplementary_info, read.query_length, 
-					SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize)
+					SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, read.query_sequence)
 
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
 				task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
@@ -519,8 +578,12 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 						file.write("%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(sv_type, chr, ele[0], 
 							ele[1], ele[2], ele[3], ele[4]))
 					elif len(ele) == 4:
-						file.write("%s\t%s\t%s\t%d\t%d\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2], ele[3]))
-						# INV chr strand pos1 pos2 read_ID
+						try:
+							file.write("%s\t%s\t%s\t%d\t%d\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2], ele[3]))
+							# INV chr strand pos1 pos2 read_ID
+						except:
+							file.write("%s\t%s\t%d\t%d\t%s\t%s\n"%(sv_type, chr, ele[0], ele[1], ele[2], ele[3]))
+							# INS chr pos len read_ID seq
 		except:
 			pass
 	file.close()	
