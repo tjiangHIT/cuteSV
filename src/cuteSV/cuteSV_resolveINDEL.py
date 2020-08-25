@@ -193,7 +193,6 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 			and allele_sort[-2][2][0] + allele_sort[-1][2][0] >= 0.95*len(read_tag) 
 			and allele_sort[-2][2][0] >= 0.3*len(read_tag)):
 			breakpointStart = np.mean(allele_sort[-2][0])
-			# breakpointStart_STD = np.std(allele_sort[-2][0])
 			CIPOS = cal_CIPOS(np.std(allele_sort[-2][0]), len(allele_sort[-2][0]))
 			search_threshold = np.min(allele_sort[-2][0])
 			signalLen = np.mean(allele_sort[-2][1])
@@ -349,7 +348,8 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 				if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:
 					pass
 				else:
-					generate_ins_cluster(semi_ins_cluster, 
+					try:
+						generate_ins_cluster(semi_ins_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
@@ -361,6 +361,8 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										max_cluster_bias,
 										action,
 										gt_round)
+					except:
+						pass
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 		else:
@@ -440,7 +442,6 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 
 	if allele_sort[-1][2][0] >= minimum_support_reads and float(allele_sort[-1][2][0] * 1.0 / len(read_tag)) >= threshold_local:
 		breakpointStart = np.mean(allele_sort[-1][0])
-		# breakpointStart_STD = np.std(allele_sort[-1][0])
 		CIPOS = cal_CIPOS(np.std(allele_sort[-1][0]), len(allele_sort[-1][0]))
 		signalLen = np.mean(allele_sort[-1][1])
 		signalLen_STD = np.std(allele_sort[-1][1])
@@ -483,7 +484,6 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			and allele_sort[-2][2][0] + allele_sort[-1][2][0] >= 0.95*len(read_tag) 
 			and allele_sort[-2][2][0] >= 0.3*len(read_tag)):
 			breakpointStart = np.mean(allele_sort[-2][0])
-			# breakpointStart_STD = np.std(allele_sort[-2][0])
 			CIPOS = cal_CIPOS(np.std(allele_sort[-2][0]), len(allele_sort[-2][0]))
 			signalLen = np.mean(allele_sort[-2][1])
 			last_signalLen_STD = signalLen_STD
@@ -493,7 +493,9 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 				if len(i) >= int(signalLen):
 					ideal_ins_seq = i[0:int(signalLen)]
 					break
+
 			if signalLen_STD < last_signalLen_STD:
+
 				'''genotyping'''
 				if action:
 					# time_start = time.time()
@@ -529,6 +531,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen = np.mean(allele_sort[-1][1])
 			signalLen_STD = np.std(allele_sort[-1][1])
 			CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
+
 			for i in allele_sort[-1][4]:
 				if len(i) >= int(signalLen):
 					ideal_ins_seq = i[0:int(signalLen)]
