@@ -348,8 +348,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 				if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:
 					pass
 				else:
-					try:
-						generate_ins_cluster(semi_ins_cluster, 
+					generate_ins_cluster(semi_ins_cluster, 
 										chr, 
 										svtype, 
 										read_count, 
@@ -361,8 +360,6 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										max_cluster_bias,
 										action,
 										gt_round)
-					except:
-						pass
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 		else:
@@ -446,6 +443,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 		signalLen = np.mean(allele_sort[-1][1])
 		signalLen_STD = np.std(allele_sort[-1][1])
 		CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
+		ideal_ins_seq = '<INS>'
 		for i in allele_sort[-1][4]:
 			if len(i) >= int(signalLen):
 				ideal_ins_seq = i[0:int(signalLen)]
@@ -489,6 +487,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			last_signalLen_STD = signalLen_STD
 			signalLen_STD = np.std(allele_sort[-2][1])
 			CILEN = cal_CIPOS(np.std(allele_sort[-2][1]), len(allele_sort[-2][1]))
+			ideal_ins_seq = '<INS>'
 			for i in allele_sort[-2][4]:
 				if len(i) >= int(signalLen):
 					ideal_ins_seq = i[0:int(signalLen)]
@@ -531,7 +530,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen = np.mean(allele_sort[-1][1])
 			signalLen_STD = np.std(allele_sort[-1][1])
 			CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
-
+			ideal_ins_seq = '<INS>'
 			for i in allele_sort[-1][4]:
 				if len(i) >= int(signalLen):
 					ideal_ins_seq = i[0:int(signalLen)]
@@ -570,6 +569,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen = np.mean(allele_sort[-2][1])
 			signalLen_STD = np.std(allele_sort[-2][1])
 			CILEN = cal_CIPOS(np.std(allele_sort[-2][1]), len(allele_sort[-2][1]))
+			ideal_ins_seq = '<INS>'
 			for i in allele_sort[-2][4]:
 				if len(i) >= int(signalLen):
 					ideal_ins_seq = i[0:int(signalLen)]
