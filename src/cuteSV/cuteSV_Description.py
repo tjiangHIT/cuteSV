@@ -87,6 +87,10 @@ def parseArgs(argv):
 		help = "Enable to retain temporary folder and files.",
 		action="store_true")
 
+	parser.add_argument('--report_readid',
+		help = "Enable to report supporting read ids for each SV.",
+		action="store_true")
+
 	# **************Parameters in signatures collection******************
 	GroupSignaturesCollect = parser.add_argument_group('Collection of SV signatures')
 	GroupSignaturesCollect.add_argument('-p', '--max_split_parts', 

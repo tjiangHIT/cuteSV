@@ -117,7 +117,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				CIPOS = i[5], 
 				CILEN = i[6], 
 				RE = i[4],
-				RNAMES = i[12])
+				RNAMES = i[12] if args.report_readid else "")
 			if i[1] =="DEL":
 				info_list += ";STRAND=+-"
 			if i[11] == ".":
@@ -148,7 +148,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				SVLEN = i[3], 
 				END = str(cal_end), 
 				RE = i[4],
-				RNAMES = i[10])
+				RNAMES = i[10] if args.report_readid else "")
 			if i[9] == ".":
 				filter_lable = "PASS"
 			else:
@@ -178,7 +178,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				END = str(cal_end), 
 				RE = i[4],
 				STRAND = i[7],
-				RNAMES = i[11])
+				RNAMES = i[11] if args.report_readid else "")
 			if i[10] == ".":
 				filter_lable = "PASS"
 			else:
@@ -207,7 +207,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				CHR2 = i[3], 
 				END = i[4], 
 				RE = i[5],
-				RNAMES = i[11])
+				RNAMES = i[11] if args.report_readid else "")
 			if i[10] == ".":
 				filter_lable = "PASS"
 			else:

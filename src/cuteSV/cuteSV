@@ -451,35 +451,6 @@ def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_di
 			candidate[svtype][Chr_name].append([temp_sig[0], 
 												temp_sig[1], 
 												read_name])
-		# temp_sig = sigs[0]
-		# if svtype == "INS":
-		# 	temp_sig += [sigs[0][0]]
-		# else:
-		# 	temp_sig += [sum(sigs[0])]
-		# # merge_dis_bias = max([i[1]] for i in sigs)
-
-		# for i in sigs[1:]:
-		# 	if i[0] - temp_sig[2] <= merge_dis:
-		# 		# 1000 ????
-		# 		temp_sig[1] += i[1]
-		# 		if svtype == "INS":
-		# 			temp_sig[2] = i[0]
-		# 		else:
-		# 			temp_sig[2] = sum(i)
-		# 	else:
-		# 		if Chr_name not in candidate[svtype]:
-		# 			candidate[svtype][Chr_name] = list()
-		# 		candidate[svtype][Chr_name].append([temp_sig[0], 
-		# 											temp_sig[1], 
-		# 											read_name])
-		# 		temp_sig = i
-		# 		temp_sig.append(i[0])
-
-		# if Chr_name not in candidate[svtype]:
-		# 	candidate[svtype][Chr_name] = list()
-		# candidate[svtype][Chr_name].append([temp_sig[0], 
-		# 									temp_sig[1], 
-		# 									read_name])
 
 
 def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
