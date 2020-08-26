@@ -50,27 +50,35 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 
 ---
 ### Usage
-	cuteSV <sorted.bam> <output.vcf> <work_dir>
+	cuteSV <sorted.bam> <reference.fa> <output.vcf> <work_dir>
 	
 *Suggestions*
 
-	> For PacBio CLR/ONT data:
+	> For PacBio CLR data:
 		--max_cluster_bias_INS		100
-		--diff_ratio_merging_INS	0.2
-		--diff_ratio_filtering_INS	0.6
-		--diff_ratio_filtering_DEL	0.7
+		--diff_ratio_merging_INS	0.3
+		----max_cluster_bias_DEL	200
+		--diff_ratio_merging_DEL	0.5
+
 	> For PacBio CCS(HIFI) data:
-		--max_cluster_bias_INS		200
-		--diff_ratio_merging_INS	0.65
-		--diff_ratio_filtering_INS	0.65
-		--diff_ratio_filtering_DEL	0.35
+		--max_cluster_bias_INS		1000
+		--diff_ratio_merging_INS	0.9
+		----max_cluster_bias_DEL	1000
+		--diff_ratio_merging_DEL	0.5
+
+	> For ONT data:
+		--max_cluster_bias_INS		100
+		--diff_ratio_merging_INS	0.3
+		----max_cluster_bias_DEL	100
+		--diff_ratio_merging_DEL	0.3
 	
 | Parameter | Description | Default |
 | :------------ |:---------------|-------------:|
 |--threads|Number of threads to use.| 16 |
 |--batches| Batch of genome segmentation interval.|10,000,000|
 |--sample| Sample name/id |NULL|
-|--retain_work_dir|Enable to retain temporary folder and files.|False
+|--retain_work_dir|Enable to retain temporary folder and files.|False|
+|--report_readid|Enable to report supporting read ids for each SV.|False|
 |--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored.|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
 |--min_read_len|Ignores reads that only report alignments with not longer than bp.|500|
@@ -82,11 +90,9 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 |--genotype|Enable to generate genotypes.|False|
 |--gt_round|Maximum round of iteration for alignments searching if perform genotyping.|500|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
-|--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.2|
-|--diff_ratio_filtering_INS|Filter breakpoints with basepair identity less than the ratio of *default* for insertion.|0.6|
+|--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.3|
 |--max_cluster_bias_DEL|Maximum distance to cluster read together for deletion.|200|
-|--diff_ratio_merging_DEL|Do not merge breakpoints with basepair identity more than the ratio of *default* for deletion.|0.3|
-|--diff_ratio_filtering_DEL|Filter breakpoints with basepair identity less than the ratio of *default* for deletion.|0.7|
+|--diff_ratio_merging_DEL|Do not merge breakpoints with basepair identity more than the ratio of *default* for deletion.|0.5|
 |--max_cluster_bias_INV|Maximum distance to cluster read together for inversion.|500|
 |--max_cluster_bias_DUP|Maximum distance to cluster read together for duplication.|500|
 |--max_cluster_bias_TRA|Maximum distance to cluster read together for translocation.|50|
@@ -103,6 +109,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cutesv (v1.0.8):
+	1. Rewirte the function of ins/del signatures clustering.
+	2. Update the recommandation parameters for different sequencing datasets.
+	3. Replace <DEL>/<INS> with its variant allele sequence, which needs the reference genome sequence as input.
+	4. Fix several bugs.
 
 	cuteSV (v1.0.7):
 	1. Add read name list for each SV call.

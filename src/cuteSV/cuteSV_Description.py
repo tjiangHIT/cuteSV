@@ -3,11 +3,11 @@
  * @Title:  cuteSV_Description.py
  * @author: tjiang
  * @date: Apr 26th 2020
- * @version V1.0.7
+ * @version V1.0.8
 '''
 import argparse
 
-VERSION = '1.0.7'
+VERSION = '1.0.8'
 
 class cuteSVdp(object):
 	'''
@@ -28,16 +28,23 @@ class cuteSVdp(object):
 
 	Suggestions:
 
-	For PacBio CLR/ONT data:
+	For PacBio CLR data:
 		--max_cluster_bias_INS		100
-		--diff_ratio_merging_INS	0.2
-		--diff_ratio_filtering_INS	0.6
-		--diff_ratio_filtering_DEL	0.7
+		--diff_ratio_merging_INS	0.3
+		----max_cluster_bias_DEL	200
+		--diff_ratio_merging_DEL	0.5
+
 	For PacBio CCS(HIFI) data:
-		--max_cluster_bias_INS		200
-		--diff_ratio_merging_INS	0.65
-		--diff_ratio_filtering_INS	0.65
-		--diff_ratio_filtering_DEL	0.35
+		--max_cluster_bias_INS		1000
+		--diff_ratio_merging_INS	0.9
+		----max_cluster_bias_DEL	1000
+		--diff_ratio_merging_DEL	0.5
+
+	For ONT data:
+		--max_cluster_bias_INS		100
+		--diff_ratio_merging_INS	0.3
+		----max_cluster_bias_DEL	100
+		--diff_ratio_merging_DEL	0.3
 
 
 	"""%(VERSION)
@@ -170,12 +177,12 @@ def parseArgs(argv):
 		type = int)
 	GroupAdvanced.add_argument('--diff_ratio_merging_INS', 
 		help = "Do not merge breakpoints with basepair identity more than [%(default)s] for insertion.", 
-		default = 0.2, 
+		default = 0.3, 
 		type = float)
-	GroupAdvanced.add_argument('--diff_ratio_filtering_INS', 
-		help = "Filter breakpoints with basepair identity less than [%(default)s] for insertion.", 
-		default = 0.6, 
-		type = float)
+	# GroupAdvanced.add_argument('--diff_ratio_filtering_INS', 
+	# 	help = "Filter breakpoints with basepair identity less than [%(default)s] for insertion.", 
+	# 	default = 0.6, 
+	# 	type = float)
 
 	# ++++++DEL++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_DEL', 
@@ -184,12 +191,12 @@ def parseArgs(argv):
 		type = int)
 	GroupAdvanced.add_argument('--diff_ratio_merging_DEL', 
 		help = "Do not merge breakpoints with basepair identity more than [%(default)s] for deletion.", 
-		default = 0.3, 
+		default = 0.5, 
 		type = float)
-	GroupAdvanced.add_argument('--diff_ratio_filtering_DEL', 
-		help = "Filter breakpoints with basepair identity less than [%(default)s] for deletion.", 
-		default = 0.7, 
-		type = float)
+	# GroupAdvanced.add_argument('--diff_ratio_filtering_DEL', 
+	# 	help = "Filter breakpoints with basepair identity less than [%(default)s] for deletion.", 
+	# 	default = 0.7, 
+	# 	type = float)
 
 	# ++++++INV++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_INV', 

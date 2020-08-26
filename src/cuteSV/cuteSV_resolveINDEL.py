@@ -15,8 +15,8 @@ import time
 
 '''
 
-def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias, 
-	threshold_local, minimum_support_reads, bam_path, action, gt_round):
+def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias,
+				 minimum_support_reads, bam_path, action, gt_round):
 
 	'''
 	cluster DEL
@@ -67,7 +67,7 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 										svtype, 
 										read_count, 
 										threshold_gloab, 
-										threshold_local, 
+										# threshold_local, 
 										minimum_support_reads, 
 										candidate_single_SV,
 										bam_path,
@@ -88,7 +88,7 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 								svtype, 
 								read_count, 
 								threshold_gloab, 
-								threshold_local, 
+								# threshold_local, 
 								minimum_support_reads, 
 								candidate_single_SV,
 								bam_path,
@@ -99,7 +99,7 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 	return candidate_single_SV
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
+	threshold_gloab, minimum_support_reads, candidate_single_SV, 
 	bam_path, max_cluster_bias, action, gt_round):
 
 	'''
@@ -153,60 +153,22 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 	allele_collect[-1][2].append(len(allele_collect[-1][0]))
 	allele_sort = sorted(allele_collect, key = lambda x:x[2])
 
-	if allele_sort[-1][2][0] >= minimum_support_reads and float(allele_sort[-1][2][0] * 1.0 / len(read_tag)) >= threshold_local:
-		breakpointStart = np.mean(allele_sort[-1][0])
-		CIPOS = cal_CIPOS(np.std(allele_sort[-1][0]), len(allele_sort[-1][0]))
-		search_threshold = np.min(allele_sort[-1][0])
-		signalLen = np.mean(allele_sort[-1][1])
-		CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
-		signalLen_STD = np.std(allele_sort[-1][1])
+	for allele in allele_sort:
+		if allele[2][0] >= minimum_support_reads:
+			breakpointStart = np.mean(allele[0])
+			search_threshold = np.min(allele[0])
+			CIPOS = cal_CIPOS(np.std(allele[0]), len(allele[0]))
+			signalLen = np.mean(allele[1])
+			signalLen_STD = np.std(allele[1])
+			CILEN = cal_CIPOS(np.std(allele[1]), len(allele[1]))
 
-		'''genotyping'''
-		if action:
-			# time_start = time.time()
-			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, allele_sort[-1][3], 
-												max_cluster_bias, gt_round)
-			# cost_time = time.time() - time_start
-			# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
-		else:
-			DR = '.'
-			GT = './.'
-			GL = '.,.,.'
-			GQ = "."
-			QUAL = "."
-		candidate_single_SV.append([chr, 
-									svtype, 
-									str(int(breakpointStart)), 
-									str(int(-signalLen)), 
-									str(allele_sort[-1][2][0]), 
-									str(CIPOS),
-									str(CILEN),
-									str(DR),
-									str(GT),
-									str(GL),
-									str(GQ),
-									str(QUAL),
-									str(','.join(allele_sort[-1][3]))])
-
-		# extend to next allele
-		if (len(allele_sort) > 1 and allele_sort[-2][2][0] >= minimum_support_reads 
-			and allele_sort[-2][2][0] + allele_sort[-1][2][0] >= 0.95*len(read_tag) 
-			and allele_sort[-2][2][0] >= 0.3*len(read_tag)):
-			breakpointStart = np.mean(allele_sort[-2][0])
-			CIPOS = cal_CIPOS(np.std(allele_sort[-2][0]), len(allele_sort[-2][0]))
-			search_threshold = np.min(allele_sort[-2][0])
-			signalLen = np.mean(allele_sort[-2][1])
-			last_signalLen_STD = signalLen_STD
-			signalLen_STD = np.std(allele_sort[-2][1])
-			CILEN = cal_CIPOS(np.std(allele_sort[-2][1]), len(allele_sort[-2][1]))
-
-			'''genotyping'''
 			if action:
-				# time_start = time.time()
-				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, allele_sort[-2][3], 
-													max_cluster_bias, gt_round)
-				# cost_time = time.time() - time_start
-				# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
+				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, 
+													int(search_threshold), 
+													chr, 
+													allele[3], 
+													max_cluster_bias, 
+													gt_round)
 			else:
 				DR = '.'
 				GT = './.'
@@ -217,7 +179,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(-signalLen)), 
-										str(allele_sort[-2][2][0]), 
+										str(allele[2][0]), 
 										str(CIPOS),
 										str(CILEN),
 										str(DR),
@@ -225,83 +187,11 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(allele_sort[-2][3]))])
-
-	elif allele_sort[-2][2][0] >= minimum_support_reads and allele_sort[-2][2][0] + allele_sort[-1][2][0] >= 0.95*len(read_tag):
-		if allele_sort[-2][2][0] >= 0.4*len(read_tag):
-			breakpointStart = np.mean(allele_sort[-1][0])
-			CIPOS = cal_CIPOS(np.std(allele_sort[-1][0]), len(allele_sort[-1][0]))
-			search_threshold = np.min(allele_sort[-1][0])
-			signalLen = np.mean(allele_sort[-1][1])
-			signalLen_STD = np.std(allele_sort[-1][1])
-			CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
-
-			'''genotyping'''
-			if action:
-				# time_start = time.time()
-				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, allele_sort[-1][3], 
-													max_cluster_bias, gt_round)
-				# cost_time = time.time() - time_start
-				# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
-			else:
-				DR = '.'
-				GT = './.'
-				GL = '.,.,.'
-				GQ = "."
-				QUAL = "."
-			candidate_single_SV.append([chr, 
-										svtype, 
-										str(int(breakpointStart)), 
-										str(int(-signalLen)), 
-										str(allele_sort[-1][2][0]), 
-										str(CIPOS),
-										str(CILEN),
-										str(DR),
-										str(GT),
-										str(GL),
-										str(GQ),
-										str(QUAL),
-										str(','.join(allele_sort[-1][3]))])
-
-			breakpointStart = np.mean(allele_sort[-2][0])
-			CIPOS = cal_CIPOS(np.std(allele_sort[-2][0]), len(allele_sort[-2][0]))
-			search_threshold = np.min(allele_sort[-2][0])
-			signalLen = np.mean(allele_sort[-2][1])
-			signalLen_STD = np.std(allele_sort[-2][1])
-			CILEN = cal_CIPOS(np.std(allele_sort[-2][1]), len(allele_sort[-2][1]))
-
-			'''genotyping'''
-			if action:
-				# time_start = time.time()
-				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, search_threshold, chr, allele_sort[-2][3], 
-												max_cluster_bias, gt_round)
-				# cost_time = time.time() - time_start
-				# print("DEL", chr, int(breakpointStart), int(-signalLen), DR, DV, QUAL, "%.4f"%cost_time)
-			else:
-				DR = '.'
-				GT = './.'
-				GL = '.,.,.'
-				GQ = "."
-				QUAL = "."
-			candidate_single_SV.append([chr, 
-										svtype, 
-										str(int(breakpointStart)), 
-										str(int(-signalLen)), 
-										str(allele_sort[-2][2][0]), 
-										str(CIPOS),
-										str(CILEN),
-										str(DR),
-										str(GT),
-										str(GL),
-										str(GQ),
-										str(QUAL),
-										str(','.join(allele_sort[-2][3]))])
-
-
+										str(','.join(allele[3]))])
 	
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-	max_cluster_bias, threshold_local, minimum_support_reads, bam_path, action, gt_round):
+	max_cluster_bias, minimum_support_reads, bam_path, action, gt_round):
 	
 	'''
 	cluster INS
@@ -353,7 +243,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										svtype, 
 										read_count, 
 										threshold_gloab, 
-										threshold_local, 
+										# threshold_local, 
 										minimum_support_reads, 
 										candidate_single_SV,
 										bam_path,
@@ -374,7 +264,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 								svtype, 
 								read_count, 
 								threshold_gloab, 
-								threshold_local, 
+								# threshold_local, 
 								minimum_support_reads, 
 								candidate_single_SV,
 								bam_path,
@@ -385,7 +275,7 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 	return candidate_single_SV
 
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
-	threshold_gloab, threshold_local, minimum_support_reads, candidate_single_SV, 
+	threshold_gloab, minimum_support_reads, candidate_single_SV, 
 	bam_path, max_cluster_bias, action, gt_round):
 		
 	'''
@@ -437,112 +327,29 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 	allele_collect[-1][2].append(len(allele_collect[-1][0]))
 	allele_sort = sorted(allele_collect, key = lambda x:x[2])
 
-	if allele_sort[-1][2][0] >= minimum_support_reads and float(allele_sort[-1][2][0] * 1.0 / len(read_tag)) >= threshold_local:
-		breakpointStart = np.mean(allele_sort[-1][0])
-		CIPOS = cal_CIPOS(np.std(allele_sort[-1][0]), len(allele_sort[-1][0]))
-		signalLen = np.mean(allele_sort[-1][1])
-		signalLen_STD = np.std(allele_sort[-1][1])
-		CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
-		ideal_ins_seq = '<INS>'
-		for i in allele_sort[-1][4]:
-			if len(i) >= int(signalLen):
-				ideal_ins_seq = i[0:int(signalLen)]
-				break
-
-		'''genotyping'''
-		if action:
-			# time_start = time.time()
-			DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, allele_sort[-1][3], 
-											max_cluster_bias, gt_round)
-			# cost_time = time.time() - time_start
-			# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
-		else:
-			DR = '.'
-			GT = './.'
-			GL = '.,.,.'
-			GQ = "."
-			QUAL = "."
-		candidate_single_SV.append([chr, 
-									svtype, 
-									str(int(breakpointStart)), 
-									str(int(signalLen)), 
-									str(allele_sort[-1][2][0]), 
-									str(CIPOS),
-									str(CILEN),
-									str(DR),
-									str(GT),
-									str(GL),
-									str(GQ),
-									str(QUAL),
-									str(','.join(allele_sort[-1][3])),
-									ideal_ins_seq])
-
-		# extend to next allele
-		if (len(allele_sort) > 1 and allele_sort[-2][2][0] >= minimum_support_reads 
-			and allele_sort[-2][2][0] + allele_sort[-1][2][0] >= 0.95*len(read_tag) 
-			and allele_sort[-2][2][0] >= 0.3*len(read_tag)):
-			breakpointStart = np.mean(allele_sort[-2][0])
-			CIPOS = cal_CIPOS(np.std(allele_sort[-2][0]), len(allele_sort[-2][0]))
-			signalLen = np.mean(allele_sort[-2][1])
-			last_signalLen_STD = signalLen_STD
-			signalLen_STD = np.std(allele_sort[-2][1])
-			CILEN = cal_CIPOS(np.std(allele_sort[-2][1]), len(allele_sort[-2][1]))
+	for allele in allele_sort:
+		if allele[2][0] >= minimum_support_reads:
+			breakpointStart = np.mean(allele[0])
+			CIPOS = cal_CIPOS(np.std(allele[0]), len(allele[0]))
+			signalLen = np.mean(allele[1])
+			signalLen_STD = np.std(allele[1])
+			CILEN = cal_CIPOS(np.std(allele[1]), len(allele[1]))
 			ideal_ins_seq = '<INS>'
-			for i in allele_sort[-2][4]:
+			for i in allele[4]:
 				if len(i) >= int(signalLen):
 					ideal_ins_seq = i[0:int(signalLen)]
 					break
-
-			if signalLen_STD < last_signalLen_STD:
-
-				'''genotyping'''
-				if action:
-					# time_start = time.time()
-					DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, allele_sort[-2][3], 
-													max_cluster_bias, gt_round)
-					# cost_time = time.time() - time_start
-					# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
-				else:
-					DR = '.'
-					GT = './.'
-					GL = '.,.,.'
-					GQ = "."
-					QUAL = "."
-				candidate_single_SV.append([chr, 
-											svtype, 
-											str(int(breakpointStart)), 
-											str(int(signalLen)), 
-											str(allele_sort[-2][2][0]), 
-											str(CIPOS),
-											str(CILEN),
-											str(DR),
-											str(GT),
-											str(GL),
-											str(GQ),
-											str(QUAL),
-											str(','.join(allele_sort[-2][3])),
-											ideal_ins_seq])
-
-	elif allele_sort[-2][2][0] >= minimum_support_reads and allele_sort[-2][2][0] + allele_sort[-1][2][0] >= 0.95*len(read_tag):
-		if allele_sort[-2][2][0] >= 0.4*len(read_tag):
-			breakpointStart = np.mean(allele_sort[-1][0])
-			CIPOS = cal_CIPOS(np.std(allele_sort[-1][0]), len(allele_sort[-1][0]))
-			signalLen = np.mean(allele_sort[-1][1])
-			signalLen_STD = np.std(allele_sort[-1][1])
-			CILEN = cal_CIPOS(np.std(allele_sort[-1][1]), len(allele_sort[-1][1]))
-			ideal_ins_seq = '<INS>'
-			for i in allele_sort[-1][4]:
-				if len(i) >= int(signalLen):
-					ideal_ins_seq = i[0:int(signalLen)]
-					break
-
-			'''genotyping'''
+			if ideal_ins_seq == '<INS>':
+				continue
+				
 			if action:
-				# time_start = time.time()
-				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, allele_sort[-1][3], 
-												max_cluster_bias, gt_round)
-				# cost_time = time.time() - time_start
-				# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
+				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, 
+													int(breakpointStart), 
+													chr, 
+													allele[3], 
+													# max_cluster_bias, 
+													1000,
+													gt_round)
 			else:
 				DR = '.'
 				GT = './.'
@@ -553,7 +360,7 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 										svtype, 
 										str(int(breakpointStart)), 
 										str(int(signalLen)), 
-										str(allele_sort[-1][2][0]), 
+										str(allele[2][0]), 
 										str(CIPOS),
 										str(CILEN),
 										str(DR),
@@ -561,47 +368,9 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(allele_sort[-1][3])),
+										str(','.join(allele[3])),
 										ideal_ins_seq])
 
-			breakpointStart = np.mean(allele_sort[-2][0])
-			CIPOS = cal_CIPOS(np.std(allele_sort[-2][0]), len(allele_sort[-2][0]))
-			signalLen = np.mean(allele_sort[-2][1])
-			signalLen_STD = np.std(allele_sort[-2][1])
-			CILEN = cal_CIPOS(np.std(allele_sort[-2][1]), len(allele_sort[-2][1]))
-			ideal_ins_seq = '<INS>'
-			for i in allele_sort[-2][4]:
-				if len(i) >= int(signalLen):
-					ideal_ins_seq = i[0:int(signalLen)]
-					break
-
-			'''genotyping'''
-			if action:
-				# time_start = time.time()
-				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(breakpointStart), chr, allele_sort[-2][3], 
-												max_cluster_bias, gt_round)
-				# cost_time = time.time() - time_start
-				# print("INS", chr, int(breakpointStart), int(signalLen), DR, DV, QUAL, "%.4f"%cost_time)
-			else:
-				DR = '.'
-				GT = './.'
-				GL = '.,.,.'
-				GQ = "."
-				QUAL = "."
-			candidate_single_SV.append([chr, 
-										svtype, 
-										str(int(breakpointStart)), 
-										str(int(signalLen)), 
-										str(allele_sort[-2][2][0]), 
-										str(CIPOS),
-										str(CILEN),
-										str(DR),
-										str(GT),
-										str(GL),
-										str(GQ),
-										str(QUAL),
-										str(','.join(allele_sort[-2][3])),
-										ideal_ins_seq])
 
 def run_del(args):
 	return resolution_DEL(*args)

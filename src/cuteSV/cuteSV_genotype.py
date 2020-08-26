@@ -216,7 +216,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%("BND", svid["BND"]), 
-				REF = str(ref_g[i[0]].seq[int(i[2])]),
+				REF = 'N',
 				ALT = i[1], 
 				INFO = info_list, 
 				FORMAT = "GT:DR:DV:PL:GQ", 
