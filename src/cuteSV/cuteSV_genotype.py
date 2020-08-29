@@ -106,7 +106,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 	for i in semi_result:
 		if i[1] in ["DEL", "INS"]:
 			if i[1] == "INS":
-				cal_end = int(i[2]) + 1
+				cal_end = int(i[2])
 			else:
 				cal_end = int(i[2]) + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
@@ -128,8 +128,8 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				CHR = i[0], 
 				POS = i[2], 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
-				REF = str(ref_g[i[0]].seq[int(i[2])]) if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2]):int(i[2])-int(i[3])]),
-				ALT = "%s"%(i[13] if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2])])), 
+				REF = str(ref_g[i[0]].seq[int(i[2])-1]) if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2])-1:int(i[2])-int(i[3])]),
+				ALT = "%s"%(str(ref_g[i[0]].seq[int(i[2])-1])+i[13] if i[1] == 'INS' else str(ref_g[i[0]].seq[int(i[2])-1])), 
 				INFO = info_list, 
 				FORMAT = "GT:DR:DV:PL:GQ", 
 				GT = i[8],
