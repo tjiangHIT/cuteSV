@@ -155,7 +155,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS" if float(i[9]) >= 5.0 else "q5"
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
-				POS = i[2], 
+				POS = str(int(i[2]) + 1), 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
 				REF = str(ref_g[i[0]].seq[int(i[2])]),
 				ALT = "<%s>"%(i[1]), 
