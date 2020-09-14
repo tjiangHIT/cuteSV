@@ -126,7 +126,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS" if float(i[11]) >= 5.0 else "q5"
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
-				POS = i[2], 
+				POS = str(int(i[2]) + 1), 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
 				REF = str(ref_g[i[0]].seq[max(int(i[2])-1, 0)]) if i[1] == 'INS' else str(ref_g[i[0]].seq[max(int(i[2])-1, 0):int(i[2])-int(i[3])]),
 				ALT = "%s"%(str(ref_g[i[0]].seq[max(int(i[2])-1, 0)])+i[13] if i[1] == 'INS' else str(ref_g[i[0]].seq[max(int(i[2])-1, 0)])), 
@@ -185,7 +185,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
-				POS = i[2], 
+				POS = str(int(i[2]) + 1), 
 				ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
 				REF = str(ref_g[i[0]].seq[int(i[2])]),
 				ALT = "<%s>"%(i[1]), 
@@ -205,7 +205,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				PRECISION = "IMPRECISE" if i[7] == "0/0" else "PRECISE", 
 				SVTYPE = "BND", 
 				CHR2 = i[3], 
-				END = i[4], 
+				END = str(int(i[4]) + 1), 
 				RE = i[5],
 				RNAMES = i[11] if args.report_readid else "NULL")
 			if i[10] == ".":
@@ -214,7 +214,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
-				POS = i[2], 
+				POS = str(int(i[2]) + 1), 
 				ID = "cuteSV.%s.%d"%("BND", svid["BND"]), 
 				REF = 'N',
 				ALT = i[1], 
