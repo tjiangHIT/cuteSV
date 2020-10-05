@@ -106,9 +106,9 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 	for i in semi_result:
 		if i[1] in ["DEL", "INS"]:
 			if i[1] == "INS":
-				cal_end = int(i[2])
+				cal_end = int(i[2]) + 1
 			else:
-				cal_end = int(i[2]) + abs(int(float(i[3])))
+				cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
 				PRECISION = "IMPRECISE" if i[8] == "0/0" else "PRECISE", 
 				SVTYPE = i[1], 
@@ -141,7 +141,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				PASS = filter_lable))
 			svid[i[1]] += 1
 		elif i[1] == "DUP":
-			cal_end = int(i[2]) + abs(int(float(i[3])))
+			cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND=-+;RNAMES={RNAMES}".format(
 				PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
 				SVTYPE = i[1], 
@@ -170,7 +170,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				PASS = filter_lable))
 			svid[i[1]] += 1
 		elif i[1] == "INV":
-			cal_end = int(i[2]) + abs(int(float(i[3])))
+			cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND};RNAMES={RNAMES}".format(
 				PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
 				SVTYPE = i[1], 
@@ -201,11 +201,12 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 			svid[i[1]] += 1
 		else:
 			# BND
-			info_list = "{PRECISION};SVTYPE={SVTYPE};CHR2={CHR2};END={END};RE={RE};RNAMES={RNAMES}".format(
+			# info_list = "{PRECISION};SVTYPE={SVTYPE};CHR2={CHR2};END={END};RE={RE};RNAMES={RNAMES}".format(
+			info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE};RNAMES={RNAMES}".format(
 				PRECISION = "IMPRECISE" if i[7] == "0/0" else "PRECISE", 
 				SVTYPE = "BND", 
-				CHR2 = i[3], 
-				END = str(int(i[4]) + 1), 
+				# CHR2 = i[3], 
+				# END = str(int(i[4]) + 1), 
 				RE = i[5],
 				RNAMES = i[11] if args.report_readid else "NULL")
 			if i[10] == ".":
