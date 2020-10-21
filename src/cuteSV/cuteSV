@@ -19,7 +19,7 @@ from cuteSV.cuteSV_resolveINV import run_inv
 from cuteSV.cuteSV_resolveTRA import run_tra
 from cuteSV.cuteSV_resolveINDEL import run_ins, run_del
 from cuteSV.cuteSV_resolveDUP import run_dup
-from cuteSV.cuteSV_genotype import generate_output
+from cuteSV.cuteSV_genotype import generate_output, load_valuable_chr
 import os
 import argparse
 import logging
@@ -533,9 +533,20 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, 
 					min_read_len, candidate, min_siglength, merge_del_threshold, 
 					merge_ins_threshold, MaxSize)
-
-	logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))
 	samfile.close()
+
+	skip_written = 0
+	for sv_type in ["DEL", "INS", "INV", "DUP", 'TRA']:
+		try:
+			for chr in candidate[sv_type]:
+				skip_written += len(candidate[sv_type][chr])
+		except:
+			pass
+
+	if skip_written == 0:
+		logging.info("Skip %s:%d-%d."%(Chr_name, task[1], task[2]))
+		return
+
 
 	output = "%ssignatures/_%s_%d_%d.bed"%(temp_dir, Chr_name, task[1], task[2])
 	file = open(output, 'w')
@@ -557,7 +568,8 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 							# INS chr pos len read_ID seq
 		except:
 			pass
-	file.close()	
+	file.close()
+	logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
 
 
 def multi_run_wrapper(args):
@@ -630,80 +642,87 @@ def main_ctrl(args, argv):
 	analysis_pools.join()
 	# '''
 
-	chr_name_list.sort()
-	process_tra = list()
-	for i in range(len(chr_name_list)-1):
-		for j in chr_name_list[i+1:]:
-			process_tra.append([chr_name_list[i], j])
+	valuable_chr = load_valuable_chr(temporary_dir)
 
 	logging.info("Clustering structural variants.")
 	analysis_pools = Pool(processes=int(args.threads))
 	result = list()
-	for chr in chr_name_list:
-		for svtype in ["DEL", "INS", "INV"]:
-			if svtype == "INV":
-				para = [("%s%s.sigs"%(temporary_dir, svtype), 
-							chr, 
-							svtype, 
-							args.min_support, 
-							args.max_cluster_bias_INV, 
-							args.min_size, 
-							args.input, 
-							args.genotype, 
-							args.max_size,
-							args.gt_round)]
-				result.append(analysis_pools.map_async(run_inv, para))
-				# pass
-			if svtype == 'DEL':
-				para = [("%s%s.sigs"%(temporary_dir, svtype), 
-							chr, 
-							svtype, 
-							args.min_support,
-							args.diff_ratio_merging_DEL, 
-							args.max_cluster_bias_DEL, 
-							# args.diff_ratio_filtering_DEL, 
-							min(args.min_support, 5), 
-							args.input, 
-							args.genotype,
-							args.gt_round)]
-				result.append(analysis_pools.map_async(run_del, para))
-			if svtype == 'INS':
-				para = [("%s%s.sigs"%(temporary_dir, svtype), 
-							chr, 
-							svtype, 
-							args.min_support, 
-							args.diff_ratio_merging_INS, 
-							args.max_cluster_bias_INS, 
-							# args.diff_ratio_filtering_INS, 
-							min(args.min_support, 5), 
-							args.input, 
-							args.genotype,
-							args.gt_round)]
-				result.append(analysis_pools.map_async(run_ins, para))
-		# DUP
-		para = [("%s%s.sigs"%(temporary_dir, "DUP"), 
-					chr, 
-					args.min_support, 
-					args.max_cluster_bias_DUP,
-					args.min_size, 
-					args.input, 
-					args.genotype, 
-					args.max_size,
-					args.gt_round)]
-		result.append(analysis_pools.map_async(run_dup, para))
 
-	for i in process_tra:
-		# TRA
-		para = [("%s%s.sigs"%(temporary_dir, "TRA"), 
-					i[0], 
-					i[1], 
+	# +++++DEL+++++
+	for chr in valuable_chr["DEL"]:
+		para = [("%s%s.sigs"%(temporary_dir, "DEL"), 
+				chr, 
+				"DEL", 
+				args.min_support,
+				args.diff_ratio_merging_DEL, 
+				args.max_cluster_bias_DEL, 
+				# args.diff_ratio_filtering_DEL, 
+				min(args.min_support, 5), 
+				args.input, 
+				args.genotype,
+				args.gt_round)]
+		result.append(analysis_pools.map_async(run_del, para))
+		logging.info("Finished %s:%s."%(chr, "DEL"))
+
+	# +++++INS+++++
+	for chr in valuable_chr["INS"]:
+		para = [("%s%s.sigs"%(temporary_dir, "INS"), 
+				chr, 
+				"INS", 
+				args.min_support, 
+				args.diff_ratio_merging_INS, 
+				args.max_cluster_bias_INS, 
+				# args.diff_ratio_filtering_INS, 
+				min(args.min_support, 5), 
+				args.input, 
+				args.genotype,
+				args.gt_round)]
+		result.append(analysis_pools.map_async(run_ins, para))
+		logging.info("Finished %s:%s."%(chr, "INS"))
+
+	# +++++INV+++++
+	for chr in valuable_chr["INV"]:
+		para = [("%s%s.sigs"%(temporary_dir, "INV"), 
+				chr, 
+				"INV", 
+				args.min_support, 
+				args.max_cluster_bias_INV, 
+				args.min_size, 
+				args.input, 
+				args.genotype, 
+				args.max_size,
+				args.gt_round)]
+		result.append(analysis_pools.map_async(run_inv, para))
+		logging.info("Finished %s:%s."%(chr, "INV"))
+
+	# +++++DUP+++++
+	for chr in valuable_chr["DUP"]:
+		para = [("%s%s.sigs"%(temporary_dir, "DUP"), 
+				chr, 
+				args.min_support, 
+				args.max_cluster_bias_DUP,
+				args.min_size, 
+				args.input, 
+				args.genotype, 
+				args.max_size,
+				args.gt_round)]
+		result.append(analysis_pools.map_async(run_dup, para))
+		logging.info("Finished %s:%s."%(chr, "DUP"))	
+
+	# +++++TRA+++++
+	for chr in valuable_chr["TRA"]:
+		for chr2 in valuable_chr["TRA"][chr]:
+			para = [("%s%s.sigs"%(temporary_dir, "TRA"), 
+					chr, 
+					chr2, 
 					args.min_support, 
 					args.diff_ratio_filtering_TRA, 
 					args.max_cluster_bias_TRA, 
 					args.input, 
 					args.genotype,
 					args.gt_round)]
-		result.append(analysis_pools.map_async(run_tra, para))
+			result.append(analysis_pools.map_async(run_tra, para))
+			logging.info("Finished %s-%s:%s."%(chr, chr2, "TRA/BND"))
 
 	analysis_pools.close()
 	analysis_pools.join()

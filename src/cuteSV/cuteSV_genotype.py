@@ -229,3 +229,37 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				QUAL = i[10],
 				PASS = filter_lable))
 			svid["BND"] += 1
+
+def load_valuable_chr(path):
+	valuable_chr = dict()
+	valuable_chr["DEL"] = list()
+	valuable_chr["DUP"] = list()
+	valuable_chr["INS"] = list()
+	valuable_chr["INV"] = list()
+	valuable_chr["TRA"] = dict()
+
+	for svtype in ["DEL", "DUP", "INS", "INV"]:
+		file = open("%s%s.sigs"%(path, svtype), 'r')
+		for line in file:
+			chr = line.strip('\n').split('\t')[1]
+			if chr not in valuable_chr[svtype]:
+				valuable_chr[svtype].append(chr)
+		file.close()
+		valuable_chr[svtype].sort()
+
+	file = open("%s%s.sigs"%(path, "TRA"), 'r')
+	for line in file:
+		chr1 = line.strip('\n').split('\t')[1]
+		chr2 = line.strip('\n').split('\t')[4]
+		
+		if chr1 not in valuable_chr["TRA"]:
+			valuable_chr["TRA"][chr1] = list()
+		if chr2 not in valuable_chr["TRA"][chr1]:
+			valuable_chr["TRA"][chr1].append(chr2)
+
+	file.close()
+	for chr1 in valuable_chr["TRA"]:
+		valuable_chr["TRA"][chr1].sort()
+
+	return valuable_chr
+
