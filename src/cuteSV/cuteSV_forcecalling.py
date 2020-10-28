@@ -142,8 +142,12 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
                 tra_type = 'C'
             else:
                 tra_type = 'D'
-            sv_chr2 = re.search('[^N\[\]]+', tra_alt).group().split(':')[0]
-            sv_end = re.search('[^N\[\]]+', tra_alt).group().split(':')[1]
+            if tra_alt[0] == 'N':
+                tra_alt = tra_alt[2:-1]
+            else:
+                tra_alt = tra_alt[1:-2]
+            sv_chr2 = tra_alt.split(':')[0]
+            sv_end = tra_alt.split(':')[1]
         search_start = max(int(pos) - max_cluster_bias_dict[sv_type], 0)
         search_end = search_start + 2 * max_cluster_bias_dict[sv_type]
         search_id_list = []
