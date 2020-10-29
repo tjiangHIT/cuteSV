@@ -3,9 +3,8 @@ from cuteSV.cuteSV_resolveTRA import call_gt as call_gt_tra
 from cuteSV.cuteSV_resolveINDEL import call_gt as call_gt_indel
 from cuteSV.cuteSV_resolveDUP import call_gt as call_gt_dup
 from multiprocessing import Pool, Manager
-import re
 import vcf
-import time
+import math
 import logging
 
 
@@ -78,7 +77,7 @@ def find_in_list(var_type, var_list, start, end, pos, sv_end):
     return read_id_list
         
 
-def call_gt_wrapper(call_gt_args, gt_list, idx, record, var_type):
+def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, record, var_type):
     if var_type == 'INS' or var_type == 'DEL':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_indel(*call_gt_args)
     if var_type == 'DUP':
@@ -104,14 +103,13 @@ def call_gt_wrapper(call_gt_args, gt_list, idx, record, var_type):
                     record.INFO['STRANDS'],
                     record.FILTER
     ]
-    if idx > 0 and idx % 4000 == 0:
-        logging.info('Finished ' + str(idx - 3999) + ' to ' + str(idx))
-        #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' Finished ' + str(idx))
+    if idx > 0 and idx % 5000 == 0:
+        logging.info('Complete calling ' + str(math.floor(idx / row_count * 100)) + '% of the input vcf.')
     
     
 def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_dict, gt_round, threads):
-    logging.info('Start force calling.')
-    #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' Start force calling.')
+    logging.info('Check the parameter -Ivcf, start force calling the individual genotype.')
+    #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     sv_dict = dict()
     for sv_type in ["DEL", "INS", "INV", "DUP"]:
         sv_dict[sv_type] = parse_sigs(sv_type, sigs_dir)
@@ -159,25 +157,23 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
 
         if sv_type == 'INS':
             process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, record, 'INS'))
+                args=([bam_path, pos, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, row_count, record, 'INS'))
         if sv_type == 'DEL':
             process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, record, 'DEL'))
+                args=([bam_path, pos, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, row_count, record, 'DEL'))
         if sv_type == 'INV':
             process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, record, 'INV'))
+                args=([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, row_count, record, 'INV'))
         if sv_type == 'DUP':
             process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, record, 'DUP'))
+                args=([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, row_count, record, 'DUP'))
         if sv_type == 'TRA':
             process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, record, 'TRA'))
+                args=([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias_dict[sv_type], gt_round], gt_list, idx, row_count, record, 'TRA'))
 
     process_pool.close()
     process_pool.join()
-    logging.info('Finish calling')
-    #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' Finish calling')
-    #result = gt_list
+    logging.info('Finish calling the individual genotype.')
     return gt_list
 
 
