@@ -167,10 +167,10 @@ def parseArgs(argv):
 	# 	default = "pbccs",
 	# 	type = str)
 
-	# **************Parameters in forse calling******************
+	# **************Parameters in force calling******************
 	GroupGenotype = parser.add_argument_group('Force calling')
 	GroupGenotype.add_argument('-Ivcf', #'--MERGED_VCF',
-		help = "Population calling.",
+		help = "Optional given vcf file. Enable to perform force calling. [NULL]",
 		default = None,
         type = str)
 

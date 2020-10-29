@@ -104,11 +104,12 @@ def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, record, var_type):
                     record.FILTER
     ]
     if idx > 0 and idx % 5000 == 0:
-        logging.info('Complete calling ' + str(math.floor(idx / row_count * 100)) + '% of the input vcf.')
-    
-    
+        logging.info(str(math.floor(idx / row_count * 100)) + '% SV calls of the given vcf has been processed.')
+
+
 def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_dict, gt_round, threads):
-    logging.info('Check the parameter -Ivcf, start force calling the individual genotype.')
+    logging.info('Check the parameter -Ivcf: OK.')
+    logging.info('Enable to perform force calling.')
     #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     sv_dict = dict()
     for sv_type in ["DEL", "INS", "INV", "DUP"]:
@@ -173,7 +174,7 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
 
     process_pool.close()
     process_pool.join()
-    logging.info('Finish calling the individual genotype.')
+    logging.info('Finished force calling.')
     return gt_list
 
 
