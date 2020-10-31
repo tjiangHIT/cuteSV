@@ -19,7 +19,8 @@ from cuteSV.cuteSV_resolveINV import run_inv
 from cuteSV.cuteSV_resolveTRA import run_tra
 from cuteSV.cuteSV_resolveINDEL import run_ins, run_del
 from cuteSV.cuteSV_resolveDUP import run_dup
-from cuteSV.cuteSV_genotype import generate_output, load_valuable_chr
+from cuteSV.cuteSV_genotype import generate_output, generate_pvcf, load_valuable_chr
+from cuteSV.cuteSV_forcecalling import force_calling
 import os
 import argparse
 import logging
@@ -641,106 +642,127 @@ def main_ctrl(args, argv):
 	analysis_pools.close()
 	analysis_pools.join()
 	# '''
-
-	valuable_chr = load_valuable_chr(temporary_dir)
-
-	logging.info("Clustering structural variants.")
-	analysis_pools = Pool(processes=int(args.threads))
 	result = list()
 
-	# +++++DEL+++++
-	for chr in valuable_chr["DEL"]:
-		para = [("%s%s.sigs"%(temporary_dir, "DEL"), 
-				chr, 
-				"DEL", 
-				args.min_support,
-				args.diff_ratio_merging_DEL, 
-				args.max_cluster_bias_DEL, 
-				# args.diff_ratio_filtering_DEL, 
-				min(args.min_support, 5), 
-				args.input, 
-				args.genotype,
-				args.gt_round)]
-		result.append(analysis_pools.map_async(run_del, para))
-		logging.info("Finished %s:%s."%(chr, "DEL"))
+	if args.Ivcf != None:
+		# force calling
+		max_cluster_bias_dict = dict()
+		max_cluster_bias_dict['INS'] = args.max_cluster_bias_INS
+		max_cluster_bias_dict['DEL'] = args.max_cluster_bias_DEL
+		max_cluster_bias_dict['DUP'] = args.max_cluster_bias_DUP
+		max_cluster_bias_dict['INV'] = args.max_cluster_bias_INV
+		max_cluster_bias_dict['TRA'] = args.max_cluster_bias_TRA
+		result = force_calling(args.input, args.Ivcf, args.output, temporary_dir,
+						 max_cluster_bias_dict, args.gt_round, args.threads)
+	else:
+		valuable_chr = load_valuable_chr(temporary_dir)
 
-	# +++++INS+++++
-	for chr in valuable_chr["INS"]:
-		para = [("%s%s.sigs"%(temporary_dir, "INS"), 
-				chr, 
-				"INS", 
-				args.min_support, 
-				args.diff_ratio_merging_INS, 
-				args.max_cluster_bias_INS, 
-				# args.diff_ratio_filtering_INS, 
-				min(args.min_support, 5), 
-				args.input, 
-				args.genotype,
-				args.gt_round)]
-		result.append(analysis_pools.map_async(run_ins, para))
-		logging.info("Finished %s:%s."%(chr, "INS"))
+		logging.info("Clustering structural variants.")
+		analysis_pools = Pool(processes=int(args.threads))
 
-	# +++++INV+++++
-	for chr in valuable_chr["INV"]:
-		para = [("%s%s.sigs"%(temporary_dir, "INV"), 
-				chr, 
-				"INV", 
-				args.min_support, 
-				args.max_cluster_bias_INV, 
-				args.min_size, 
-				args.input, 
-				args.genotype, 
-				args.max_size,
-				args.gt_round)]
-		result.append(analysis_pools.map_async(run_inv, para))
-		logging.info("Finished %s:%s."%(chr, "INV"))
-
-	# +++++DUP+++++
-	for chr in valuable_chr["DUP"]:
-		para = [("%s%s.sigs"%(temporary_dir, "DUP"), 
-				chr, 
-				args.min_support, 
-				args.max_cluster_bias_DUP,
-				args.min_size, 
-				args.input, 
-				args.genotype, 
-				args.max_size,
-				args.gt_round)]
-		result.append(analysis_pools.map_async(run_dup, para))
-		logging.info("Finished %s:%s."%(chr, "DUP"))	
-
-	# +++++TRA+++++
-	for chr in valuable_chr["TRA"]:
-		for chr2 in valuable_chr["TRA"][chr]:
-			para = [("%s%s.sigs"%(temporary_dir, "TRA"), 
+		# +++++DEL+++++
+		for chr in valuable_chr["DEL"]:
+			para = [("%s%s.sigs"%(temporary_dir, "DEL"), 
 					chr, 
-					chr2, 
-					args.min_support, 
-					args.diff_ratio_filtering_TRA, 
-					args.max_cluster_bias_TRA, 
+					"DEL", 
+					args.min_support,
+					args.diff_ratio_merging_DEL, 
+					args.max_cluster_bias_DEL, 
+					# args.diff_ratio_filtering_DEL, 
+					min(args.min_support, 5), 
 					args.input, 
 					args.genotype,
 					args.gt_round)]
-			result.append(analysis_pools.map_async(run_tra, para))
-			logging.info("Finished %s-%s:%s."%(chr, chr2, "TRA/BND"))
+			result.append(analysis_pools.map_async(run_del, para))
+			logging.info("Finished %s:%s."%(chr, "DEL"))
 
-	analysis_pools.close()
-	analysis_pools.join()
+		# +++++INS+++++
+		for chr in valuable_chr["INS"]:
+			para = [("%s%s.sigs"%(temporary_dir, "INS"), 
+					chr, 
+					"INS", 
+					args.min_support, 
+					args.diff_ratio_merging_INS, 
+					args.max_cluster_bias_INS, 
+					# args.diff_ratio_filtering_INS, 
+					min(args.min_support, 5), 
+					args.input, 
+					args.genotype,
+					args.gt_round)]
+			result.append(analysis_pools.map_async(run_ins, para))
+			logging.info("Finished %s:%s."%(chr, "INS"))
 
-	semi_result = list()
-	for res in result:
-		try:
-			semi_result += res.get()[0]
-		except:
-			pass
+		# +++++INV+++++
+		for chr in valuable_chr["INV"]:
+			para = [("%s%s.sigs"%(temporary_dir, "INV"), 
+					chr, 
+					"INV", 
+					args.min_support, 
+					args.max_cluster_bias_INV, 
+					args.min_size, 
+					args.input, 
+					args.genotype, 
+					args.max_size,
+					args.gt_round)]
+			result.append(analysis_pools.map_async(run_inv, para))
+			logging.info("Finished %s:%s."%(chr, "INV"))
 
+		# +++++DUP+++++
+		for chr in valuable_chr["DUP"]:
+			para = [("%s%s.sigs"%(temporary_dir, "DUP"), 
+					chr, 
+					args.min_support, 
+					args.max_cluster_bias_DUP,
+					args.min_size, 
+					args.input, 
+					args.genotype, 
+					args.max_size,
+					args.gt_round)]
+			result.append(analysis_pools.map_async(run_dup, para))
+			logging.info("Finished %s:%s."%(chr, "DUP"))	
+
+		# +++++TRA+++++
+		for chr in valuable_chr["TRA"]:
+			for chr2 in valuable_chr["TRA"][chr]:
+				para = [("%s%s.sigs"%(temporary_dir, "TRA"), 
+						chr, 
+						chr2, 
+						args.min_support, 
+						args.diff_ratio_filtering_TRA, 
+						args.max_cluster_bias_TRA, 
+						args.input, 
+						args.genotype,
+						args.gt_round)]
+				result.append(analysis_pools.map_async(run_tra, para))
+				logging.info("Finished %s-%s:%s."%(chr, chr2, "TRA/BND"))
+
+		analysis_pools.close()
+		analysis_pools.join()
+
+		semi_result = list()
+		for res in result:
+			try:
+				semi_result += res.get()[0]
+			except:
+				pass
+		
 	logging.info("Writing to your output file.")
 
-	# sort SVs by [chr] and [pos]
-	semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
-	logging.info("Loading reference genome...")
-	ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
-	generate_output(args, semi_result, contigINFO, argv, ref_g)	
+	if args.Ivcf != None:
+		generate_pvcf(args, result, contigINFO, argv)
+
+	else:
+		semi_result = list()
+		for res in result:
+			try:
+				semi_result += res.get()[0]
+			except:
+				pass
+		# sort SVs by [chr] and [pos]
+		semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
+		logging.info("Loading reference genome...")
+		ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
+		generate_output(args, semi_result, contigINFO, argv, ref_g)	
 
 	if args.retain_work_dir:
 		pass

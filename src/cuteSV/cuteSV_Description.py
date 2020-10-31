@@ -167,6 +167,13 @@ def parseArgs(argv):
 	# 	default = "pbccs",
 	# 	type = str)
 
+	# **************Parameters in force calling******************
+	GroupGenotype = parser.add_argument_group('Force calling')
+	GroupGenotype.add_argument('-Ivcf', #'--MERGED_VCF',
+		help = "Optional given vcf file. Enable to perform force calling. [NULL]",
+		default = None,
+        type = str)
+
 	# **************Advanced Parameters******************
 	GroupAdvanced = parser.add_argument_group('Advanced')
 
@@ -274,4 +281,3 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"# Genotype quality\">\n")
 
 	file.write("##CommandLine=\"cuteSV %s\"\n"%(" ".join(argv)))
-	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(sample))

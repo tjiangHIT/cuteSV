@@ -102,6 +102,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 
 	file = open(args.output, 'w')
 	Generation_VCF_header(file, contigINFO, args.sample, argv)
+	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
 
 	for i in semi_result:
 		if i[1] in ["DEL", "INS"]:
@@ -230,6 +231,40 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				PASS = filter_lable))
 			svid["BND"] += 1
 
+
+def generate_pvcf(args, result, contigINFO, argv):
+	file = open(args.output, 'w')
+	Generation_VCF_header(file, contigINFO, args.sample, argv)
+	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
+	
+	for i in result:
+		if i == []:
+			continue
+		info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
+				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
+				SVTYPE = i[3], 
+				SVLEN = i[4], 
+				END = i[5], 
+				CIPOS = i[6][0] + ',' + i[6][1], 
+				CILEN = i[7][0] + ',' + i[7][1], 
+				RE = i[8],
+				RNAMES = i[9] if args.report_readid else "NULL",
+				STRAND = i[14])
+
+		file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}\n".format(
+			CHR = i[0], 
+			POS = str(i[1]), 
+			ID = i[10],
+			REF = i[11],
+			ALT = i[12], 
+			QUAL = '.' if i[13] == None else i[13],
+			PASS = 'PASS' if i[15] == [] else i[15],
+			INFO = info_list, 
+			FORMAT = "GT", 
+			GT = i[2]
+			))
+
+			
 def load_valuable_chr(path):
 	valuable_chr = dict()
 	valuable_chr["DEL"] = list()
