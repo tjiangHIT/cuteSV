@@ -48,6 +48,7 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 	3. Biopython
 	4. cigar
 	5. numpy
+	6. pyvcf
 
 ---
 ### Usage
@@ -90,6 +91,7 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 |--max_size|Minimum length of SV to be reported.|100000|
 |--genotype|Enable to generate genotypes.|False|
 |--gt_round|Maximum round of iteration for alignments searching if perform genotyping.|500|
+|-Ivcf|Optional given vcf file. Enable to perform force calling.|NULL|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
 |--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.3|
 |--max_cluster_bias_DEL|Maximum distance to cluster read together for deletion.|200|
@@ -110,6 +112,16 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cutesv (v1.0.9):
+	1. Change 0-based pos into 1-based pos in DUP in order to support bcftools conversion.
+	2. Correct REF and ALT fields. Adjust END value of INS to make it equal to the value of POS.
+	3. Improve the description of errors.
+	4. Add usegalaxy.eu badge.
+	5. Remove CHR2 and the corresponding END position on the BND call.
+	6. Skip generating empty signature file and rewrite the job schedule.
+	7. Add force calling function and enable cuteSV to perform population-based SV calling.
+	8. Fix several minor bugs.
 
 	cutesv (v1.0.8):
 	1. Rewirte the function of ins/del signatures clustering.

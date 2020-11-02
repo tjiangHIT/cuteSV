@@ -7,7 +7,7 @@ with open('README.md') as f:
 
 setup(
     name = "cuteSV",
-    version = "1.0.8",
+    version = "1.0.9",
     description = "Long-read-based human genomic structural variation detection with cuteSV",
     author = "Jiang Tao",
     author_email = "tjiang@hit.edu.cn",
@@ -21,5 +21,5 @@ setup(
     long_description = readme,
     long_description_content_type = 'text/markdown',
     zip_safe = False,
-    install_requires = ['pysam', 'Biopython', 'Cigar', 'numpy']
+    install_requires = ['pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf']
 )

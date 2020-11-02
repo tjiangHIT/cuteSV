@@ -4,8 +4,8 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang
- * @data: Apr 26th 2020
- * @version V1.0.7
+ * @data: Nov 2nd 2020
+ * @version V1.0.9
 '''
 
 import pysam
