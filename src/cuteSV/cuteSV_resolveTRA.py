@@ -89,15 +89,15 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 	temp = list()
 	# p1, p2, count
 	last_len = 0
-	temp.append([0,0,set()])
+	temp.append([0,0,list()])
 	for element in semi_tra_cluster:
 		if element[1] - last_len > max_cluster_bias:
-			temp.append([element[0],element[1],{element[2]}])
+			temp.append([element[0],element[1],[element[2]]])
 			last_len = element[1]
 		else:
 			temp[-1][0] += element[0]
 			temp[-1][1] += element[1]
-			temp[-1][2].add(element[2])
+			temp[-1][2].append(element[2])
 			last_len = element[1]
 
 		if element[2] not in read_tag:
@@ -105,10 +105,10 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 	if len(read_tag) < read_count:
 		return
 
-	temp = sorted(temp, key = lambda x:-len(x[2]))
+	temp = sorted(temp, key = lambda x:-len(set(x[2])))
 
-	if len(temp[1][2]) >= 0.5*read_count:
-		if len(temp[0][2])+len(temp[1][2]) >= len(semi_tra_cluster)*overlap_size:
+	if len(set(temp[1][2])) >= 0.5*read_count:
+		if len(set(temp[0][2]))+len(set(temp[1][2])) >= len(semi_tra_cluster)*overlap_size:
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))
 			BND_pos_1 = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])))
@@ -132,7 +132,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 				import time
 				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
-											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
+											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, set(temp[0][2]), 
 											max_cluster_bias, gt_round)
 				# cost_time = time.time() - time_start
 				# print("BND", chr_1, chr_2, int(temp[0][0]/len(temp[0][2])), int(temp[0][1]/len(temp[0][2])), DR, DV, QUAL, "%.4f"%cost_time)
@@ -147,19 +147,19 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(int(temp[0][0]/len(temp[0][2]))), 
 										chr_2, 
 										str(int(temp[0][1]/len(temp[0][2]))), 
-										str(len(temp[0][2])),
+										str(len(set(temp[0][2]))),
 										str(DR),
 										str(GT),
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(temp[0][2]))])
+										str(','.join(set(temp[0][2])))])
 
 			if action:
 				import time
 				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), 
-											int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, temp[1][2], 
+											int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, set(temp[1][2]), 
 											max_cluster_bias, gt_round)
 				# cost_time = time.time() - time_start
 				# print("BND", chr_1, chr_2, int(temp[1][0]/len(temp[1][2])), int(temp[1][1]/len(temp[1][2])), DR, DV, QUAL, "%.4f"%cost_time)
@@ -174,15 +174,15 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(int(temp[1][0]/len(temp[1][2]))), 
 										chr_2, 
 										str(int(temp[1][1]/len(temp[1][2]))), 
-										str(len(temp[1][2])),
+										str(len(set(temp[1][2]))),
 										str(DR),
 										str(GT),
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(temp[1][2]))])
+										str(','.join(set(temp[1][2])))])
 	else:
-		if len(temp[0][2]) >= len(semi_tra_cluster)*overlap_size:
+		if len(set(temp[0][2])) >= len(semi_tra_cluster)*overlap_size:
 			# print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			BND_pos = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])))
@@ -201,7 +201,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 				import time
 				# time_start = time.time()
 				DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
-											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, temp[0][2], 
+											int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, set(temp[0][2]), 
 											max_cluster_bias, gt_round)
 				# cost_time = time.time() - time_start
 				# print("BND", chr_1, chr_2, int(temp[0][0]/len(temp[0][2])), int(temp[0][1]/len(temp[0][2])), DR, DV, QUAL, "%.4f"%cost_time)
@@ -216,13 +216,13 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 										str(int(temp[0][0]/len(temp[0][2]))), 
 										chr_2, 
 										str(int(temp[0][1]/len(temp[0][2]))), 
-										str(len(temp[0][2])),
+										str(len(set(temp[0][2]))),
 										str(DR),
 										str(GT),
 										str(GL),
 										str(GQ),
 										str(QUAL),
-										str(','.join(temp[0][2]))])
+										str(','.join(set(temp[0][2])))])
 
 
 def run_tra(args):
