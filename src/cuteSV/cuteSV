@@ -749,7 +749,6 @@ def main_ctrl(args, argv):
 	logging.info("Writing to your output file.")
 
 	if args.Ivcf != None:
-		result = sorted(result, key = lambda x:(x[0], int(x[1])))
 		generate_pvcf(args, result, contigINFO, argv)
 
 	else:
