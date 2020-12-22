@@ -121,7 +121,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				RNAMES = i[12] if args.report_readid else "NULL")
 			if i[1] =="DEL":
 				info_list += ";STRAND=+-"
-			if i[11] == ".":
+			if i[11] == "." or i[11] == None:
 				filter_lable = "PASS"
 			else:
 				filter_lable = "PASS" if float(i[11]) >= 5.0 else "q5"
@@ -236,32 +236,74 @@ def generate_pvcf(args, result, contigINFO, argv):
 	file = open(args.output, 'w')
 	Generation_VCF_header(file, contigINFO, args.sample, argv)
 	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
-	
 	for i in result:
 		if i == []:
 			continue
-		info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
+		if i[3] == 'INS':
+			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};".format(
+				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
+				SVTYPE = i[3], 
+				SVLEN = i[4], 
+				END = i[1], 
+				CIPOS = i[6][0] + ',' + i[6][1], 
+				CILEN = i[7][0] + ',' + i[7][1], 
+				RE = i[8][0],
+				RNAMES = i[9] if args.report_readid else "NULL")
+		elif i[3] == 'DEL':
+			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
+				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
+				SVTYPE = i[3], 
+				SVLEN = i[4], 
+				END = i[1] + abs(i[4]), 
+				CIPOS = i[6][0] + ',' + i[6][1], 
+				CILEN = i[7][0] + ',' + i[7][1], 
+				RE = i[8][0],
+				RNAMES = i[9] if args.report_readid else "NULL",
+				STRAND = i[14])
+		elif i[3] == 'DUP':
+			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
 				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
 				SVTYPE = i[3], 
 				SVLEN = i[4], 
 				END = i[5], 
-				CIPOS = i[6][0] + ',' + i[6][1], 
-				CILEN = i[7][0] + ',' + i[7][1], 
-				RE = i[8],
+				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL",
 				STRAND = i[14])
-
-		file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}\n".format(
+		elif i[3] == 'INV':
+			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
+				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
+				SVTYPE = i[3], 
+				SVLEN = i[4], 
+				END = i[5], 
+				RE = i[8][0],
+				RNAMES = i[9] if args.report_readid else "NULL",
+				STRAND = i[14])
+		else:
+			# BND
+			info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE};RNAMES={RNAMES};".format(
+					PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
+					SVTYPE = i[3], 
+					RE = i[8][0],
+					RNAMES = i[9] if args.report_readid else "NULL")
+		if i[13] == "." or i[13] == None:
+			filter_lable = "PASS"
+		else:
+			filter_lable = "PASS" if float(i[13]) >= 5.0 else "q5"
+		file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 			CHR = i[0], 
 			POS = str(i[1]), 
 			ID = i[10],
 			REF = i[11],
 			ALT = i[12], 
 			QUAL = '.' if i[13] == None else i[13],
-			PASS = 'PASS' if i[15] == [] else i[15],
+			PASS = filter_lable,
 			INFO = info_list, 
-			FORMAT = "GT", 
-			GT = i[2]
+			FORMAT = "GT:DR:DV:PL:GQ", 
+			GT = i[2],
+			DR = i[8][1],
+			RE = i[8][0],
+			PL = i[8][2],
+			GQ = i[8][3]
 			))
 
 			
