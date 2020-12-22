@@ -198,14 +198,22 @@ def find_in_list(var_type, var_list, bias, pos, sv_end):
         
 
 def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, para, strands, var_type):
+    rname_list = []
     if var_type == 'INS' or var_type == 'DEL':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_indel(*call_gt_args)
+        rname_list = call_gt_args[3]
     if var_type == 'DUP':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_dup(*call_gt_args)
+        rname_list = call_gt_args[4]
     if var_type == 'INV':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_inv(*call_gt_args)
+        rname_list = call_gt_args[4]
     if var_type == 'TRA':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_tra(*call_gt_args)
+        rname_list = call_gt_args[5]
+    rname = ','.join(rname_list)
+    if rname == '':
+        rname = 'NULL'
     gt_list[idx] = [para.chrom,
                     para.pos,
                     genotype,
@@ -215,7 +223,7 @@ def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, para, strands, var_ty
                     para.cipos,
                     para.ciend,
                     [gt_re, DR, GL, GQ, QUAL],
-                    ','.join(call_gt_args[3]),
+                    rname,
                     para.id,
                     para.ref, 
                     para.alts,
