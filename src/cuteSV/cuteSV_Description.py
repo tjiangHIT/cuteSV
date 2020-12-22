@@ -2,17 +2,16 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang
- * @date: Apr 26th 2020
- * @version V1.0.8
+ * @date: Nov 2nd 2020
+ * @version V1.0.9
 '''
 import argparse
 
-VERSION = '1.0.8'
+VERSION = '1.0.9'
 
 class cuteSVdp(object):
 	'''
 	Detailed descriptions of cuteSV version and its parameters.
-
 	'''
 
 	USAGE="""\
@@ -113,11 +112,11 @@ def parseArgs(argv):
 		default = 500, 
 		type = int)
 	GroupSignaturesCollect.add_argument('-md', '--merge_del_threshold', 
-		help = "Maximum distance of deletion signals to be merged.[%(default)s]", 
+		help = "Maximum distance of deletion signals to be merged. In our paper, I used -md 500 to process HG002 real human sample data.[%(default)s]", 
 		default = 0, 
 		type = int)
 	GroupSignaturesCollect.add_argument('-mi', '--merge_ins_threshold', 
-		help = "Maximum distance of insertion signals to be merged.[%(default)s]", 
+		help = "Maximum distance of insertion signals to be merged. In our paper, I used -mi 500 to process HG002 real human sample data.[%(default)s]", 
 		default = 100, 
 		type = int)
 	# The min_read_len in last version is 2000.
