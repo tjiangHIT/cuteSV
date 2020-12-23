@@ -250,7 +250,7 @@ def generate_pvcf(args, result, contigINFO, argv):
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL")
 		elif i[3] == 'DEL':
-			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
+			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND=+-".format(
 				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
 				SVTYPE = i[3], 
 				SVLEN = i[4], 
@@ -258,17 +258,15 @@ def generate_pvcf(args, result, contigINFO, argv):
 				CIPOS = i[6][0] + ',' + i[6][1], 
 				CILEN = i[7][0] + ',' + i[7][1], 
 				RE = i[8][0],
-				RNAMES = i[9] if args.report_readid else "NULL",
-				STRAND = i[14])
+				RNAMES = i[9] if args.report_readid else "NULL")
 		elif i[3] == 'DUP':
-			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
+			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND=-+".format(
 				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
 				SVTYPE = i[3], 
 				SVLEN = i[4], 
 				END = i[5], 
 				RE = i[8][0],
-				RNAMES = i[9] if args.report_readid else "NULL",
-				STRAND = i[14])
+				RNAMES = i[9] if args.report_readid else "NULL")
 		elif i[3] == 'INV':
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
 				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 

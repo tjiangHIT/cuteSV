@@ -17,8 +17,8 @@ class Para(object):
         self.pos = parse_to_int(record.pos)
         self.svlen = parse_to_int(record.info['SVLEN']) if 'SVLEN' in record.info else 0
         self.end = parse_to_int(record.stop)
-        self.cipos = record.info['CIPOS'] if 'CIPOS' in record.info else (0, 0)
-        self.ciend = record.info['CIEND'] if 'CIEND' in record.info else (0, 0)
+        self.cipos = record.info['CIPOS'] if 'CIPOS' in record.info else ('.', '.')
+        self.ciend = record.info['CIEND'] if 'CIEND' in record.info else ('.', '.')
         self.id = record.id
         self.ref = record.ref
         self.alts = record.alts[0]
@@ -32,6 +32,10 @@ def parse_to_int(sth):
         return int(sth)
     elif isinstance(sth, list):
         return parse_to_int(sth[0])
+    elif isinstance(sth, tuple):
+        return parse_to_int(sth[0])
+    elif isinstance(sth, int):
+        return sth
     else:
         return sth
 
@@ -255,6 +259,7 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
     for record in vcf_reader.fetch():
         idx += 1
         sv_type, chrom, sv_chr2, pos, sv_end, sv_strand = parse_record(record)
+        para = Para(record)
         search_id_list = []
         if sv_type == 'TRA' and 'TRA' in sv_dict and chrom in sv_dict['TRA'] and sv_chr2 in sv_dict['TRA'][chrom]:
             search_id_list = sv_dict['TRA'][chrom][sv_chr2]
@@ -275,6 +280,7 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
                     search_id_list = sv_dict['INV'][chrom][strand_iter]
                     read_id_list = find_in_list(sv_type, search_id_list, max_cluster_bias_dict[sv_type], pos, sv_end)
                     if len(read_id_list) != 0:
+                        sv_strand = strand_iter
                         break
         #print(read_id_list)
         '''
