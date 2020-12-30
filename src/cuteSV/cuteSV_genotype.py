@@ -245,8 +245,8 @@ def generate_pvcf(args, result, contigINFO, argv):
 				SVTYPE = i[3], 
 				SVLEN = i[4], 
 				END = i[1], 
-				CIPOS = i[6][0] + ',' + i[6][1], 
-				CILEN = i[7][0] + ',' + i[7][1], 
+				CIPOS = str(i[6][0]) + ',' + str(i[6][1]), 
+				CILEN = str(i[7][0]) + ',' + str(i[7][1]), 
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL")
 		elif i[3] == 'DEL':
@@ -255,8 +255,8 @@ def generate_pvcf(args, result, contigINFO, argv):
 				SVTYPE = i[3], 
 				SVLEN = i[4], 
 				END = i[1] + abs(i[4]), 
-				CIPOS = i[6][0] + ',' + i[6][1], 
-				CILEN = i[7][0] + ',' + i[7][1], 
+				CIPOS = str(i[6][0]) + ',' + str(i[6][1]), 
+				CILEN = str(i[7][0]) + ',' + str(i[7][1]), 
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL")
 		elif i[3] == 'DUP':

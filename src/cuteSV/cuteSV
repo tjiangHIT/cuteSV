@@ -610,7 +610,7 @@ def main_ctrl(args, argv):
 			if pos < local_ref_len:
 				Task_list.append([i[0], pos, local_ref_len])
 
-	# '''
+	#'''
 	analysis_pools = Pool(processes=int(args.threads))
 	os.mkdir("%ssignatures"%temporary_dir)
 	for i in Task_list:
@@ -628,8 +628,8 @@ def main_ctrl(args, argv):
 		analysis_pools.map_async(multi_run_wrapper, para)
 	analysis_pools.close()
 	analysis_pools.join()
-	# '''
-	# '''
+	#'''
+	#'''
 	logging.info("Rebuilding signatures of structural variants.")
 	analysis_pools = Pool(processes=int(args.threads))
 	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
@@ -641,7 +641,7 @@ def main_ctrl(args, argv):
 		analysis_pools.map_async(exe, (i,))
 	analysis_pools.close()
 	analysis_pools.join()
-	# '''
+	#'''
 	result = list()
 
 	if args.Ivcf != None:
@@ -652,8 +652,11 @@ def main_ctrl(args, argv):
 		max_cluster_bias_dict['DUP'] = args.max_cluster_bias_DUP
 		max_cluster_bias_dict['INV'] = args.max_cluster_bias_INV
 		max_cluster_bias_dict['TRA'] = args.max_cluster_bias_TRA
+		threshold_gloab_dict = dict()
+		threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
+		threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
 		result = force_calling(args.input, args.Ivcf, args.output, temporary_dir,
-						 max_cluster_bias_dict, args.gt_round, args.threads)
+						 max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads)
 	else:
 		valuable_chr = load_valuable_chr(temporary_dir)
 
@@ -738,13 +741,6 @@ def main_ctrl(args, argv):
 
 		analysis_pools.close()
 		analysis_pools.join()
-
-		semi_result = list()
-		for res in result:
-			try:
-				semi_result += res.get()[0]
-			except:
-				pass
 		
 	logging.info("Writing to your output file.")
 
