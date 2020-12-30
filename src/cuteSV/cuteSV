@@ -610,7 +610,7 @@ def main_ctrl(args, argv):
 			if pos < local_ref_len:
 				Task_list.append([i[0], pos, local_ref_len])
 
-	# '''
+	#'''
 	analysis_pools = Pool(processes=int(args.threads))
 	os.mkdir("%ssignatures"%temporary_dir)
 	for i in Task_list:
@@ -628,8 +628,8 @@ def main_ctrl(args, argv):
 		analysis_pools.map_async(multi_run_wrapper, para)
 	analysis_pools.close()
 	analysis_pools.join()
-	# '''
-	# '''
+	#'''
+	#'''
 	logging.info("Rebuilding signatures of structural variants.")
 	analysis_pools = Pool(processes=int(args.threads))
 	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
@@ -641,7 +641,7 @@ def main_ctrl(args, argv):
 		analysis_pools.map_async(exe, (i,))
 	analysis_pools.close()
 	analysis_pools.join()
-	# '''
+	#'''
 	result = list()
 
 	if args.Ivcf != None:
