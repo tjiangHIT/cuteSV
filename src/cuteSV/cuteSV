@@ -652,8 +652,11 @@ def main_ctrl(args, argv):
 		max_cluster_bias_dict['DUP'] = args.max_cluster_bias_DUP
 		max_cluster_bias_dict['INV'] = args.max_cluster_bias_INV
 		max_cluster_bias_dict['TRA'] = args.max_cluster_bias_TRA
+		threshold_gloab_dict = dict()
+		threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
+		threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
 		result = force_calling(args.input, args.Ivcf, args.output, temporary_dir,
-						 max_cluster_bias_dict, args.gt_round, args.threads)
+						 max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads)
 	else:
 		valuable_chr = load_valuable_chr(temporary_dir)
 
@@ -738,13 +741,6 @@ def main_ctrl(args, argv):
 
 		analysis_pools.close()
 		analysis_pools.join()
-
-		semi_result = list()
-		for res in result:
-			try:
-				semi_result += res.get()[0]
-			except:
-				pass
 		
 	logging.info("Writing to your output file.")
 
