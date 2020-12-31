@@ -113,6 +113,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 ---
 ### Changelog
 
+	cutesv (v1.0.10):
+	1. Fix a bug leading to calculate wrong TRA positions.
+	2. Add a file format conversion script that enable to transfer the vcf file to bedpe file. 
+	3. Involve several clustering-and-refinement strategies in force calling function.
+	4. Assessed the performance of force calling with Giab HG002 sample datasets (including CLR, CCS, and ONT platforms).
+
 	cutesv (v1.0.9):
 	1. Change 0-based pos into 1-based pos in DUP in order to support bcftools conversion.
 	2. Correct REF and ALT fields. Adjust END value of INS to make it equal to the value of POS.
