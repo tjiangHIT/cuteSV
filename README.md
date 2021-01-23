@@ -40,6 +40,9 @@ The benchmark results of cuteSV on the HG002 human sample are below:
 BTW, we used [Truvari](https://github.com/spiralgenetics/truvari) to calculate the recall, precision, and f-measure.
 For more detailed implementation of SV benchmarks, we show an example [here](https://github.com/tjiangHIT/sv-benchmark).
 
+## Notice
+A new wiki page about diploid-assembly-based SV detection using cuteSV has been established. More details please see [here](https://github.com/tjiangHIT/cuteSV/wiki/Diploid-assembly-based-SV-detection-using-cuteSV).
+
 ---
 ### Dependence
 	
@@ -112,6 +115,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cutesv (v1.0.10):
+	1. Fix a bug leading to calculate wrong TRA positions.
+	2. Add a file format conversion script that enable to transfer the vcf file to bedpe file. 
+	3. Involve several clustering-and-refinement strategies in force calling function.
+	4. Assessed the performance of force calling with Giab HG002 sample datasets (including CLR, CCS, and ONT platforms).
 
 	cutesv (v1.0.9):
 	1. Change 0-based pos into 1-based pos in DUP in order to support bcftools conversion.

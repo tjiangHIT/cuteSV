@@ -4,8 +4,8 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang
- * @data: Nov 2nd 2020
- * @version V1.0.9
+ * @data: Dec 31th 2020
+ * @version V1.0.10
 '''
 
 import pysam
@@ -469,7 +469,14 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 		shift_ins = 0
 		softclip_left = 0
 		softclip_right = 0
+		hardclip_left = 0
+		hardclip_right = 0
 		shift_ins_read = 0
+		if read.cigar[0][0] == 4:
+			softclip_left = read.cigar[0][1]
+		if read.cigar[0][0] == 5:
+			hardclip_left = read.cigar[0][1]
+
 		for element in read.cigar:
 			if element[0] in [0, 7 ,8]:
 				shift_del += element[1]
@@ -488,12 +495,18 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 			if element[0] == 1 and element[1] >= SV_size:
 				shift_ins += 1
 				Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
-					str(read.query_sequence[shift_ins_read-element[1]:shift_ins_read])])
+					str(read.query_sequence[shift_ins_read-element[1]-hardclip_left:shift_ins_read-hardclip_left])])
 
-		if read.cigar[0][0] == 4:
-			softclip_left = read.cigar[0][1]
+		
 		if read.cigar[-1][0] == 4:
 			softclip_right = read.cigar[-1][1]
+		if read.cigar[-1][0] == 5:
+			hardclip_right = read.cigar[-1][1]
+
+		if hardclip_left != 0:
+			softclip_left = hardclip_left
+		if hardclip_right != 0:
+			softclip_right = hardclip_right
 
 	# ************Combine signals in same read********************
 	generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate, merge_ins_threshold)

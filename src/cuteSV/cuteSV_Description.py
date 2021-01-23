@@ -2,12 +2,12 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang
- * @date: Nov 2nd 2020
- * @version V1.0.9
+ * @date: Dec 31th 2020
+ * @version V1.0.10
 '''
 import argparse
 
-VERSION = '1.0.9'
+VERSION = '1.0.10'
 
 class cuteSVdp(object):
 	'''
