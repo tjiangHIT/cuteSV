@@ -268,7 +268,7 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
     return list(read_id_set), search_threshold
         
 
-def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, para, strands, var_type):
+def call(call_gt_args, idx, row_count, para, strands, var_type):
     rname_list = []
     if var_type == 'INS' or var_type == 'DEL':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_indel(*call_gt_args)
@@ -285,7 +285,7 @@ def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, para, strands, var_ty
     rname = ','.join(rname_list)
     if rname == '':
         rname = 'NULL'
-    gt_list[idx] = [para.chrom,
+    result = [para.chrom,
                     para.pos,
                     genotype,
                     var_type,
@@ -303,7 +303,10 @@ def call_gt_wrapper(call_gt_args, gt_list, idx, row_count, para, strands, var_ty
     ]
     if idx > 0 and idx % 5000 == 0:
         logging.info(str(math.floor(idx / row_count * 100)) + '% SV calls of the given vcf has been processed.')
+    return result
 
+def call_gt_wrapper(args):
+    return call(*args)
 
 def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, threads):
     logging.info('Check the parameter -Ivcf: OK.')
@@ -321,7 +324,8 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
     for record in vcf_reader.fetch():
         row_count += 1
     idx = -1
-    gt_list = Manager().list([[] for x in range(row_count)])
+    #gt_list = Manager().list([[] for x in range(row_count)])
+    gt_list = list()
     result = []
     process_pool = Pool(processes = threads)
     vcf_reader = VariantFile(ivcf_path, 'r')
@@ -363,37 +367,49 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
         para = Para(record)
         '''
         if sv_type == 'INS':
-            call_gt_wrapper([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'INS')
+            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INS')]
+            gt_list.append(call_gt_wrapper(fx_para))
         if sv_type == 'DEL':
-            call_gt_wrapper([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'DEL')
+            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'DEL')]
+            gt_list.append(call_gt_wrapper(fx_para))
         if sv_type == 'INV':
-            call_gt_wrapper([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'INV')
+            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INV')]
+            gt_list.append(call_gt_wrapper(fx_para))
         if sv_type == 'DUP':
-            call_gt_wrapper([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'DUP')
+            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'DUP')]
+            gt_list.append(call_gt_wrapper(fx_para))
         if sv_type == 'TRA':
-            call_gt_wrapper([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'TRA')
+            fx_para = [([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'TRA')]
+            gt_list.append(call_gt_wrapper(fx_para))
         '''
         #'''
         if sv_type == 'INS':
-            process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'INS'))
+            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INS')]
+            gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'DEL':
-            process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'DEL'))
+            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'DEL')]
+            gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'INV':
-            process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'INV'))
+            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INV')]
+            gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'DUP':
-            process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'DUP'))
+            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'DUP')]
+            gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'TRA':
-            process_pool.apply_async(call_gt_wrapper, 
-                args=([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias, gt_round], gt_list, idx, row_count, para, sv_strand, 'TRA'))
+            fx_para = [([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'TRA')]
+            gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         #'''
     process_pool.close()
     process_pool.join()
+    
+    semi_result = list()
+    for item in gt_list:
+        try:
+            semi_result.append(item.get()[0])
+        except:
+            pass
     logging.info('Finished force calling.')
-    return gt_list
+    return semi_result
 
 
 def run_fc(args):
