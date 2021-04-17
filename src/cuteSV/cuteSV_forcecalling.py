@@ -25,6 +25,18 @@ class Para(object):
         self.alts = record.alts[0]
         self.qual = record.qual
 
+def parse_svtype(sv_type):
+    if 'DEL' in sv_type:
+        return 'DEL'
+    if 'INS' in sv_type:
+        return 'INS'
+    if 'INV' in sv_type:
+        return 'INV'
+    if 'DUP' in sv_type:
+        return 'DUP'
+    if 'BND' in sv_type or 'TRA' in sv_type:
+        return 'TRA'
+    return 'NA'
 
 def parse_to_int(sth):
     if sth == None:
@@ -40,14 +52,11 @@ def parse_to_int(sth):
     else:
         return sth
 
-
 def parse_record(record):
-    sv_type = record.info['SVTYPE']
-    if sv_type == 'BND':
-        sv_type = 'TRA'
+    sv_type = parse_svtype(record.info['SVTYPE'])
     chrom1 = record.chrom
     start = parse_to_int(record.pos)
-    if (record.info['SVTYPE'] == 'INS' or record.info['SVTYPE'] == 'DEL') and 'SVLEN' in record.info:  ###
+    if (sv_type == 'INS' or sv_type == 'DEL') and 'SVLEN' in record.info:  ###
         end = abs(parse_to_int(record.info['SVLEN']))
     else:
         try:
@@ -332,6 +341,8 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
     for record in vcf_reader.fetch():
         idx += 1
         sv_type, chrom, sv_chr2, pos, sv_end, sv_strand = parse_record(record)
+        if sv_type not in ["DEL", "INS", "DUP", "INV", "TRA"]:
+            continue
         search_id_list = []
         if sv_type == 'TRA' and 'TRA' in sv_dict and chrom in sv_dict['TRA'] and sv_chr2 in sv_dict['TRA'][chrom]:
             search_id_list = sv_dict['TRA'][chrom][sv_chr2]
