@@ -759,7 +759,8 @@ def main_ctrl(args, argv):
 
 	if args.Ivcf != None:
 		result = sorted(result, key = lambda x:(x[0], x[1]))
-		generate_pvcf(args, result, contigINFO, argv)
+		ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
+		generate_pvcf(args, result, contigINFO, argv, ref_g)
 
 	else:
 		semi_result = list()
