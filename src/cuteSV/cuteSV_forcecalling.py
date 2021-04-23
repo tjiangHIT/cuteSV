@@ -1,4 +1,4 @@
-
+from cuteSV.cuteSV_genotype import cal_CIPOS
 from cuteSV.cuteSV_resolveINV import call_gt as call_gt_inv
 from cuteSV.cuteSV_resolveTRA import call_gt as call_gt_tra
 from cuteSV.cuteSV_resolveINDEL import call_gt as call_gt_indel
@@ -13,17 +13,37 @@ import logging
 
 
 class Para(object):
-    def __init__(self, record):
+    def __init__(self, record, CIPOS, CILEN):
         self.chrom = record.chrom
         self.pos = parse_to_int(record.pos)
         self.svlen = parse_to_int(record.info['SVLEN']) if 'SVLEN' in record.info else 0
         self.end = parse_to_int(record.stop)
-        self.cipos = record.info['CIPOS'] if 'CIPOS' in record.info else ('.', '.')
-        self.ciend = record.info['CIEND'] if 'CIEND' in record.info else ('.', '.')
+        if 'CIPOS' in record.info:
+            if str(record.info['CIPOS'][0]) == '0':
+                self.cipos = '-' + str(record.info['CIPOS'][0]) + ',' + str(record.info['CIPOS'][1])
+            else:
+                self.cipos = str(record.info['CIPOS'][0]) + ',' + str(record.info['CIPOS'][1])
+        else:
+            self.cipos = CIPOS
+        if 'CILEN' in record.info:
+            if str(record.info['CILEN'][0]) == '0':
+                self.cilen = '-' + str(record.info['CILEN'][0]) + ',' + str(record.info['CILEN'][1])
+            else:
+                self.cilen = str(record.info['CILEN'][0]) + ',' + str(record.info['CILEN'][1])
+        else:
+            self.cilen = CILEN
         self.id = record.id
         self.ref = record.ref
         self.alts = record.alts[0]
-        self.qual = record.qual
+        if 'SEQ' in record.info:
+            if record.info['SVTYPE'] == 'INS' and record.alts[0] == '<INS>':
+                self.alts = record.info['SEQ']
+            if record.info['SVTYPE'] == 'DEL' and record.alts[0] == '<DEL>':
+                self.ref = record.info['SEQ']
+        if record.qual == None:
+            self.qual = '.'
+        else:
+            self.qual = np.around(record.qual, 1)
 
 def parse_svtype(sv_type):
     if 'DEL' in sv_type:
@@ -100,6 +120,23 @@ def parse_sigs(var_type, work_dir):
             else:
                 var_dict[seq[1]] = []
                 var_dict[seq[1]].append([seq[1], int(seq[2]), int(seq[3]), seq[4]])
+    return var_dict
+
+
+def parse_inssigs(work_dir):
+    var_dict = dict()  #var_dict[chrom] = [chrom, start, end, read_id, seq]
+    with open(work_dir + 'INS.sigs', 'r') as f:
+        for line in f:
+            seq = line.strip().split('\t')
+            if len(seq) < 6:
+                cigar = '<INS>'
+            else:
+                cigar = seq[5]
+            if seq[1] in var_dict:
+                var_dict[seq[1]].append([seq[1], int(seq[2]), int(seq[3]), seq[4], cigar])
+            else:
+                var_dict[seq[1]] = []
+                var_dict[seq[1]].append([seq[1], int(seq[2]), int(seq[3]), seq[4], cigar])
     return var_dict
 
 
@@ -210,7 +247,7 @@ def find_in_list(var_type, var_list, bias, pos, sv_end):
 
 def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
     if len(var_list) == 0:
-        return [], 0
+        return [], 0, '<' + var_type + '>', '.,.', '.,.'
     left = 0
     right = len(var_list) - 1
     mid = 0
@@ -232,7 +269,7 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
             if i < len(var_list) - 1 and var_list[i + 1][1] - var_list[i][1] > bias and var_list[i + 1][1] - pos > 1000:
                 break
     if len(candidates) == 0:
-        return [], 0
+        return [], 0, '<' + var_type + '>', '.,.', '.,.'
     read_tag = dict()
     for element in candidates:
         if element[3] not in read_tag:
@@ -243,41 +280,85 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
     read_tag2SortedList = sorted(list(read_tag.values()), key = lambda x:x[2])
     global_len = [i[2] for i in read_tag2SortedList]
     DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP = threshold_gloab * np.mean(global_len)
+    if var_type == 'DEL':
+        last_len = read_tag2SortedList[0][2]
+        allele_collect = list()
+        allele_collect.append([[read_tag2SortedList[0][1]],  # start
+                                [read_tag2SortedList[0][2]],  # len
+                                [],  # support
+                                [read_tag2SortedList[0][3]]])  # read_id
+        for i in read_tag2SortedList[1:]:
+            if i[2] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP:
+                allele_collect[-1][2].append(len(allele_collect[-1][0]))
+                allele_collect.append([[],[],[],[]])
 
-    last_len = read_tag2SortedList[0][2]
-    allele_collect = list()
-    allele_collect.append([[read_tag2SortedList[0][1]],  # start
-                            [read_tag2SortedList[0][2]],  # len
-                            [],  # support
-                            [read_tag2SortedList[0][3]]])  # read_id
-    for i in read_tag2SortedList[1:]:
-        if i[2] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP:
-            allele_collect[-1][2].append(len(allele_collect[-1][0]))
-            allele_collect.append([[],[],[],[]])
+            allele_collect[-1][0].append(i[1])
+            allele_collect[-1][1].append(i[2])
+            allele_collect[-1][3].append(i[3])
+            last_len = i[2]
+        allele_collect[-1][2].append(len(allele_collect[-1][0]))
+        allele_sort = sorted(allele_collect, key = lambda x:x[2])
 
-        allele_collect[-1][0].append(i[1])
-        allele_collect[-1][1].append(i[2])
-        allele_collect[-1][3].append(i[3])
-        last_len = i[2]
-    allele_collect[-1][2].append(len(allele_collect[-1][0]))
-    allele_sort = sorted(allele_collect, key = lambda x:x[2])
+        allele_idx = 0
+        nearest_gap = 0x3f3f3f3f
+        for i in range(len(allele_sort)):
+            allele = allele_sort[i]
+            signalLen = np.mean(allele[1])
+            if abs(signalLen - sv_end) < nearest_gap:
+                allele_idx = i
+                nearest_gap = abs(signalLen - sv_end)
+        read_id_set = set(allele_sort[allele_idx][3])
+        CIPOS = cal_CIPOS(np.std(allele_sort[allele_idx][0]), len(allele_sort[allele_idx][0]))
+        CILEN = cal_CIPOS(np.std(allele_sort[allele_idx][1]), len(allele_sort[allele_idx][1]))
+        seq = '<DEL>'
+        search_start = min(allele_sort[allele_idx][0])
+        search_end = max(allele_sort[allele_idx][0])
+        search_threshold = min(abs(pos - search_start), abs(pos - search_end))
+    else:
+        last_len = read_tag2SortedList[0][2]
+        allele_collect = list()
+        allele_collect.append([[read_tag2SortedList[0][1]],  # start
+                                [read_tag2SortedList[0][2]],  # len
+                                [],  # support
+                                [read_tag2SortedList[0][3]],  # read_id
+                                [read_tag2SortedList[0][4]]])  # ins_seq
+        for i in read_tag2SortedList[1:]:
+            if i[2] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP:
+                allele_collect[-1][2].append(len(allele_collect[-1][0]))
+                allele_collect.append([[],[],[],[],[]])
 
-    allele_idx = 0
-    nearest_gap = 0x3f3f3f3f
-    for i in range(len(allele_sort)):
-        allele = allele_sort[i]
-        signalLen = np.mean(allele[1])
-        if abs(signalLen - sv_end) < nearest_gap:
-            allele_idx = i
-            nearest_gap = abs(signalLen - sv_end)
-    read_id_set = set(allele_sort[allele_idx][3])
-    search_start = min(allele_sort[allele_idx][0])
-    search_end = max(allele_sort[allele_idx][0])
-    search_threshold = min(abs(pos - search_start), abs(pos - search_end))
-    return list(read_id_set), search_threshold
+            allele_collect[-1][0].append(i[1])
+            allele_collect[-1][1].append(i[2])
+            allele_collect[-1][3].append(i[3])
+            allele_collect[-1][4].append(i[4])
+            last_len = i[2]
+        allele_collect[-1][2].append(len(allele_collect[-1][0]))
+        allele_sort = sorted(allele_collect, key = lambda x:x[2])
+
+        allele_idx = 0
+        nearest_gap = 0x3f3f3f3f
+        for i in range(len(allele_sort)):
+            allele = allele_sort[i]
+            signalLen = np.mean(allele[1])
+            if abs(signalLen - sv_end) < nearest_gap:
+                allele_idx = i
+                nearest_gap = abs(signalLen - sv_end)
+        read_id_set = set(allele_sort[allele_idx][3])
+        CIPOS = cal_CIPOS(np.std(allele_sort[allele_idx][0]), len(allele_sort[allele_idx][0]))
+        CILEN = cal_CIPOS(np.std(allele_sort[allele_idx][1]), len(allele_sort[allele_idx][1]))
+        seq = '<INS>'
+        for i in allele_sort[allele_idx][4]:
+            signalLen = np.mean(allele_sort[allele_idx][1])
+            if len(i) >= int(signalLen):
+                seq = i[0:int(signalLen)]
+
+        search_start = min(allele_sort[allele_idx][0])
+        search_end = max(allele_sort[allele_idx][0])
+        search_threshold = min(abs(pos - search_start), abs(pos - search_end))
+    return list(read_id_set), search_threshold, seq, CIPOS, CILEN
         
 
-def call(call_gt_args, idx, row_count, para, strands, var_type):
+def call(call_gt_args, idx, row_count, para, strands, seq, var_type):
     rname_list = []
     if var_type == 'INS' or var_type == 'DEL':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_indel(*call_gt_args)
@@ -301,14 +382,15 @@ def call(call_gt_args, idx, row_count, para, strands, var_type):
                     para.svlen,
                     para.end,
                     para.cipos,
-                    para.ciend,
+                    para.cilen,
                     [gt_re, DR, GL, GQ, QUAL],
                     rname,
                     para.id,
                     para.ref, 
                     para.alts,
                     para.qual,
-                    strands
+                    strands,
+                    seq
     ]
     if idx > 0 and idx % 5000 == 0:
         logging.info(str(math.floor(idx / row_count * 100)) + '% SV calls of the given vcf has been processed.')
@@ -323,8 +405,9 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
     #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     sv_dict = dict()
     #'''
-    for sv_type in ["DEL", "INS", "DUP"]:
+    for sv_type in ["DEL", "DUP"]:
         sv_dict[sv_type] = parse_sigs(sv_type, sigs_dir)
+    sv_dict['INS'] = parse_inssigs(sigs_dir)
     sv_dict['INV'] = parse_invsigs(sigs_dir)
     sv_dict['TRA'] = parse_trasigs(sigs_dir)
     #'''
@@ -358,10 +441,12 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
             search_id_list = sv_dict[sv_type][chrom]
         max_cluster_bias = 0
         if sv_type == 'INS' or sv_type == 'DEL':
-            read_id_list, max_cluster_bias = find_in_indel_list(sv_type, search_id_list, max_cluster_bias_dict[sv_type], pos, sv_end, threshold_gloab_dict[sv_type])
+            read_id_list, max_cluster_bias, indel_seq, CIPOS, CILEN = find_in_indel_list(sv_type, search_id_list, max_cluster_bias_dict[sv_type], pos, sv_end, threshold_gloab_dict[sv_type])
         else:
             read_id_list, max_cluster_bias = find_in_list(sv_type, search_id_list, max_cluster_bias_dict[sv_type], pos, sv_end)
-        if sv_type == 'INV' and len(read_id_list) == 0:
+            CIPOS = '.,.'
+            CILEN = '.,.'
+        if sv_type == 'INV' and 'INV' in sv_dict and chrom in sv_dict['INV'] and len(read_id_list) == 0:
             for strand_iter in sv_dict['INV'][chrom]:
                 if strand_iter != sv_strand:
                     search_id_list = sv_dict['INV'][chrom][strand_iter]
@@ -374,8 +459,7 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
             max_cluster_bias = max(1000, max_cluster_bias)
         else:
             max_cluster_bias = max(max_cluster_bias_dict[sv_type], max_cluster_bias)
-
-        para = Para(record)
+        para = Para(record, CIPOS, CILEN)
         '''
         if sv_type == 'INS':
             fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INS')]
@@ -395,19 +479,19 @@ def force_calling(bam_path, ivcf_path, output_path, sigs_dir, max_cluster_bias_d
         '''
         #'''
         if sv_type == 'INS':
-            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INS')]
+            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, indel_seq, 'INS')]
             gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'DEL':
-            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'DEL')]
+            fx_para = [([bam_path, pos, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, '<DEL>', 'DEL')]
             gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'INV':
-            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'INV')]
+            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, '<INV>', 'INV')]
             gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'DUP':
-            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'DUP')]
+            fx_para = [([bam_path, pos, sv_end, chrom, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, '<DUP>', 'DUP')]
             gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         if sv_type == 'TRA':
-            fx_para = [([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, 'TRA')]
+            fx_para = [([bam_path, pos, sv_end, chrom, sv_chr2, read_id_list, max_cluster_bias, gt_round], idx, row_count, para, sv_strand, '<TRA>', 'TRA')]
             gt_list.append(process_pool.map_async(call_gt_wrapper, fx_para))
         #'''
     process_pool.close()
