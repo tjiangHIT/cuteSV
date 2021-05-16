@@ -231,7 +231,10 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 		pos = int(seq[2])
 		indel_len = int(seq[3])
 		read_id = seq[4]
-		ins_seq = seq[5]
+		try:
+			ins_seq = seq[5]
+		except:
+			ins_seq = ''
 		
 		if pos - semi_ins_cluster[-1][0] > max_cluster_bias:
 			if len(semi_ins_cluster) >= read_count:

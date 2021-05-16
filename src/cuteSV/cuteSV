@@ -388,7 +388,7 @@ def organize_split_signal(chr, primary_info, Supplementary_info, total_L, SV_siz
 						local_start+local_set[2], local_chr, local_strand])
 				except:
 					pass
-	if len(split_read) <= max_split_parts:
+	if len(split_read) <= max_split_parts or max_split_parts == -1:
 		analysis_split_read(split_read, SV_size, total_L, read_name, candidate, MaxSize, query)
 
 def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_dis):
@@ -645,11 +645,11 @@ def main_ctrl(args, argv):
 	#'''
 	logging.info("Rebuilding signatures of structural variants.")
 	analysis_pools = Pool(processes=int(args.threads))
-	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u | sort -k 2,2 -k 3,3n > %sDEL.sigs"%(temporary_dir, temporary_dir))
-	cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u | sort -k 2,2 -k 3,3n > %sINS.sigs"%(temporary_dir, temporary_dir))
-	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u | sort -k 2,2 -k 3,3 -k 4,4n > %sINV.sigs"%(temporary_dir, temporary_dir))
-	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u | sort -k 2,2 -k 5,5 -k 3,3 -k 4,4n > %sTRA.sigs"%(temporary_dir, temporary_dir))
-	cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u | sort -k 1,1r -k 2,2 -k 3,4n > %sDUP.sigs"%(temporary_dir, temporary_dir))
+	cmd_del = ("cat %ssignatures/*.bed | grep DEL | sort -u -T %s | sort -k 2,2 -k 3,3n -T %s > %sDEL.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
+	cmd_ins = ("cat %ssignatures/*.bed | grep INS | sort -u -T %s | sort -k 2,2 -k 3,3n -T %s > %sINS.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
+	cmd_inv = ("cat %ssignatures/*.bed | grep INV | sort -u -T %s | sort -k 2,2 -k 3,3 -k 4,4n -T %s > %sINV.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
+	cmd_tra = ("cat %ssignatures/*.bed | grep TRA | sort -u -T %s | sort -k 2,2 -k 5,5 -k 3,3 -k 4,4n -T %s > %sTRA.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
+	cmd_dup = ("cat %ssignatures/*.bed | grep DUP | sort -u -T %s | sort -k 1,1r -k 2,2 -k 3,4n -T %s > %sDUP.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
 	for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv]:
 		analysis_pools.map_async(exe, (i,))
 	analysis_pools.close()
