@@ -84,7 +84,7 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 |--sample| Sample name/id |NULL|
 |--retain_work_dir|Enable to retain temporary folder and files.|False|
 |--report_readid|Enable to report supporting read ids for each SV.|False|
-|--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored.|7|
+|--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored. All split segments are considered when using -1. (Recommand -1 when applying assembly-based alignment.)|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
 |--min_read_len|Ignores reads that only report alignments with not longer than bp.|500|
 |--merge_del_threshold|Maximum distance of deletion signals to be merged.|0|
@@ -115,6 +115,16 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cutesv (v1.0.11):
+	1. Add a script for post-processing typically cuteSV callsets from assembly-based alignments to generate the diploid-assembly-based SV calls.
+	2. Give a wiki page for helping uses to achieve assembly-based SV calling.
+	3. Improve acquirement of inserted sequence in a read whose primary alignment contains hardclips.
+	4. Improve the performance of force calling.
+	5. Enable cuteSV to output allele sequences when performing force calling with the VCF generated from other callers. 
+	6. Fix bugs to avoid the error raised by abnormal SV type.
+	7. Update the sort commands used in cuteSV.  
+	8. Update the parameter of --max_split_parts.
 
 	cutesv (v1.0.10):
 	1. Fix a bug leading to calculate wrong TRA positions.
