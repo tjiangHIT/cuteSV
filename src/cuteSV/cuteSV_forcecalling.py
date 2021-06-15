@@ -76,30 +76,40 @@ def parse_record(record):
     sv_type = parse_svtype(record.info['SVTYPE'])
     chrom1 = record.chrom
     start = parse_to_int(record.pos)
+    chrom2 = ''
+    end = 0
     if (sv_type == 'INS' or sv_type == 'DEL') and 'SVLEN' in record.info:  ###
         end = abs(parse_to_int(record.info['SVLEN']))
     else:
         try:
             end = parse_to_int(record.stop)
         except:
-            pass   
+            pass
     if sv_type == 'TRA':
-        tra_alt = str(record.alts[0])
-        if tra_alt[0] == 'N':
-            if tra_alt[1] == '[':
-                tra_type = 'A'
+        if 'CHR2' in record.info:
+            chrom2 = record.info['CHR2']
+        if 'END' in record.info:
+            end = parse_to_int(record.info['END'])
+        try:
+            tra_alt = str(record.alts[0])
+            if tra_alt[0] == 'N':
+                if tra_alt[1] == '[':
+                    tra_type = 'A'
+                else:
+                    tra_type = 'B'
+            elif tra_alt[0] == '[':
+                tra_type = 'C'
             else:
-                tra_type = 'B'
-        elif tra_alt[0] == '[':
-            tra_type = 'C'
-        else:
-            tra_type = 'D'
-        if tra_alt[0] == 'N':
-            tra_alt = tra_alt[2:-1]
-        else:
-            tra_alt = tra_alt[1:-2]
-        chrom2 = tra_alt.split(':')[0]
-        end = int(tra_alt.split(':')[1])
+                tra_type = 'D'
+            if tra_alt[0] == 'N':
+                tra_alt = tra_alt[2:-1]
+            else:
+                tra_alt = tra_alt[1:-2]
+            if ':' in tra_alt:
+                chrom2 = tra_alt.split(':')[0]
+                end = int(tra_alt.split(':')[1])
+        except:
+            pass
     strand = '.'
     if sv_type != 'TRA':
         chrom2 = record.chrom
@@ -372,6 +382,8 @@ def call(call_gt_args, idx, row_count, para, strands, seq, var_type):
     if var_type == 'TRA':
         gt_re, DR, genotype, GL, GQ, QUAL = call_gt_tra(*call_gt_args)
         rname_list = call_gt_args[5]
+        if para.alts == '<TRA>' or para.alts == '<BND>':
+            seq = str(call_gt_args[4]) + ':' + str(call_gt_args[2]) # chr2:end
     rname = ','.join(rname_list)
     if rname == '':
         rname = 'NULL'
