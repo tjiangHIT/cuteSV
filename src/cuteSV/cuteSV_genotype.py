@@ -367,6 +367,10 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 					SVTYPE = i[3], 
 					RE = i[8][0],
 					RNAMES = i[9] if args.report_readid else "NULL")
+			if ':' in i[15]:
+				info_list += ";CHR2={CHR2};END={END}".format(
+					CHR2 = i[15].split(':')[0],
+					END = i[15].split(':')[1])
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = str(i[1]), 
