@@ -63,7 +63,7 @@ def parseArgs(argv):
 	parser.add_argument("input", 
 		metavar="[BAM]", 
 		type = str, 
-		help ="Sorted .bam file form NGMLR or Minimap2.")
+		help ="Sorted .bam file from NGMLR or Minimap2.")
 	parser.add_argument("reference",  
 		type = str, 
 		help ="The reference genome in fasta format.")
