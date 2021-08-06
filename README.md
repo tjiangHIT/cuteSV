@@ -91,7 +91,7 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 |--merge_ins_threshold|Maximum distance of insertion signals to be merged.|100|
 |--min_support|Minimum number of reads that support a SV to be reported.|10|
 |--min_size|Minimum length of SV to be reported.|30|
-|--max_size|Minimum length of SV to be reported.|100000|
+|--max_size|Maximum size of SV to be reported. Full length SVs are reported when using -1.|100000|
 |--genotype|Enable to generate genotypes.|False|
 |--gt_round|Maximum round of iteration for alignments searching if perform genotyping.|500|
 |-Ivcf|Optional given vcf file. Enable to perform force calling.|NULL|
