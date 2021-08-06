@@ -202,7 +202,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 						if ele_2[4] not in candidate["INS"]:
 							candidate["INS"][ele_2[4]] = list()
 
-						if ele_2[2] - ele_1[3] <= 100 and ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize:
+						if ele_2[2] - ele_1[3] <= 100 and (ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize or MaxSize == -1):
 							candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, 
 																ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
 																read_name,
@@ -211,7 +211,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 						if ele_2[4] not in candidate["DEL"]:
 							candidate["DEL"][ele_2[4]] = list()
 
-						if ele_2[0] - ele_1[1] <= 100 and ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize:
+						if ele_2[0] - ele_1[1] <= 100 and (ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize or MaxSize == -1):
 							candidate["DEL"][ele_2[4]].append([ele_1[3], 
 																ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], 
 																read_name])
@@ -329,7 +329,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 				# print(ele_2)
 				dis_ref = ele_2[2] - ele_1[3]
 				dis_read = ele_2[0] - ele_1[1]
-				if dis_ref < 100 and dis_read - dis_ref >= SV_size and dis_read - dis_ref <= MaxSize:
+				if dis_ref < 100 and dis_read - dis_ref >= SV_size and (dis_read - dis_ref <= MaxSize or MaxSize == -1):
 					# print(min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name)
 					if ele_1[4] not in candidate['INS']:
 						candidate['INS'][ele_1[4]] = list()

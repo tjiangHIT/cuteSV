@@ -103,9 +103,10 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 	file = open(args.output, 'w')
 	Generation_VCF_header(file, contigINFO, args.sample, argv)
 	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
-
 	for i in semi_result:
 		if i[1] in ["DEL", "INS"]:
+			if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
+				continue
 			if i[1] == "INS":
 				cal_end = int(i[2]) + 1
 			else:
@@ -142,6 +143,8 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				PASS = filter_lable))
 			svid[i[1]] += 1
 		elif i[1] == "DUP":
+			if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
+				continue
 			cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND=-+;RNAMES={RNAMES}".format(
 				PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
@@ -171,6 +174,8 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				PASS = filter_lable))
 			svid[i[1]] += 1
 		elif i[1] == "INV":
+			if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
+				continue
 			cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND};RNAMES={RNAMES}".format(
 				PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
@@ -244,7 +249,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 		else:
 			filter_lable = "PASS" if float(i[13]) >= 5.0 else "q5"
 		if i[3] == 'INS':
-			if abs(i[4]) > args.max_size:
+			if abs(i[4]) > args.max_size and args.max_size != -1:
 				continue
 			elif i[12] == '<INS>':
 				ref = str(ref_g[i[0]].seq[max(i[1]-2, 0)])
@@ -278,7 +283,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				GQ = i[8][3]
 				))
 		elif i[3] == 'DEL':
-			if abs(i[4]) > args.max_size:
+			if abs(i[4]) > args.max_size and args.max_size != -1:
 				continue
 			elif i[12] == '<DEL>':
 				ref = str(ref_g[i[0]].seq[max(i[1]-2, 0):int(i[1])-1-int(i[4])])
@@ -312,6 +317,8 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				GQ = i[8][3]
 				))
 		elif i[3] == 'DUP':
+			if abs(i[4]) > args.max_size and args.max_size != -1:
+				continue
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND=-+".format(
 				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
 				SVTYPE = i[3], 
@@ -336,6 +343,8 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				GQ = i[8][3]
 				))
 		elif i[3] == 'INV':
+			if abs(i[4]) > args.max_size and args.max_size != -1:
+				continue
 			info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND={STRAND}".format(
 				PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
 				SVTYPE = i[3], 
