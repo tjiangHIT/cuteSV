@@ -121,7 +121,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 				inv_len = breakpoint_2 - breakpoint_1
 				if inv_len >= sv_size and max_count_id >= read_count:
 					# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
-					if inv_len <= MaxSize:
+					if inv_len <= MaxSize or MaxSize == -1:
 						if action:
 							import time
 							# time_start = time.time()
@@ -172,7 +172,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 		inv_len = breakpoint_2 - breakpoint_1
 		if inv_len >= sv_size and max_count_id >= read_count:
 			# candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
-			if inv_len <= MaxSize:
+			if inv_len <= MaxSize or MaxSize == -1:
 				if action:
 					import time
 					# time_start = time.time()

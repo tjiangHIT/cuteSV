@@ -134,7 +134,7 @@ def parseArgs(argv):
 		default = 30, 
 		type = int)
 	GroupSVCluster.add_argument('-L', '--max_size', 
-		help = "Maximum size of SV to be reported.[%(default)s]", 
+		help = "Maximum size of SV to be reported. All SVs are reported when using -1. [%(default)s]", 
 		default = 100000, 
 		type = int)
 	GroupSVCluster.add_argument('-sl', '--min_siglength', 

@@ -87,7 +87,7 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 		breakpoint_2 = int(sum(breakpoint_2)/len(semi_dup_cluster[low_b:up_b]))
 
 
-	if sv_size <= breakpoint_2 - breakpoint_1 <= MaxSize:
+	if sv_size <= breakpoint_2 - breakpoint_1 <= MaxSize or (sv_size <= breakpoint_2 - breakpoint_1 and MaxSize == -1):
 		if action:
 			import time
 			# time_start = time.time()
