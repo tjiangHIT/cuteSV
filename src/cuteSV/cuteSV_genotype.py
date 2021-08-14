@@ -101,6 +101,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 	svid["INV"] = 0
 
 	file = open(args.output, 'w')
+	action = args.genotype
 	Generation_VCF_header(file, contigINFO, args.sample, argv)
 	file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
 	for i in semi_result:
@@ -120,6 +121,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				CILEN = i[6], 
 				RE = i[4],
 				RNAMES = i[12] if args.report_readid else "NULL")
+			if action:
+				try:
+					info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[7])), 4))
+				except:
+					pass
 			if i[1] =="DEL":
 				info_list += ";STRAND=+-"
 			if i[11] == "." or i[11] == None:
@@ -153,6 +159,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				END = str(cal_end), 
 				RE = i[4],
 				RNAMES = i[10] if args.report_readid else "NULL")
+			if action:
+				try:
+					info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[5])), 4))
+				except:
+					pass
 			if i[9] == ".":
 				filter_lable = "PASS"
 			else:
@@ -185,6 +196,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				RE = i[4],
 				STRAND = i[7],
 				RNAMES = i[11] if args.report_readid else "NULL")
+			if action:
+				try:
+					info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[5])), 4))
+				except:
+					pass
 			if i[10] == ".":
 				filter_lable = "PASS"
 			else:
@@ -215,6 +231,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 				# END = str(int(i[4]) + 1), 
 				RE = i[5],
 				RNAMES = i[11] if args.report_readid else "NULL")
+			if action:
+				try:
+					info_list += ";AF=" + str(round(int(i[5]) / (int(i[5]) + int(i[6])), 4))
+				except:
+					pass
 			if i[10] == ".":
 				filter_lable = "PASS"
 			else:
@@ -266,6 +287,10 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				CILEN = i[7], 
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL")
+			try:
+				info_list += ";AF=" + str(round(i[8][0] / (i[8][0] + i[8][1]), 4))
+			except:
+				pass
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = str(i[1]), 
@@ -300,6 +325,10 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				CILEN = i[7], 
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL")
+			try:
+				info_list += ";AF=" + str(round(i[8][0] / (i[8][0] + i[8][1]), 4))
+			except:
+				pass
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = str(i[1]), 
@@ -326,6 +355,10 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				END = i[5], 
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL")
+			try:
+				info_list += ";AF=" + str(round(i[8][0] / (i[8][0] + i[8][1]), 4))
+			except:
+				pass
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = str(i[1]), 
@@ -353,6 +386,10 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 				RE = i[8][0],
 				RNAMES = i[9] if args.report_readid else "NULL",
 				STRAND = i[14])
+			try:
+				info_list += ";AF=" + str(round(i[8][0] / (i[8][0] + i[8][1]), 4))
+			except:
+				pass
 			file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
 				CHR = i[0], 
 				POS = str(i[1]), 
@@ -376,6 +413,10 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
 					SVTYPE = i[3], 
 					RE = i[8][0],
 					RNAMES = i[9] if args.report_readid else "NULL")
+			try:
+				info_list += ";AF=" + str(round(i[8][0] / (i[8][0] + i[8][1]), 4))
+			except:
+				pass
 			if ':' in i[15]:
 				info_list += ";CHR2={CHR2};END={END}".format(
 					CHR2 = i[15].split(':')[0],
