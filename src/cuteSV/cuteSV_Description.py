@@ -271,6 +271,7 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##INFO=<ID=RE,Number=1,Type=Integer,Description=\"Number of read support this record\">\n")
 	file.write("##INFO=<ID=STRAND,Number=A,Type=String,Description=\"Strand orientation of the adjacency in BEDPE format (DEL:+-, DUP:-+, INV:++/--)\">\n")
 	file.write("##INFO=<ID=RNAMES,Number=.,Type=String,Description=\"Supporting read names of SVs (comma separated)\">\n")
+	file.write("##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency.\">\n")
 	file.write("##FILTER=<ID=q5,Description=\"Quality below 5\">\n")
 	# FORMAT
 	# file.write("\n")
