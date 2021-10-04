@@ -119,7 +119,7 @@ Please cite the manuscript of cuteSV before using these callsets.
 	cuteSV (v1.0.12):
 	1. Add Allele frequency (AF) info in the outputs.
 	2. Fix an index error when force calling BND variants.
-	3. Modify the parameter of --max_size and enable to reprort full length of SVs.
+	3. Modify the parameter of --max_size and enable to report full length of SVs.
 
 	cuteSV (v1.0.11):
 	1. Add a script for post-processing typically cuteSV callsets from assembly-based alignments to generate the diploid-assembly-based SV calls.
