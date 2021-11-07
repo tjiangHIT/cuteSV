@@ -454,7 +454,9 @@ def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_di
 												read_name])
 
 
-def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
+def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, candidate, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, RegionStart):
+	if read.reference_start<RegionStart:#remove duplicated cross region reads
+		return 0
 	if read.query_length < min_read_len:
 		return 0
 
@@ -546,7 +548,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
 	for read in samfile.fetch(Chr_name, task[1], task[2]):
 		parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, 
 					min_read_len, candidate, min_siglength, merge_del_threshold, 
-					merge_ins_threshold, MaxSize)
+					merge_ins_threshold, MaxSize,task[1])
 	samfile.close()
 
 	skip_written = 0
