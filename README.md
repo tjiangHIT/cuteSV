@@ -116,7 +116,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 ---
 ### Changelog
 
-	cutesv (v1.0.11):
+	cuteSV (v1.0.12):
+	1. Add Allele frequency (AF) info in the outputs.
+	2. Fix an index error when force calling BND variants.
+	3. Modify the parameter of --max_size and enable to report full length of SVs.
+
+	cuteSV (v1.0.11):
 	1. Add a script for post-processing typically cuteSV callsets from assembly-based alignments to generate the diploid-assembly-based SV calls.
 	2. Give a wiki page for helping uses to achieve assembly-based SV calling.
 	3. Improve acquirement of inserted sequence in a read whose primary alignment contains hardclips.
@@ -126,13 +131,13 @@ Please cite the manuscript of cuteSV before using these callsets.
 	7. Update the sort commands used in cuteSV.  
 	8. Update the parameter of --max_split_parts.
 
-	cutesv (v1.0.10):
+	cuteSV (v1.0.10):
 	1. Fix a bug leading to calculate wrong TRA positions.
 	2. Add a file format conversion script that enable to transfer the vcf file to bedpe file. 
 	3. Involve several clustering-and-refinement strategies in force calling function.
 	4. Assessed the performance of force calling with Giab HG002 sample datasets (including CLR, CCS, and ONT platforms).
 
-	cutesv (v1.0.9):
+	cuteSV (v1.0.9):
 	1. Change 0-based pos into 1-based pos in DUP in order to support bcftools conversion.
 	2. Correct REF and ALT fields. Adjust END value of INS to make it equal to the value of POS.
 	3. Improve the description of errors.
@@ -142,7 +147,7 @@ Please cite the manuscript of cuteSV before using these callsets.
 	7. Add force calling function and enable cuteSV to perform population-based SV calling.
 	8. Fix several minor bugs.
 
-	cutesv (v1.0.8):
+	cuteSV (v1.0.8):
 	1. Rewirte the function of ins/del signatures clustering.
 	2. Update the recommandation parameters for different sequencing datasets.
 	3. Replace <DEL>/<INS> with its variant allele sequence, which needs the reference genome sequence as input.
@@ -164,7 +169,6 @@ Please cite the manuscript of cuteSV before using these callsets.
 	2.Remove parameter --merge_threshold.
 	3.Fix bugs in inversion and translocation calling.
 	4.Add new option for specificly setting the maximum size of SV to be discovered. The default value is 100,000 bp. 
-
 
 	cuteSV (v1.0.4):
 	1.Add a new option for specificly setting the threshold of SV signals merging in the same read. The default parameter is 500 bp. You can reduce it for high-quality sequencing datasets like PacBio HiFi (CCS).
