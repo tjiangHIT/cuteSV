@@ -48,7 +48,11 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
 			semi_dup_cluster = []
 			semi_dup_cluster.append([pos_1, pos_2, read_id])
 		else:
-			semi_dup_cluster.append([pos_1, pos_2, read_id])
+			if semi_dup_cluster[-1][0] == semi_dup_cluster[-1][1] == 0:
+				semi_dup_cluster = []
+				semi_dup_cluster.append([pos_1, pos_2, read_id])
+			else:
+				semi_dup_cluster.append([pos_1, pos_2, read_id])
 
 	if len(semi_dup_cluster) >= read_count:
 		if semi_dup_cluster[-1][0] == semi_dup_cluster[-1][1] == 0:

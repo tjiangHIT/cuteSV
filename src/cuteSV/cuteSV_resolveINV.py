@@ -69,7 +69,11 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 			semi_inv_cluster = []
 			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id, strand])
 		else:
-			semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id, strand])
+			if semi_inv_cluster[-1][0] == semi_inv_cluster[-1][1] == 0:
+				semi_inv_cluster = []
+				semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id, strand])
+			else:
+				semi_inv_cluster.append([breakpoint_1_in_read, breakpoint_2_in_read, read_id, strand])
 
 	if len(semi_inv_cluster) >= read_count:
 		if semi_inv_cluster[-1][0] == semi_inv_cluster[-1][1] == 0:
