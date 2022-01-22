@@ -463,7 +463,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 
 	process_signal = detect_flag(read.flag)
 	if read.mapq >= min_mapq:
-		pos_start = read.reference_start
+		pos_start = read.reference_start # 0-based
 		pos_end = read.reference_end
 		shift_del = 0
 		shift_ins = 0
@@ -494,7 +494,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 				shift_ins += element[1]
 			if element[0] == 1 and element[1] >= SV_size:
 				shift_ins += 1
-				Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
+				Combine_sig_in_same_read_ins.append([pos_start+shift_ins-1, element[1],
 					str(read.query_sequence[shift_ins_read-element[1]-hardclip_left:shift_ins_read-hardclip_left])])
 
 		
