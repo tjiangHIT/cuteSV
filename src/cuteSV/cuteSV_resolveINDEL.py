@@ -77,7 +77,11 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
-			semi_del_cluster.append([pos, indel_len, read_id])
+			if semi_del_cluster[-1][0] == semi_del_cluster[-1][1] == 0:
+				semi_del_cluster = []
+				semi_del_cluster.append([pos, indel_len, read_id])
+			else:
+				semi_del_cluster.append([pos, indel_len, read_id])
 
 	if len(semi_del_cluster) >= read_count:
 		if semi_del_cluster[-1][0] == semi_del_cluster[-1][1] == 0:
@@ -256,7 +260,11 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 		else:
-			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
+			if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:
+				semi_ins_cluster = []
+				semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
+			else:
+				semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 
 	if len(semi_ins_cluster) >= read_count:
 		if semi_ins_cluster[-1][0] == semi_ins_cluster[-1][1] == 0:

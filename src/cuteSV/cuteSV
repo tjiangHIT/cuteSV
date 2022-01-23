@@ -493,8 +493,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 			if element[0] in [0, 2, 7, 8]:
 				shift_ins += element[1]
 			if element[0] == 1 and element[1] >= SV_size:
-				shift_ins += 1
-				Combine_sig_in_same_read_ins.append([pos_start+shift_ins-1, element[1],
+				Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
 					str(read.query_sequence[shift_ins_read-element[1]-hardclip_left:shift_ins_read-hardclip_left])])
 
 		

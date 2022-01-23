@@ -62,7 +62,11 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 			semi_tra_cluster = []
 			semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
 		else:
-			semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
+			if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
+				semi_tra_cluster = []
+				semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
+			else:
+				semi_tra_cluster.append([pos_1, pos_2, read_id, BND_type])
 
 	if len(semi_tra_cluster) >= read_count:
 		if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
