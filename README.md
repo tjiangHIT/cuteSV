@@ -116,6 +116,10 @@ Please cite the manuscript of cuteSV before using these callsets.
 ---
 ### Changelog
 
+	cuteSV (v1.0.13):
+	1. Modify the breakpoints of alternative allele and reference allele. 
+	2. Fix an initialization error that will reproduce wrong diploid-assembly-based SV call.
+
 	cuteSV (v1.0.12):
 	1. Add Allele frequency (AF) info in the outputs.
 	2. Fix an index error when force calling BND variants.
