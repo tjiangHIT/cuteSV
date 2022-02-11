@@ -346,8 +346,9 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			signalLen_STD = np.std(allele[1])
 			CILEN = cal_CIPOS(np.std(allele[1]), len(allele[1]))
 			ideal_ins_seq = '<INS>'
-			for i in allele[4]:
+			for pos,i in zip(allele[0],allele[4]):
 				if len(i) >= int(signalLen):
+					breakpointStart = pos
 					ideal_ins_seq = i[0:int(signalLen)]
 					break
 			if ideal_ins_seq == '<INS>':
