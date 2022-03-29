@@ -6,6 +6,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesv/badges/license.svg)](https://anaconda.org/bioconda/cutesv)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesv/badges/platforms.svg)](https://anaconda.org/bioconda/cutesv)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesv/badges/latest_release_date.svg)](https://anaconda.org/bioconda/cutesv)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesv/badges/downloads.svg)](https://anaconda.org/bioconda/cutesv)
 
 ---
 ### Getting Start
