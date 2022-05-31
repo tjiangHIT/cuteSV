@@ -92,6 +92,99 @@ def analysis_inv(ele_1, ele_2, read_name, candidate, SV_size):
 				# 3'->3'
 
 
+def analysis_bnd(ele_1, ele_2, read_name, candidate):
+	'''
+	*********Description*********
+	*	TYPE A:		N[chr:pos[	*
+	*	TYPE B:		N]chr:pos]	*
+	*	TYPE C:		[chr:pos[N	*
+	*	TYPE D:		]chr:pos]N	*
+	*****************************
+	'''
+	if ele_2[0] - ele_1[1] <= 100:
+		if ele_1[5] == '+':
+			if ele_2[5] == '+':
+				# +&+
+				if ele_1[4] < ele_2[4]:
+					if ele_1[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_1[4]] = list()
+					candidate["TRA"][ele_1[4]].append(['A', 
+														ele_1[3], 
+														ele_2[4], 
+														ele_2[2], 
+														read_name])
+					# N[chr:pos[
+				else:
+					if ele_2[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_2[4]] = list()
+					candidate["TRA"][ele_2[4]].append(['D', 
+														ele_2[2], 
+														ele_1[4], 
+														ele_1[3], 
+														read_name])
+					# ]chr:pos]N
+			else:
+				# +&-
+				if ele_1[4] < ele_2[4]:
+					if ele_1[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_1[4]] = list()
+					candidate["TRA"][ele_1[4]].append(['B', 
+														ele_1[3], 
+														ele_2[4], 
+														ele_2[3], 
+														read_name])
+					# N]chr:pos]
+				else:
+					if ele_2[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_2[4]] = list()
+					candidate["TRA"][ele_2[4]].append(['B', 
+														ele_2[3], 
+														ele_1[4], 
+														ele_1[3], 
+														read_name])
+					# N]chr:pos]
+		else:
+			if ele_2[5] == '+':
+				# -&+
+				if ele_1[4] < ele_2[4]:
+					if ele_1[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_1[4]] = list()
+					candidate["TRA"][ele_1[4]].append(['C', 
+														ele_1[2], 
+														ele_2[4], 
+														ele_2[2], 
+														read_name])
+					# [chr:pos[N
+				else:
+					if ele_2[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_2[4]] = list()
+					candidate["TRA"][ele_2[4]].append(['C', 
+														ele_2[2], 
+														ele_1[4], 
+														ele_1[2], 
+														read_name])
+					# [chr:pos[N
+			else:
+				# -&-
+				if ele_1[4] < ele_2[4]:
+					if ele_1[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_1[4]] = list()
+					candidate["TRA"][ele_1[4]].append(['D', 
+														ele_1[2], 
+														ele_2[4], 
+														ele_2[3], 
+														read_name])
+					# ]chr:pos]N
+				else:
+					if ele_2[4] not in candidate["TRA"]:
+						candidate["TRA"][ele_2[4]] = list()
+					candidate["TRA"][ele_2[4]].append(['A', 
+														ele_2[3], 
+														ele_1[4], 
+														ele_1[2], 
+														read_name])
+					# N[chr:pos[
+
 def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxSize, query):
 	'''
 	read_start	read_end	ref_start	ref_end	chr	strand
@@ -110,81 +203,17 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 	if len(SP_list) == 2:
 		ele_1 = SP_list[0]
 		ele_2 = SP_list[1]
-		if ele_1[4] == ele_2[4] and ele_1[5] != ele_2[5]:
-			analysis_inv(ele_1, 
-							ele_2, 
-							read_name, 
-							candidate,
-							SV_size)
-	else:
-		for a in range(len(SP_list[1:-1])):
-			ele_1 = SP_list[a]
-			ele_2 = SP_list[a+1]
-			ele_3 = SP_list[a+2]
-
-			if ele_1[4] == ele_2[4] == ele_3[4]:
-				if ele_1[5] == ele_3[5] and ele_1[5] != ele_2[5]:
-					if ele_2[5] == '-':
-						# +-+
-						if ele_2[0] + 0.5 * (ele_3[2] - ele_1[3]) >= ele_1[1] and ele_3[0] + 0.5 * (ele_3[2] - ele_1[3]) >= ele_2[1]:
-							# No overlaps in split reads
-							if ele_1[4] not in candidate["INV"]:
-								candidate["INV"][ele_1[4]] = list()
-							candidate["INV"][ele_1[4]].append(["++", 
-																ele_1[3], 
-																ele_2[3], 
-																read_name])
-							# head-to-head
-							# 5'->5'
-							candidate["INV"][ele_1[4]].append(["--", 
-																ele_2[2], 
-																ele_3[2], 
-																read_name])
-							# tail-to-tail
-							# 3'->3'
-					else:
-						# -+-
-						if ele_1[1] <= ele_2[0] + 0.5 * (ele_1[2] - ele_3[3]) and ele_3[0] + 0.5 * (ele_1[2] - ele_3[3]) >= ele_2[1]:
-							# No overlaps in split reads
-							if ele_1[4] not in candidate["INV"]:
-								candidate["INV"][ele_1[4]] = list()
-							candidate["INV"][ele_1[4]].append(["++", 
-																ele_3[3], 
-																ele_2[3], 
-																read_name])
-							# head-to-head
-							# 5'->5'
-							candidate["INV"][ele_1[4]].append(["--", 
-																ele_2[2], 
-																ele_1[2], 
-																read_name])
-							# tail-to-tail
-							# 3'->3'
-											
-
-				if ele_1[5] != ele_3[5]:
-					if ele_2[5] == ele_1[5]:
-						# ++-/--+
-						analysis_inv(ele_2, 
-										ele_3, 
-										read_name, 
-										candidate, 
-										SV_size)
-					else:
-						# +--/-++
-						analysis_inv(ele_1, 
-										ele_2, 
-										read_name, 
-										candidate, 
-										SV_size)
-			
-
-	for a in range(len(SP_list[:-1])):
-		ele_1 = SP_list[a]
-		ele_2 = SP_list[a+1]
 		if ele_1[4] == ele_2[4]:
-			if ele_1[5] == ele_2[5]:
+			if ele_1[5] != ele_2[5]:
+				analysis_inv(ele_1, 
+								ele_2, 
+								read_name, 
+								candidate,
+								SV_size)
+
+			else:
 				# dup & ins & del 
+				a = 0
 				if ele_1[5] == '-':
 					ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
 					ele_2 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
@@ -217,99 +246,153 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 																read_name])
 		else:
 			trigger_INS_TRA = 1
-			'''
-			*********Description*********
-			*	TYPE A:		N[chr:pos[	*
-			*	TYPE B:		N]chr:pos]	*
-			*	TYPE C:		[chr:pos[N	*
-			*	TYPE D:		]chr:pos]N	*
-			*****************************
-			'''
-			if ele_2[0] - ele_1[1] <= 100:
-				if ele_1[5] == '+':
-					if ele_2[5] == '+':
-						# +&+
-						if ele_1[4] < ele_2[4]:
-							if ele_1[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_1[4]] = list()
-							candidate["TRA"][ele_1[4]].append(['A', 
-																ele_1[3], 
-																ele_2[4], 
-																ele_2[2], 
-																read_name])
-							# N[chr:pos[
-						else:
-							if ele_2[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_2[4]] = list()
-							candidate["TRA"][ele_2[4]].append(['D', 
-																ele_2[2], 
-																ele_1[4], 
-																ele_1[3], 
-																read_name])
-							# ]chr:pos]N
-					else:
-						# +&-
-						if ele_1[4] < ele_2[4]:
-							if ele_1[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_1[4]] = list()
-							candidate["TRA"][ele_1[4]].append(['B', 
-																ele_1[3], 
-																ele_2[4], 
-																ele_2[3], 
-																read_name])
-							# N]chr:pos]
-						else:
-							if ele_2[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_2[4]] = list()
-							candidate["TRA"][ele_2[4]].append(['B', 
-																ele_2[3], 
-																ele_1[4], 
-																ele_1[3], 
-																read_name])
-							# N]chr:pos]
-				else:
-					if ele_2[5] == '+':
-						# -&+
-						if ele_1[4] < ele_2[4]:
-							if ele_1[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_1[4]] = list()
-							candidate["TRA"][ele_1[4]].append(['C', 
-																ele_1[2], 
-																ele_2[4], 
-																ele_2[2], 
-																read_name])
-							# [chr:pos[N
-						else:
-							if ele_2[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_2[4]] = list()
-							candidate["TRA"][ele_2[4]].append(['C', 
-																ele_2[2], 
-																ele_1[4], 
-																ele_1[2], 
-																read_name])
-							# [chr:pos[N
-					else:
-						# -&-
-						if ele_1[4] < ele_2[4]:
-							if ele_1[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_1[4]] = list()
-							candidate["TRA"][ele_1[4]].append(['D', 
-																ele_1[2], 
-																ele_2[4], 
-																ele_2[3], 
-																read_name])
-							# ]chr:pos]N
-						else:
-							if ele_2[4] not in candidate["TRA"]:
-								candidate["TRA"][ele_2[4]] = list()
-							candidate["TRA"][ele_2[4]].append(['A', 
-																ele_2[3], 
-																ele_1[4], 
-																ele_1[2], 
-																read_name])
-							# N[chr:pos[
+			analysis_bnd(ele_1, ele_2, read_name, candidate)
+	
 
+	else:
+		# over three splits
+		for a in range(len(SP_list[1:-1])):
+			ele_1 = SP_list[a]
+			ele_2 = SP_list[a+1]
+			ele_3 = SP_list[a+2]
 
+			if ele_1[4] == ele_2[4]:
+				if ele_2[4] == ele_3[4]:
+					if ele_1[5] == ele_3[5] and ele_1[5] != ele_2[5]:
+						if ele_2[5] == '-':
+							# +-+
+							if ele_2[0] + 0.5 * (ele_3[2] - ele_1[3]) >= ele_1[1] and ele_3[0] + 0.5 * (ele_3[2] - ele_1[3]) >= ele_2[1]:
+								# No overlaps in split reads
+								if ele_1[4] not in candidate["INV"]:
+									candidate["INV"][ele_1[4]] = list()
+
+								if ele_2[2] >= ele_1[3] and ele_3[2] >= ele_2[3]:
+									candidate["INV"][ele_1[4]].append(["++", 
+																		ele_1[3], 
+																		ele_2[3], 
+																		read_name])
+									# head-to-head
+									# 5'->5'
+									candidate["INV"][ele_1[4]].append(["--", 
+																		ele_2[2], 
+																		ele_3[2], 
+																		read_name])
+									# tail-to-tail
+									# 3'->3'
+						else:
+							# -+-
+							if ele_1[1] <= ele_2[0] + 0.5 * (ele_1[2] - ele_3[3]) and ele_3[0] + 0.5 * (ele_1[2] - ele_3[3]) >= ele_2[1]:
+								# No overlaps in split reads
+								if ele_1[4] not in candidate["INV"]:
+									candidate["INV"][ele_1[4]] = list()
+
+								if ele_2[2] >= ele_3[3] and ele_1[2] >= ele_2[3]:
+									candidate["INV"][ele_1[4]].append(["++", 
+																		ele_3[3], 
+																		ele_2[3], 
+																		read_name])
+									# head-to-head
+									# 5'->5'
+									candidate["INV"][ele_1[4]].append(["--", 
+																		ele_2[2], 
+																		ele_1[2], 
+																		read_name])
+									# tail-to-tail
+									# 3'->3'
+												
+
+					if len(SP_list) - 3 == a:
+						if ele_1[5] != ele_3[5]:
+							if ele_2[5] == ele_1[5]:
+								# ++-/--+
+								analysis_inv(ele_2, 
+												ele_3, 
+												read_name, 
+												candidate, 
+												SV_size)
+							else:
+								# +--/-++
+								analysis_inv(ele_1, 
+												ele_2, 
+												read_name, 
+												candidate, 
+												SV_size)
+
+					if ele_1[5] == ele_3[5] and ele_1[5] == ele_2[5]:
+						# dup & ins & del 
+						if ele_1[5] == '-':
+							ele_1 = [RLength-SP_list[a+2][1], RLength-SP_list[a+2][0]]+SP_list[a+2][2:]
+							ele_2 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
+							ele_3 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
+							query = query[::-1]
+
+						if ele_2[3] - ele_3[2] >= SV_size and ele_2[2] < ele_3[3]:
+							if ele_2[4] not in candidate["DUP"]:
+								candidate["DUP"][ele_2[4]] = list()
+							candidate["DUP"][ele_2[4]].append([ele_3[2], 
+																ele_2[3], 
+																read_name])
+
+						if a == 0:
+							if ele_1[3] - ele_2[2] >= SV_size:
+								if ele_2[4] not in candidate["DUP"]:
+									candidate["DUP"][ele_2[4]] = list()
+								candidate["DUP"][ele_2[4]].append([ele_2[2], 
+																	ele_1[3], 
+																	read_name])
+
+						if ele_1[3] - ele_2[2] < SV_size:
+							if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
+								if ele_2[4] not in candidate["INS"]:
+									candidate["INS"][ele_2[4]] = list()
+
+								if ele_2[2] - ele_1[3] <= 100 and (ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize or MaxSize == -1):
+									if ele_3[2] >= ele_2[3]:
+										candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, 
+																			ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
+																			read_name,
+																			str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)])])
+							if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
+								if ele_2[4] not in candidate["DEL"]:
+									candidate["DEL"][ele_2[4]] = list()
+
+								if ele_2[0] - ele_1[1] <= 100 and (ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize or MaxSize == -1):
+									if ele_3[2] >= ele_2[3]:
+										candidate["DEL"][ele_2[4]].append([ele_1[3], 
+																			ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], 
+																			read_name])
+						
+						if len(SP_list) - 3 == a:
+							ele_1 = ele_2
+							ele_2 = ele_3
+
+							if ele_1[3] - ele_2[2] < SV_size and ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
+								if ele_2[4] not in candidate["INS"]:
+									candidate["INS"][ele_2[4]] = list()
+
+								if ele_2[2] - ele_1[3] <= 100 and (ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize or MaxSize == -1):
+									candidate["INS"][ele_2[4]].append([(ele_2[2]+ele_1[3])/2, 
+																		ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
+																		read_name,
+																		str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)])])
+					
+							if ele_1[3] - ele_2[2] < SV_size and ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
+								if ele_2[4] not in candidate["DEL"]:
+									candidate["DEL"][ele_2[4]] = list()
+
+								if ele_2[0] - ele_1[1] <= 100 and (ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize or MaxSize == -1):
+									candidate["DEL"][ele_2[4]].append([ele_1[3], 
+																		ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], 
+																		read_name])
+
+						
+			else:
+				trigger_INS_TRA = 1
+				analysis_bnd(ele_1, ele_2, read_name, candidate)
+
+				if len(SP_list) - 3 == a:
+					if ele_2[4] != ele_3[4]:
+						analysis_bnd(ele_2, ele_3, read_name, candidate)
 
 	if len(SP_list) >= 3 and trigger_INS_TRA == 1:
 		if SP_list[0][4] == SP_list[-1][4]:
@@ -621,7 +704,6 @@ def main_ctrl(args, argv):
 				pos += args.batches
 			if pos < local_ref_len:
 				Task_list.append([i[0], pos, local_ref_len])
-
 	#'''
 	analysis_pools = Pool(processes=int(args.threads))
 	os.mkdir("%ssignatures"%temporary_dir)
@@ -654,6 +736,7 @@ def main_ctrl(args, argv):
 	analysis_pools.close()
 	analysis_pools.join()
 	#'''
+	exit(0)
 	result = list()
 
 	if args.Ivcf != None:
