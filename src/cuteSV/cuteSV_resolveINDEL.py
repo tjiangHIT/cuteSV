@@ -212,13 +212,14 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 	
 	Input file format
 	--------------------------------------------------------------------------------------------
-	column	#1	#2	#3	#4	#5
-			INS	CHR	BP	LEN	ID	
+	column	#1	#2	#3	#4	#5 #6
+			INS	CHR	BP	LEN	ID SEQ
 	#1	insertion type
 	#2	chromosome number
 	#3	breakpoint in each read
-	#4	DEL_len in each read
+	#4	INS_len in each read
 	#5	read ID
+	#6  INS sequence
 	********************************************************************************************
 	'''
 
@@ -298,7 +299,6 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 		0.65				0.7 				  <=5		CCS
 	*************************************************************
 	'''
-
 	# Remove duplicates
 	read_tag = dict()
 	for element in semi_ins_cluster:
@@ -315,7 +315,6 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 	# start&end breakpoint
 	global_len = [i[1] for i in read_tag2SortedList]
 	DISCRETE_THRESHOLD_LEN_CLUSTER_INS_TEMP = threshold_gloab * np.mean(global_len)
-
 	last_len = read_tag2SortedList[0][1]
 
 	allele_collect = list()
