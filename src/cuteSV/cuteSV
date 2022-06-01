@@ -736,7 +736,6 @@ def main_ctrl(args, argv):
 	analysis_pools.close()
 	analysis_pools.join()
 	#'''
-	exit(0)
 	result = list()
 
 	if args.Ivcf != None:
