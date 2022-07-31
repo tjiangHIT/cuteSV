@@ -92,8 +92,9 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 	read_tag = dict()
 	temp = list()
 	# p1, p2, count
-	last_len = 0
-	temp.append([0,0,list()])
+	last_len = semi_tra_cluster[0][1]
+	temp.append([semi_tra_cluster[0][0], semi_tra_cluster[0][1], [semi_tra_cluster[0][2]]])
+	read_tag[semi_tra_cluster[0][2]] = 0
 	for element in semi_tra_cluster:
 		if element[1] - last_len > max_cluster_bias:
 			temp.append([element[0],element[1],[element[2]]])
@@ -111,7 +112,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 
 	temp = sorted(temp, key = lambda x:-len(set(x[2])))
 
-	if len(set(temp[1][2])) >= 0.5*read_count:
+	if len(temp) > 1 and len(set(temp[1][2])) >= 0.5*read_count:
 		if len(set(temp[0][2]))+len(set(temp[1][2])) >= len(semi_tra_cluster)*overlap_size:
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))

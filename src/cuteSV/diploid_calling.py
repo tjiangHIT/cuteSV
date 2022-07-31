@@ -30,55 +30,53 @@ def main_ctrl(args):
 	filein = vcf.Reader(open(args.invcf, 'r'))
 	for record in filein:
 		if len(record.FILTER) == 0:
-			if record.INFO["RE"] == 1:
-				try:
-					fileout.write("{chr}\t{pos}\t{id}\t{ref}\t{alt}\t{qual}\t{filter}\t{info}\t{format}\t{gt}\n".format(
-						chr = record.CHROM,
-						pos = record.POS,
-						id = record.ID,
-						ref = record.REF,
-						alt = record.ALT[0],
-						qual = record.QUAL,
-						filter = 'PASS',
-						info = "SVTYPE=%s;SVLEN=%d;END=%d;RE=%d;RNAMES=%s"%(record.INFO['SVTYPE'], 
-							record.INFO['SVLEN'], 
-							record.INFO['END'], 
-							record.INFO['RE'], 
-							','.join(record.INFO['RNAMES'])),
-						format = 'GT',
-						gt = '1/0' if 'cutesvh1' in record.INFO['RNAMES'][0] else '0/1'
-						))
-				except:
-					pass
+			filter_table = 'PASS'
+		else:
+			filter_table = record.FILTER[0]
+		tag = [0, 0]
+		for i in record.INFO['RNAMES']:
+			if 'cutesvh1' in i:
+				tag[0] = 1
+			if 'cutesvh2' in i:
+				tag[1] = 1
 
+		try:
+			fileout.write("{chr}\t{pos}\t{id}\t{ref}\t{alt}\t{qual}\t{filter}\t{info}\t{format}\t{gt}\n".format(
+				chr = record.CHROM,
+				pos = record.POS,
+				id = record.ID,
+				ref = record.REF,
+				alt = record.ALT[0],
+				qual = record.QUAL,
+				filter = filter_table,
+				info = "SVTYPE=%s;SVLEN=%d;END=%d;RE=%d;RNAMES=%s"%(record.INFO['SVTYPE'], 
+					record.INFO['SVLEN'], 
+					record.INFO['END'], 
+					record.INFO['RE'], 
+					','.join(record.INFO['RNAMES'])),
+				format = 'GT',
+				# gt = '1/1' if sum(tag) == 2 else '0/1'
+				gt = call_gt(tag)
+				))
+		except:
+			if 'TRA' in record.INFO['SVTYPE'] or 'BND' in record.INFO['SVTYPE']:
+				fileout.write("{chr}\t{pos}\t{id}\t{ref}\t{alt}\t{qual}\t{filter}\t{info}\t{format}\t{gt}\n".format(
+					chr = record.CHROM,
+					pos = record.POS,
+					id = record.ID,
+					ref = record.REF,
+					alt = record.ALT[0],
+					qual = record.QUAL,
+					filter = filter_table,
+					info = "SVTYPE=%s;RE=%d;RNAMES=%s"%(record.INFO['SVTYPE'], 
+						record.INFO['RE'], 
+						','.join(record.INFO['RNAMES'])),
+					format = 'GT',
+					# gt = '1/1' if sum(tag) == 2 else '0/1'
+					gt = call_gt(tag)
+				))
 			else:
-				tag = [0, 0]
-				for i in record.INFO['RNAMES']:
-					if 'cutesvh1' in i:
-						tag[0] = 1
-					if 'cutesvh2' in i:
-						tag[1] = 1
-
-				try:
-					fileout.write("{chr}\t{pos}\t{id}\t{ref}\t{alt}\t{qual}\t{filter}\t{info}\t{format}\t{gt}\n".format(
-						chr = record.CHROM,
-						pos = record.POS,
-						id = record.ID,
-						ref = record.REF,
-						alt = record.ALT[0],
-						qual = record.QUAL,
-						filter = 'PASS',
-						info = "SVTYPE=%s;SVLEN=%d;END=%d;RE=%d;RNAMES=%s"%(record.INFO['SVTYPE'], 
-							record.INFO['SVLEN'], 
-							record.INFO['END'], 
-							record.INFO['RE'], 
-							','.join(record.INFO['RNAMES'])),
-						format = 'GT',
-						# gt = '1/1' if sum(tag) == 2 else '0/1'
-						gt = call_gt(tag)
-						))
-				except:
-					pass
+				pass
 	fileout.close()
 
 def main(argv):
