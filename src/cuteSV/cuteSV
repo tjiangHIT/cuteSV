@@ -769,9 +769,10 @@ def main_ctrl(args, argv):
 					min(args.min_support, 5), 
 					args.input, 
 					args.genotype,
-					args.gt_round)]
+					args.gt_round,
+                    args.remain_reads_ratio)]
 			result.append(analysis_pools.map_async(run_del, para))
-			logging.info("Finished %s:%s."%(chr, "DEL"))
+			# logging.info("Finished %s:%s."%(chr, "DEL"))
 
 		# +++++INS+++++
 		for chr in valuable_chr["INS"]:
@@ -785,9 +786,10 @@ def main_ctrl(args, argv):
 					min(args.min_support, 5), 
 					args.input, 
 					args.genotype,
-					args.gt_round)]
+					args.gt_round,
+                    args.remain_reads_ratio)]
 			result.append(analysis_pools.map_async(run_ins, para))
-			logging.info("Finished %s:%s."%(chr, "INS"))
+			# logging.info("Finished %s:%s."%(chr, "INS"))
 
 		# +++++INV+++++
 		for chr in valuable_chr["INV"]:
@@ -802,7 +804,7 @@ def main_ctrl(args, argv):
 					args.max_size,
 					args.gt_round)]
 			result.append(analysis_pools.map_async(run_inv, para))
-			logging.info("Finished %s:%s."%(chr, "INV"))
+			# logging.info("Finished %s:%s."%(chr, "INV"))
 
 		# +++++DUP+++++
 		for chr in valuable_chr["DUP"]:
@@ -816,7 +818,7 @@ def main_ctrl(args, argv):
 					args.max_size,
 					args.gt_round)]
 			result.append(analysis_pools.map_async(run_dup, para))
-			logging.info("Finished %s:%s."%(chr, "DUP"))	
+			# logging.info("Finished %s:%s."%(chr, "DUP"))	
 
 		# +++++TRA+++++
 		for chr in valuable_chr["TRA"]:
@@ -831,7 +833,7 @@ def main_ctrl(args, argv):
 						args.genotype,
 						args.gt_round)]
 				result.append(analysis_pools.map_async(run_tra, para))
-				logging.info("Finished %s-%s:%s."%(chr, chr2, "TRA/BND"))
+				# logging.info("Finished %s-%s:%s."%(chr, chr2, "TRA/BND"))
 
 		analysis_pools.close()
 		analysis_pools.join()

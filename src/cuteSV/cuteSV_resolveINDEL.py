@@ -3,6 +3,7 @@ import numpy as np
 from collections import Counter
 from cuteSV.cuteSV_genotype import cal_GL, cal_CIPOS, threshold_ref_count, count_coverage
 import time
+import logging
 
 '''
 *******************************************
@@ -16,7 +17,7 @@ import time
 '''
 
 def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias,
-				 minimum_support_reads, bam_path, action, gt_round):
+				 minimum_support_reads, bam_path, action, gt_round, remain_reads_ratio):
 
 	'''
 	cluster DEL
@@ -42,7 +43,8 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 	#5	read ID
 	********************************************************************************************
 	'''
-
+	if remain_reads_ratio > 1:
+		remain_reads_ratio = 1
 	semi_del_cluster = list()
 	semi_del_cluster.append([0,0,''])
 	candidate_single_SV = list()
@@ -73,7 +75,8 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 										bam_path,
 										max_cluster_bias,
 										action,
-										gt_round)
+										gt_round,
+										remain_reads_ratio)
 			semi_del_cluster = []
 			semi_del_cluster.append([pos, indel_len, read_id])
 		else:
@@ -98,13 +101,15 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
 								bam_path,
 								max_cluster_bias,
 								action,
-								gt_round)
+								gt_round,
+								remain_reads_ratio)
 	file.close()
+	logging.info("Finished %s:%s."%(chr, "DEL"))
 	return candidate_single_SV
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
 	threshold_gloab, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias, action, gt_round):
+	bam_path, max_cluster_bias, action, gt_round, remain_reads_ratio):
 
 	'''
 	generate deletion
@@ -159,10 +164,32 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 
 	for allele in allele_sort:
 		if allele[2][0] >= minimum_support_reads:
-			breakpointStart = np.mean(allele[0])
-			search_threshold = np.min(allele[0])
+			allele_list = list()
+			var_list = list()
+			remain_allele_num = max(int(remain_reads_ratio * allele[2][0]), 1)
+			pos_mean = np.mean(allele[0])
+			for i in range(len(allele[0])):
+				var_list.append((abs(allele[0][i] - pos_mean), i))
+			var_list.sort(key=lambda x:x[0])
+			for i in range(remain_allele_num):
+				allele_list.append(allele[0][var_list[i][1]])
+			breakpointStart = np.mean(allele_list)
+			search_threshold = allele_list[0]
+
+			allele_list = list()
+			var_list = list()
+			len_mean = np.mean(allele[1])
+			for i in range(len(allele[1])):
+				var_list.append((abs(allele[1][i] - len_mean), i))
+			var_list.sort(key=lambda x:x[0])
+			for i in range(remain_allele_num):
+				allele_list.append(allele[1][var_list[i][1]])
+			signalLen = np.mean(allele_list)
+
+			# breakpointStart = np.mean(allele[0])
+			# search_threshold = np.min(allele[0])
 			CIPOS = cal_CIPOS(np.std(allele[0]), len(allele[0]))
-			signalLen = np.mean(allele[1])
+			# signalLen = np.mean(allele[1])
 			signalLen_STD = np.std(allele[1])
 			CILEN = cal_CIPOS(np.std(allele[1]), len(allele[1]))
 
@@ -195,7 +222,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
 	
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-	max_cluster_bias, minimum_support_reads, bam_path, action, gt_round):
+	max_cluster_bias, minimum_support_reads, bam_path, action, gt_round, remain_reads_ratio):
 	
 	'''
 	cluster INS
@@ -222,7 +249,8 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 	#6  INS sequence
 	********************************************************************************************
 	'''
-
+	if remain_reads_ratio > 1:
+		remain_reads_ratio = 1
 	semi_ins_cluster = list()
 	semi_ins_cluster.append([0,0,'',''])
 	candidate_single_SV = list()
@@ -257,7 +285,8 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 										bam_path,
 										max_cluster_bias,
 										action,
-										gt_round)
+										gt_round,
+										remain_reads_ratio)
 			semi_ins_cluster = []
 			semi_ins_cluster.append([pos, indel_len, read_id, ins_seq])
 		else:
@@ -282,13 +311,15 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
 								bam_path,
 								max_cluster_bias,
 								action,
-								gt_round)
+								gt_round,
+								remain_reads_ratio)
 	file.close()
+	logging.info("Finished %s:%s."%(chr, "INS"))
 	return candidate_single_SV
 
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
 	threshold_gloab, minimum_support_reads, candidate_single_SV, 
-	bam_path, max_cluster_bias, action, gt_round):
+	bam_path, max_cluster_bias, action, gt_round, remain_reads_ratio):
 		
 	'''
 	generate deletion
@@ -339,9 +370,30 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 
 	for allele in allele_sort:
 		if allele[2][0] >= minimum_support_reads:
-			breakpointStart = np.mean(allele[0])
+			allele_list = list()
+			var_list = list()
+			remain_allele_num = max(int(remain_reads_ratio * allele[2][0]), 1)
+			pos_mean = np.mean(allele[0])
+			for i in range(len(allele[0])):
+				var_list.append((abs(allele[0][i] - pos_mean), i))
+			var_list.sort(key=lambda x:x[0])
+			for i in range(remain_allele_num):
+				allele_list.append(allele[0][var_list[i][1]])
+			breakpointStart = np.mean(allele_list)
+
+			allele_list = list()
+			var_list = list()
+			len_mean = np.mean(allele[1])
+			for i in range(len(allele[1])):
+				var_list.append((abs(allele[1][i] - len_mean), i))
+			var_list.sort(key=lambda x:x[0])
+			for i in range(remain_allele_num):
+				allele_list.append(allele[1][var_list[i][1]])
+			signalLen = np.mean(allele_list)
+
+			# breakpointStart = np.mean(allele[0])
 			CIPOS = cal_CIPOS(np.std(allele[0]), len(allele[0]))
-			signalLen = np.mean(allele[1])
+			# signalLen = np.mean(allele[1])
 			signalLen_STD = np.std(allele[1])
 			CILEN = cal_CIPOS(np.std(allele[1]), len(allele[1]))
 			ideal_ins_seq = '<INS>'

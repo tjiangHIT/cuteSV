@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import logging
 from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
 
 def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, 
@@ -90,6 +91,7 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
 									MaxSize,
 									gt_round)
 	file.close()
+	logging.info("Finished %s:%s."%(chr, "INV"))
 	return candidate_single_SV
 
 def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size, 

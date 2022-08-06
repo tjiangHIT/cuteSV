@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import logging
 from collections import Counter
 from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
 
@@ -69,6 +70,7 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
 								MaxSize,
 								gt_round)
 	file.close()
+	logging.info("Finished %s:%s."%(chr, "DUP"))	
 	return candidate_single_SV
 
 def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, 
