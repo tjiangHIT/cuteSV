@@ -380,7 +380,6 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 			for i in range(remain_allele_num):
 				allele_list.append(allele[0][var_list[i][1]])
 			breakpointStart = np.mean(allele_list)
-			search_threshold = allele_list[0]
 
 			allele_list = list()
 			var_list = list()
@@ -392,9 +391,9 @@ def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count,
 				allele_list.append(allele[1][var_list[i][1]])
 			signalLen = np.mean(allele_list)
 
-			breakpointStart = np.mean(allele[0])
+			# breakpointStart = np.mean(allele[0])
 			CIPOS = cal_CIPOS(np.std(allele[0]), len(allele[0]))
-			signalLen = np.mean(allele[1])
+			# signalLen = np.mean(allele[1])
 			signalLen_STD = np.std(allele[1])
 			CILEN = cal_CIPOS(np.std(allele[1]), len(allele[1]))
 			ideal_ins_seq = '<INS>'
