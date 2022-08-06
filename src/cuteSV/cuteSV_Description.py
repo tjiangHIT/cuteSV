@@ -227,6 +227,11 @@ def parseArgs(argv):
 		default = 0.6, 
 		type = float)
 
+	GroupAdvanced.add_argument('--remain_reads_ratio', 
+		help = "The ratio of reads remained in cluster. Set lower when the alignment data have high quality but recommand over 0.5.[%(default)s]", 
+		default = 1.0, 
+		type = float)
+
 	# parser.add_argument('-d', '--max_distance', 
 	# 	help = "Maximum distance to group SV together..[%(default)s]", 
 	# 	default = 1000, type = int)

@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import logging
 from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
 
 '''
@@ -83,6 +84,7 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 									action,
 									gt_round)
 	file.close()
+	logging.info("Finished %s-%s:%s."%(chr_1, chr_2, "TRA/BND"))
 	return candidate_single_SV
 
 def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, 
