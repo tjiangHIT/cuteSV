@@ -104,6 +104,7 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 |--max_cluster_bias_DUP|Maximum distance to cluster read together for duplication.|500|
 |--max_cluster_bias_TRA|Maximum distance to cluster read together for translocation.|50|
 |--diff_ratio_filtering_TRA|Filter breakpoints with basepair identity less than the ratio of *default* for translocation.|0.6|
+|--remain_reads_ratio|The ratio of reads remained in cluster to generate the breakpoint. Set lower to get more precise breakpoint when the alignment data have high quality but recommand over 0.5.|1|
 
 ---
 ### Datasets generated from cuteSV
@@ -116,6 +117,15 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+
+	cuteSV (v2.0.0):
+	1. Upgrate force calling module.
+	2. Add --remain_reads_ratio parameter in order to generate highly accurate record by discarding a few signatures.
+	3. Fix several bugs in inversion and translocation calling.
+	4. Remove the redundant operations in the signature extraction and accelerate the whole analysis.
+	5. Streamline the translocation output when performing force-calling.
+	6. Modify the signature matching rule.
+	7. Modify the sequence of the inserted allele.
 
 	cuteSV (v1.0.13):
 	1. Modify the breakpoints of alternative allele and reference allele. 
