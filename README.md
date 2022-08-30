@@ -206,6 +206,7 @@ Please cite the manuscript of cuteSV before using these callsets.
 ---
 ### Citation
 Jiang T et al. Long-read-based human genomic structural variation detection with cuteSV. Genome Biol 21, 189 (2020). https://doi.org/10.1186/s13059-020-02107-y
+Cao S et al. Re-genotyping structural variants through an accurate force-calling method. bioRxiv 2022.08.29.505534; doi: https://doi.org/10.1101/2022.08.29.505534
 	
 ---
 ### Contact
