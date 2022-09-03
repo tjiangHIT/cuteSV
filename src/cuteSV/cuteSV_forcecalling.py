@@ -86,6 +86,8 @@ def parse_record(record):
             strand = record.info['STRAND']
         elif 'STRANDS' in record.info:
             strand = record.info['STRANDS']
+    if isinstance(strand, tuple) or isinstance(strand, list):
+        strand = strand[0]
     svid = record.id
     ref = record.ref
     alts = record.alts[0]
