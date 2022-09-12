@@ -120,11 +120,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 	cuteSV (v2.0.1):
 	1. Fix an error in handling strand in force calling.
-	2. Speed up the genotype module of discovery calling.
-	|     | cuteSV   | cuteSV2  |
-	| CCS | 900.37s  | 261.77s  |
-	| CLR | 3620.00s | 2644.94s |
-	| ONT | 2893.08s | 1264.26s |
+	2. Speed up the genotype module of discovery calling. The comparison results on various datasets are as follows.
+	  |     | cuteSV   | cuteSV2  |
+	  |     |(previous)| (latest) |
+	  | CCS | 900.37s  | 261.77s  |
+	  | CLR | 3620.00s | 2644.94s |
+	  | ONT | 2893.08s | 1264.26s |
 
 	cuteSV (v2.0.0):
 	1. Upgrate force calling module.
