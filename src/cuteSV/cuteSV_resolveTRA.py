@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import logging
 from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
@@ -32,7 +31,7 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 	semi_tra_cluster.append([0,0,'','N'])
 	candidate_single_SV = list()
 
-	file = open(path, 'r')
+	file = open("%s%s.sigs"%(path, "TRA"), 'r')
 	for line in file:
 		seq = line.strip('\n').split('\t')
 		if seq[1] != chr_1:
@@ -282,7 +281,6 @@ def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias
 			if query not in read_id_list:
 				DR += 1
 		GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_list))
-
 
 	bamfile.close()
 	return len(read_id_list), DR, GT, GL, GQ, QUAL

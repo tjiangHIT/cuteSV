@@ -3,9 +3,9 @@
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
- * @author: tjiang
- * @date: Aug 29th 2022
- * @version V2.0.0
+ * @author: tjiang & sqcao
+ * @date: Sep 12th 2022
+ * @version V2.0.1
 '''
 
 import pysam
@@ -713,7 +713,6 @@ def main_ctrl(args, argv):
                     args.merge_ins_threshold, 
                     args.max_size)]
         analysis_pools.map_async(multi_run_wrapper, para)
-        # multi_run_wrapper(para[0])
     analysis_pools.close()
     analysis_pools.join()
     #'''
@@ -756,7 +755,7 @@ def main_ctrl(args, argv):
 
         # +++++DEL+++++
         for chr in valuable_chr["DEL"]:
-            para = [("%s%s.sigs"%(temporary_dir, "DEL"), 
+            para = [(temporary_dir, 
                     chr, 
                     "DEL", 
                     args.min_support,
@@ -769,11 +768,10 @@ def main_ctrl(args, argv):
                     args.gt_round,
                     args.remain_reads_ratio)]
             result.append(analysis_pools.map_async(run_del, para))
-            # logging.info("Finished %s:%s."%(chr, "DEL"))
 
         # +++++INS+++++
         for chr in valuable_chr["INS"]:
-            para = [("%s%s.sigs"%(temporary_dir, "INS"), 
+            para = [(temporary_dir, 
                     chr, 
                     "INS", 
                     args.min_support, 
@@ -786,11 +784,10 @@ def main_ctrl(args, argv):
                     args.gt_round,
                     args.remain_reads_ratio)]
             result.append(analysis_pools.map_async(run_ins, para))
-            # logging.info("Finished %s:%s."%(chr, "INS"))
 
         # +++++INV+++++
         for chr in valuable_chr["INV"]:
-            para = [("%s%s.sigs"%(temporary_dir, "INV"), 
+            para = [(temporary_dir, 
                     chr, 
                     "INV", 
                     args.min_support, 
@@ -801,11 +798,10 @@ def main_ctrl(args, argv):
                     args.max_size,
                     args.gt_round)]
             result.append(analysis_pools.map_async(run_inv, para))
-            # logging.info("Finished %s:%s."%(chr, "INV"))
 
         # +++++DUP+++++
         for chr in valuable_chr["DUP"]:
-            para = [("%s%s.sigs"%(temporary_dir, "DUP"), 
+            para = [(temporary_dir, 
                     chr, 
                     args.min_support, 
                     args.max_cluster_bias_DUP,
@@ -815,12 +811,11 @@ def main_ctrl(args, argv):
                     args.max_size,
                     args.gt_round)]
             result.append(analysis_pools.map_async(run_dup, para))
-            # logging.info("Finished %s:%s."%(chr, "DUP"))	
 
         # +++++TRA+++++
         for chr in valuable_chr["TRA"]:
             for chr2 in valuable_chr["TRA"][chr]:
-                para = [("%s%s.sigs"%(temporary_dir, "TRA"), 
+                para = [(temporary_dir, 
                         chr, 
                         chr2, 
                         args.min_support, 
@@ -830,7 +825,6 @@ def main_ctrl(args, argv):
                         args.genotype,
                         args.gt_round)]
                 result.append(analysis_pools.map_async(run_tra, para))
-                # logging.info("Finished %s-%s:%s."%(chr, chr2, "TRA/BND"))
 
         analysis_pools.close()
         analysis_pools.join()
