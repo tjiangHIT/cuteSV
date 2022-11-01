@@ -559,9 +559,9 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
         for element in read.cigar:
             if element[0] in [0, 7 ,8]:
                 shift_del += element[1]
-            if element[0] == 2 and element[1] < SV_size:
+            if element[0] == 2 and element[1] < min_siglength: ## changed SV_size to min_siglength
                 shift_del += element[1]
-            if element[0] == 2 and element[1] >= SV_size:
+            if element[0] == 2 and element[1] >= min_siglength: ## changed SV_size to min_siglength
                 Combine_sig_in_same_read_del.append([pos_start+shift_del, element[1]])
                 shift_del += element[1]
 
@@ -571,7 +571,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
 
             if element[0] in [0, 2, 7, 8]:
                 shift_ins += element[1]
-            if element[0] == 1 and element[1] >= SV_size:
+            if element[0] == 1 and element[1] >= min_siglength: ## changed SV_size to min_siglength
                 Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
                     str(read.query_sequence[shift_ins_read-element[1]-hardclip_left:shift_ins_read-hardclip_left])])
 
@@ -623,12 +623,13 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
                                     min_read_len, min_siglength, merge_del_threshold, 
                                     merge_ins_threshold, MaxSize)
             candidate.extend(read_candidate)
-            is_primary = 0
-            if read.flag in [0, 16]:
-                is_primary = 1
-            pos_start = read.reference_start # 0-based
-            pos_end = read.reference_end
-            reads_info_list.append([pos_start, pos_end, is_primary, read.query_name])
+            if read.mapq >= min_mapq:
+                is_primary = 0
+                if read.flag in [0, 16]:
+                    is_primary = 1
+                pos_start = read.reference_start # 0-based
+                pos_end = read.reference_end
+                reads_info_list.append([pos_start, pos_end, is_primary, read.query_name])
     samfile.close()
     # print('finish %s:%d-%d in %f seconds.'%(task[0], task[1], len(reads_info_list), time.time() - start_time))
    

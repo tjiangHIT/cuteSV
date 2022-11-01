@@ -232,7 +232,9 @@ def compare_len(len1, len2): # len1 < len2
             return True
     return False
 
-def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
+def find_in_indel_list(var_type, var_list, bias_origin, pos, sv_end, threshold_gloab):
+    # bias = min(bias_origin * 10, 2000)
+    bias = bias_origin
     debug_pos = -1
     if len(var_list) == 0:
         return [], 0, '.,.', '.,.'
@@ -274,39 +276,44 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
                     read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1])/2), read_tag[read_id][i][2]+read_tag[read_id][j][2], read_tag[read_id][i][3] ])
                 else:
                     read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1])/2), read_tag[read_id][i][2]+read_tag[read_id][j][2], read_tag[read_id][i][3], read_tag[read_id][i][4] ])
+                for k in range(j + 1, len(read_tag[read_id]), 1):
+                    if var_type == 'DEL':
+                        read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1]+read_tag[read_id][k][1])/3), read_tag[read_id][i][2]+read_tag[read_id][j][2]+read_tag[read_id][k][2], read_tag[read_id][i][3] ])
+                    else:
+                        read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1]+read_tag[read_id][k][1])/3), read_tag[read_id][i][2]+read_tag[read_id][j][2]+read_tag[read_id][k][2], read_tag[read_id][i][3], read_tag[read_id][i][4] ])
     
     read_tag2SortedList = sorted(read_tag2SortedList, key = lambda x:x[2])
+    # print(read_tag2SortedList)
     global_len = [i[2] for i in read_tag2SortedList]
     DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP = threshold_gloab * np.mean(global_len)
-
     if var_type == 'DEL':
         last_len = read_tag2SortedList[0][2]
+        cur_bias = last_len * threshold_gloab
         allele_collect = list()
         allele_collect.append([[read_tag2SortedList[0][1]],  # start
                                 [read_tag2SortedList[0][2]],  # len
                                 [],  # support
                                 [read_tag2SortedList[0][3]]])  # read_id
         for i in read_tag2SortedList[1:]:
-            if i[2] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP:
+            if i[2] - last_len > cur_bias:
                 allele_collect[-1][2].append(len(allele_collect[-1][0]))
-                #allele_collect[-1][4].append(np.mean(allele_collect[-1][1]))
                 allele_collect.append([[],[],[],[]])
-
             allele_collect[-1][0].append(i[1])
             allele_collect[-1][1].append(i[2])
             allele_collect[-1][3].append(i[3])
-            last_len = i[2]
+            last_len = (last_len * (len(allele_collect[-1][0]) - 1) + i[2]) / len(allele_collect[-1][0])
+            cur_bias = last_len * threshold_gloab
+
         allele_collect[-1][2].append(len(allele_collect[-1][0]))
-        allele_sort = sorted(allele_collect, key = lambda x:x[2])
         allele_idx = -1
         nearest_gap = 0x3f3f3f3f
-        for i in range(len(allele_sort)):
-            allele = allele_sort[i]
+        for i in range(len(allele_collect)):
+            allele = allele_collect[i]
             signalLen = np.mean(allele[1])
-            if abs(signalLen - sv_end) < nearest_gap:
+            if min(signalLen, sv_end) / max(signalLen, sv_end) > 0.7 and abs(signalLen - sv_end) < nearest_gap:
                 allele_idx = i
                 nearest_gap = abs(signalLen - sv_end)
- 
+        
         if allele_idx == -1:
             read_id_set = set()
             CIPOS = "-0,0"
@@ -315,11 +322,11 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
             search_threshold = 0
         else:
             final_alleles = [[],[],[],[]]
-            for i in range(len(allele_sort[allele_idx][0])):
-                if min(allele_sort[allele_idx][1][i], sv_end) / max(allele_sort[allele_idx][1][i], sv_end) > 0.7:
-                    final_alleles[0].append(allele_sort[allele_idx][0][i])
-                    final_alleles[1].append(allele_sort[allele_idx][1][i])
-                    final_alleles[3].append(allele_sort[allele_idx][3][i])
+            for i in range(len(allele_collect[allele_idx][0])):
+                if min(allele_collect[allele_idx][1][i], sv_end) / max(allele_collect[allele_idx][1][i], sv_end) > 0:
+                    final_alleles[0].append(allele_collect[allele_idx][0][i])
+                    final_alleles[1].append(allele_collect[allele_idx][1][i])
+                    final_alleles[3].append(allele_collect[allele_idx][3][i])
             if len(final_alleles[0]) == 0:
                 read_id_set = set()
                 CIPOS = "-0,0"
@@ -333,10 +340,10 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
                 seq = '<DEL>'
                 search_start = min(final_alleles[0])
                 search_end = max(final_alleles[0])
-                search_threshold = max(abs(pos - search_start), abs(pos - search_end))
-            
-    else: # INS
+                search_threshold = min(abs(pos - search_start), abs(pos - search_end))
+    if var_type == 'INS':
         last_len = read_tag2SortedList[0][2]
+        cur_bias = last_len * threshold_gloab
         allele_collect = list()
         allele_collect.append([[read_tag2SortedList[0][1]],  # start
                                 [read_tag2SortedList[0][2]],  # len
@@ -344,27 +351,25 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
                                 [read_tag2SortedList[0][3]],  # read_id
                                 [read_tag2SortedList[0][4]]])  # ins_seq
         for i in read_tag2SortedList[1:]:
-            if i[2] - last_len > DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP:
+            if i[2] - last_len > cur_bias:
                 allele_collect[-1][2].append(len(allele_collect[-1][0]))
                 allele_collect.append([[],[],[],[],[]])
-
             allele_collect[-1][0].append(i[1])
             allele_collect[-1][1].append(i[2])
             allele_collect[-1][3].append(i[3])
             allele_collect[-1][4].append(i[4])
-            last_len = i[2]
+            last_len = (last_len * (len(allele_collect[-1][0]) - 1) + i[2]) / len(allele_collect[-1][0])
+            cur_bias = last_len * threshold_gloab
         allele_collect[-1][2].append(len(allele_collect[-1][0]))
-        allele_sort = sorted(allele_collect, key = lambda x:x[2])
-
         allele_idx = -1
         nearest_gap = 0x3f3f3f3f
-        for i in range(len(allele_sort)):
-            allele = allele_sort[i]
+        for i in range(len(allele_collect)):
+            allele = allele_collect[i]
             signalLen = np.mean(allele[1])
-            if abs(signalLen - sv_end) < nearest_gap:
+            if min(signalLen, sv_end) / max(signalLen, sv_end) > 0.7 and abs(signalLen - sv_end) < nearest_gap:
                 allele_idx = i
                 nearest_gap = abs(signalLen - sv_end)
-
+ 
         if allele_idx == -1:
             read_id_set = set()
             CIPOS = "-0,0"
@@ -373,35 +378,26 @@ def find_in_indel_list(var_type, var_list, bias, pos, sv_end, threshold_gloab):
             search_threshold = 0
         else:
             final_alleles = [[],[],[],[],[]]
-            for i in range(len(allele_sort[allele_idx][0])):
-                if min(allele_sort[allele_idx][1][i], sv_end) / max(allele_sort[allele_idx][1][i], sv_end) > 0.7:
-                    final_alleles[0].append(allele_sort[allele_idx][0][i])
-                    final_alleles[1].append(allele_sort[allele_idx][1][i])
-                    final_alleles[3].append(allele_sort[allele_idx][3][i])
-                    final_alleles[4].append(allele_sort[allele_idx][4][i])
-
+            for i in range(len(allele_collect[allele_idx][0])):
+                if min(allele_collect[allele_idx][1][i], sv_end) / max(allele_collect[allele_idx][1][i], sv_end) > 0:
+                    final_alleles[0].append(allele_collect[allele_idx][0][i])
+                    final_alleles[1].append(allele_collect[allele_idx][1][i])
+                    final_alleles[3].append(allele_collect[allele_idx][3][i])
+                    final_alleles[4].append(allele_collect[allele_idx][4][i])
             if len(final_alleles[0]) == 0:
                 read_id_set = set()
                 CIPOS = "-0,0"
                 CILEN = "-0,0"
-                seq = '<INS>'
+                seq = '<DEL>'
                 search_threshold = 0
             else:
-                if pos == debug_pos:
-                    print(pos)
                 read_id_set = set(final_alleles[3])
                 CIPOS = cal_CIPOS(np.std(final_alleles[0]), len(final_alleles[0]))
                 CILEN = cal_CIPOS(np.std(final_alleles[1]), len(final_alleles[1]))
-                seq = '<INS>'
-                #for i in final_alleles[4]:
-                #    signalLen = np.mean(final_alleles[1])
-                #    if len(i) >= int(signalLen):
-                #        seq = i[0:int(signalLen)]
-                if len(final_alleles[4][0]) >= sv_end:
-                    seq = final_alleles[4][0][0:sv_end]
+                seq = '<DEL>'
                 search_start = min(final_alleles[0])
                 search_end = max(final_alleles[0])
-                search_threshold = max(abs(pos - search_start), abs(pos - search_end))
+                search_threshold = min(abs(pos - search_start), abs(pos - search_end))
     return list(read_id_set), search_threshold, CIPOS, CILEN
 
 def generate_dispatch(reads_count, chrom_list):
@@ -510,17 +506,19 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
                 search_id_list = sv_dict[sv_type][chrom]
             max_cluster_bias = 0
             if sv_type == 'INS' or sv_type == 'DEL':
-                read_id_list, max_cluster_bias, CIPOS, CILEN = find_in_indel_list(sv_type, search_id_list, max_cluster_bias_dict[sv_type], sv_start, sv_end, threshold_gloab_dict[sv_type])
+                sigs_bias = max_cluster_bias_dict[sv_type]
+                for j in range(i+1, len(svs_dict[chrom]), 1):
+                    if svs_dict[chrom][j][0] == sv_type:
+                        sigs_bias = min(sigs_bias, max(100, svs_dict[chrom][j][2] - sv_start))
+                        break
+                read_id_list, max_cluster_bias, CIPOS, CILEN = find_in_indel_list(sv_type, search_id_list, sigs_bias, sv_start, sv_end, threshold_gloab_dict[sv_type])
             else:
                 read_id_list, max_cluster_bias = find_in_list(sv_type, search_id_list, max_cluster_bias_dict[sv_type], sv_start, sv_end)
                 CIPOS = '.'
                 CILEN = '.'
             
-            if sv_type == 'INS':
-                max_cluster_bias = max(1000, max_cluster_bias)
-            else:
-                max_cluster_bias = max(max_cluster_bias_dict[sv_type], max_cluster_bias)
-            
+            # max_cluster_bias = max(max_cluster_bias_dict[sv_type], max_cluster_bias)
+            max_cluster_bias = max(1000, max_cluster_bias)
             if sv_type == 'INS' or sv_type == 'DEL' or sv_type == 'TRA':
                 search_list.append((max(sv_start - max_cluster_bias, 0), sv_start + max_cluster_bias))
             elif sv_type == 'INV' or sv_type == 'DUP':
