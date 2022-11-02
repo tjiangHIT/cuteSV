@@ -117,6 +117,11 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+	cuteSV (v2.0.2):
+	1. Fix several errors in signature extraction.
+	2. Filter low quality reads in the statistics of reference reads.
+	3. Modify the rule of merging signatures on the same read.
+	4. Modify the cluster rule of insertions and deletions in force calling.
 
 	cuteSV (v2.0.1):
 	1. Fix an error in handling strand in force calling.
