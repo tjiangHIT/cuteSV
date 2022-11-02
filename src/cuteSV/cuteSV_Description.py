@@ -3,11 +3,11 @@
  * @Title:  cuteSV_Description.py
  * @author: tjiang & sqcao
  * @date: Sep 12th 2022
- * @version V2.0.1
+ * @version V2.0.2
 '''
 import argparse
 
-VERSION = '2.0.1'
+VERSION = '2.0.2'
 
 class cuteSVdp(object):
 	'''
