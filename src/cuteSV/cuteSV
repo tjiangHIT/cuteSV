@@ -4,7 +4,7 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang & sqcao
- * @date: Sep 12th 2022
+ * @date: Nov 3rd 2022
  * @version V2.0.2
 '''
 
@@ -19,7 +19,7 @@ from cuteSV.cuteSV_resolveINV import run_inv
 from cuteSV.cuteSV_resolveTRA import run_tra
 from cuteSV.cuteSV_resolveINDEL import run_ins, run_del
 from cuteSV.cuteSV_resolveDUP import run_dup
-from cuteSV.cuteSV_genotype import generate_output, generate_pvcf, load_valuable_chr
+from cuteSV.cuteSV_genotype import generate_output, generate_pvcf, load_valuable_chr, load_bed
 from cuteSV.cuteSV_forcecalling import force_calling_chrom
 import os
 import argparse
@@ -610,7 +610,7 @@ def parse_read(read, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len,
     return candidate
 
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
-                task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
+                task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions):
 
     candidate = list()
     reads_info_list = list()
@@ -618,7 +618,19 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     samfile = pysam.AlignmentFile(sam_path)
 
     for read in samfile.fetch(Chr_name, task[1], task[2]):
-        if read.reference_start >= task[1]:
+        pos_start = read.reference_start # 0-based
+        pos_end = read.reference_end
+        in_bed = False
+        if bed_regions != None:
+            for bed_region in bed_regions:
+                if pos_end <= bed_region[0] or pos_start >= bed_region[1]:
+                    continue
+                else:
+                    in_bed = True
+                    break
+        else:
+            in_bed = True
+        if read.reference_start >= task[1] and in_bed:
             read_candidate = parse_read(read, Chr_name, min_length, min_mapq, max_split_parts, 
                                     min_read_len, min_siglength, merge_del_threshold, 
                                     merge_ins_threshold, MaxSize)
@@ -627,8 +639,6 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
                 is_primary = 0
                 if read.flag in [0, 16]:
                     is_primary = 1
-                pos_start = read.reference_start # 0-based
-                pos_end = read.reference_end
                 reads_info_list.append([pos_start, pos_end, is_primary, read.query_name])
     samfile.close()
     # print('finish %s:%d-%d in %f seconds.'%(task[0], task[1], len(reads_info_list), time.time() - start_time))
@@ -660,7 +670,6 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     reads_file.close()
     logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
     gc.collect()
-
 
 def multi_run_wrapper(args):
     return single_pipe(*args)
@@ -698,21 +707,23 @@ def main_ctrl(args, argv):
                 pos += args.batches
             if pos < local_ref_len:
                 Task_list.append([i[0], pos, local_ref_len])
+    bed_regions = load_bed(args.include_bed, Task_list)
     #'''
     analysis_pools = Pool(processes=int(args.threads))
     os.mkdir("%ssignatures"%temporary_dir)
-    for i in Task_list:
+    for i in range(len(Task_list)):
         para = [(args.input, 
                     args.min_size, 
                     args.min_mapq, 
                     args.max_split_parts, 
                     args.min_read_len, 
                     temporary_dir, 
-                    i, 
+                    Task_list[i], 
                     args.min_siglength, 
                     args.merge_del_threshold, 
                     args.merge_ins_threshold, 
-                    args.max_size)]
+                    args.max_size,
+                    None if bed_regions == None else bed_regions[i])]
         analysis_pools.map_async(multi_run_wrapper, para)
     analysis_pools.close()
     analysis_pools.join()

@@ -592,3 +592,26 @@ def load_valuable_chr(path):
 
 	return valuable_chr
 
+def load_bed(bed_file, Task_list):
+    # Task_list: [[chr, start, end], ...]
+    bed_regions = dict()
+    if bed_file != None:
+        # only consider regions in BED file
+        with open(bed_file, 'r') as f:
+            for line in f:
+                seq = line.strip().split('\t')
+                if seq[0] not in bed_regions:
+                    bed_regions[seq[0]] = list()
+                bed_regions[seq[0]].append((int(seq[1]) - 1000, int(seq[2]) + 1000))
+        region_list = [[] for i in range(len(Task_list))]
+        for chrom in bed_regions:
+            bed_regions[chrom].sort(key = lambda x:(x[0], x[1]))
+            for item in bed_regions[chrom]:
+                for i in range(len(Task_list)):
+                    if chrom == Task_list[i][0]:
+                        if (Task_list[i][1] <= item[0] and Task_list[i][2] > item[0]) or item[0] <= Task_list[i][1] < item[1]:
+                            region_list[i].append(item)
+        assert len(region_list) == len(Task_list), "parse bed file error"
+        return region_list
+    else:
+        return None

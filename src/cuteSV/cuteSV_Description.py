@@ -2,7 +2,7 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang & sqcao
- * @date: Sep 12th 2022
+ * @date: Nov 3rd 2022
  * @version V2.0.2
 '''
 import argparse
@@ -120,6 +120,10 @@ def parseArgs(argv):
 		help = "Maximum distance of insertion signals to be merged. In our paper, I used -mi 500 to process HG002 real human sample data.[%(default)s]", 
 		default = 100, 
 		type = int)
+	GroupSignaturesCollect.add_argument('-include_bed', 
+		help = "Optional given bed file. Only detect SVs in regions in the BED file. [NULL]",
+		default = None,
+        type = str)
 	# The min_read_len in last version is 2000.
 	# signatures with overlap need to be filtered
 
