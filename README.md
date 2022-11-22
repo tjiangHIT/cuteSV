@@ -77,6 +77,8 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 		--diff_ratio_merging_INS	0.3
 		--max_cluster_bias_DEL	100
 		--diff_ratio_merging_DEL	0.3
+	> For force calling:
+		--min_mapq 10
 	
 | Parameter | Description | Default |
 | :------------ |:---------------|-------------:|
@@ -105,6 +107,7 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 |--max_cluster_bias_TRA|Maximum distance to cluster read together for translocation.|50|
 |--diff_ratio_filtering_TRA|Filter breakpoints with basepair identity less than the ratio of *default* for translocation.|0.6|
 |--remain_reads_ratio|The ratio of reads remained in cluster to generate the breakpoint. Set lower to get more precise breakpoint when the alignment data have high quality but recommand over 0.5.|1|
+|-include_bed|Optional given bed file. Only detect SVs in regions in the BED file.|NULL|
 
 ---
 ### Datasets generated from cuteSV
