@@ -78,7 +78,7 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 		--max_cluster_bias_DEL	100
 		--diff_ratio_merging_DEL	0.3
 	> For force calling:
-		--min_mapq 10
+		--min_mapq 			10
 	
 | Parameter | Description | Default |
 | :------------ |:---------------|-------------:|
