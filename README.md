@@ -44,6 +44,8 @@ For more detailed implementation of SV benchmarks, we show an example [here](htt
 ## Notice
 A new wiki page about diploid-assembly-based SV detection using cuteSV has been established. More details please see [here](https://github.com/tjiangHIT/cuteSV/wiki/Diploid-assembly-based-SV-detection-using-cuteSV).
 
+We provided a new document for applying **force calling** (or **regenotyping**) benchmark [here](https://github.com/tjiangHIT/cuteSV/tree/master/src/documentation).
+
 ---
 ### Dependence
 	
