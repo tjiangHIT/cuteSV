@@ -29,7 +29,8 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
         pos_2 = int(seq[3])
         read_id = seq[4]
         
-        if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias or pos_2 - semi_dup_cluster[-1][1] > max_cluster_bias:
+        # if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias or pos_2 - semi_dup_cluster[-1][1] > max_cluster_bias:
+        if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias:
             if len(semi_dup_cluster) >= read_count:
                 if semi_dup_cluster[-1][0] == semi_dup_cluster[-1][1] == 0:
                     pass
@@ -81,39 +82,52 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
     if len(support_read) < read_count:
         return
 
-    low_b = int(len(semi_dup_cluster)*0.4)
-    up_b = int(len(semi_dup_cluster)*0.6)
+    semi_dup_cluster.sort(key = lambda x:x[1])
+    allele_collect = []
+    allele_collect.append([semi_dup_cluster[0]])
+    last_len = semi_dup_cluster[0][1]
+    for i in semi_dup_cluster[1:]:
+        if i[1] - last_len > max_cluster_bias:
+            allele_collect.append([])
+        allele_collect[-1].append(i)
+        last_len = i[1]
+    for i in allele_collect:
+        support_read = list(set([j[2] for j in i]))
+        if len(support_read) < read_count:
+            continue
+        low_b = int(len(i)*0.4)
+        up_b = int(len(i)*0.6)
 
-    if low_b == up_b:
-        breakpoint_1 = semi_dup_cluster[low_b][0]
-        breakpoint_2 = semi_dup_cluster[low_b][1]
-    else:
-        breakpoint_1 = [i[0] for i in semi_dup_cluster[low_b:up_b]]
-        breakpoint_2 = [i[1] for i in semi_dup_cluster[low_b:up_b]]
-        breakpoint_1 = int(sum(breakpoint_1)/len(semi_dup_cluster[low_b:up_b]))
-        breakpoint_2 = int(sum(breakpoint_2)/len(semi_dup_cluster[low_b:up_b]))
-
-
-    if sv_size <= breakpoint_2 - breakpoint_1 <= MaxSize or (sv_size <= breakpoint_2 - breakpoint_1 and MaxSize == -1):
-        if action:
-            candidate_single_SV.append([chr,
-                                        'DUP', 
-                                        breakpoint_1, 
-                                        breakpoint_2,
-                                        support_read])
-            # print("DUP", chr, int(breakpoint_1), int(breakpoint_2), DR, DV, QUAL, "%.4f"%cost_time)
+        if low_b == up_b:
+            breakpoint_1 = i[low_b][0]
+            breakpoint_2 = i[low_b][1]
         else:
-            candidate_single_SV.append([chr,
-                                        'DUP', 
-                                        str(breakpoint_1), 
-                                        str(breakpoint_2 - breakpoint_1), 
-                                        str(len(support_read)),
-                                        '.',
-                                        './.',
-                                        '.,.,.',
-                                        '.',
-                                        '.',
-                                        str(','.join(support_read))])
+            breakpoint_1 = [i[0] for i in i[low_b:up_b]]
+            breakpoint_2 = [i[1] for i in i[low_b:up_b]]
+            breakpoint_1 = int(sum(breakpoint_1)/len(i[low_b:up_b]))
+            breakpoint_2 = int(sum(breakpoint_2)/len(i[low_b:up_b]))
+
+
+        if sv_size <= breakpoint_2 - breakpoint_1 <= MaxSize or (sv_size <= breakpoint_2 - breakpoint_1 and MaxSize == -1):
+            if action:
+                candidate_single_SV.append([chr,
+                                            'DUP', 
+                                            breakpoint_1, 
+                                            breakpoint_2,
+                                            support_read])
+                # print("DUP", chr, int(breakpoint_1), int(breakpoint_2), DR, DV, QUAL, "%.4f"%cost_time)
+            else:
+                candidate_single_SV.append([chr,
+                                            'DUP', 
+                                            str(breakpoint_1), 
+                                            str(breakpoint_2 - breakpoint_1), 
+                                            str(len(support_read)),
+                                            '.',
+                                            './.',
+                                            '.,.,.',
+                                            '.',
+                                            '.',
+                                            str(','.join(support_read))])
 
 
 def run_dup(args):
