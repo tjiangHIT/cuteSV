@@ -378,8 +378,8 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
     for i in result:
         if i == []:
             continue
-        if i[7][5] == '.,.':
-            print(i)
+        # if i[7][5] == '.,.':
+        #     print(i)
         if i[7][5] == "." or i[7][5] == None:
             filter_lable = "PASS"
         else:
