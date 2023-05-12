@@ -122,6 +122,10 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+	cuteSV (v2.0.3):
+	1. Fix the error of missing min_size parameter.
+	2. Fix the missing signatures in duplication clustering.
+	
 	cuteSV (v2.0.2):
 	1. Fix several errors in signature extraction.
 	2. Filter low quality reads in the statistics of reference reads.
