@@ -4,7 +4,7 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang & sqcao
- * @date: May 12th 2023
+ * @date: June 21st 2023
  * @version V2.0.3
 '''
 
@@ -220,28 +220,38 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                     query = query[::-1]
 
                 if ele_1[3] - ele_2[2] >= SV_size:
-                    candidate.append([ele_2[2], 
-                                        ele_1[3], 
+                    # if ele_2[1] - ele_1[1] >= ele_1[3] - ele_2[2]:
+                    if ele_2[0] - ele_1[1] >= ele_1[3] - ele_2[2]:
+                        candidate.append([(ele_1[3]+ele_2[2])/2, 
+                                        ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
                                         read_name,
-                                        "DUP",
+                                        str(query[ele_1[1]+int((ele_1[3]-ele_2[2])/2):ele_2[0]-int((ele_1[3]-ele_2[2])/2)]),
+                                        "INS",
                                         ele_2[4]])
+                    else:
+                        candidate.append([ele_2[2], 
+                                            ele_1[3], 
+                                            read_name,
+                                            "DUP",
+                                            ele_2[4]])
 
-                if ele_1[3] - ele_2[2] < SV_size:
-                    if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
-                        if ele_2[2] - ele_1[3] <= 100 and (ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize or MaxSize == -1):
-                            candidate.append([(ele_2[2]+ele_1[3])/2, 
-                                                ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
-                                                read_name,
-                                                str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
-                                                "INS",
-                                                ele_2[4]])
-                    if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
-                        if ele_2[0] - ele_1[1] <= 100 and (ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize or MaxSize == -1):
-                            candidate.append([ele_1[3], 
-                                                ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], 
-                                                read_name,
-                                                "DEL",
-                                                ele_2[4]])
+                delta_length = ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1]
+                if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                    if ele_2[2] - ele_1[3] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
+                        candidate.append([(ele_2[2]+ele_1[3])/2, 
+                                            delta_length, 
+                                            read_name,
+                                            str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
+                                            "INS",
+                                            ele_2[4]])
+                delta_length = ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3]
+                if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                    if ele_2[0] - ele_1[1] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
+                        candidate.append([ele_1[3], 
+                                            delta_length, 
+                                            read_name,
+                                            "DEL",
+                                            ele_2[4]])
         else:
             trigger_INS_TRA = 1
             analysis_bnd(ele_1, ele_2, read_name, candidate)
@@ -283,7 +293,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                             if ele_1[1] <= ele_2[0] + 0.5 * (ele_1[2] - ele_3[3]) and ele_3[0] + 0.5 * (ele_1[2] - ele_3[3]) >= ele_2[1]:
                                 # No overlaps in split reads
 
-                                if ele_2[2] >= ele_3[3] and ele_1[2] >= ele_2[3]:
+                                if ele_2[2] - ele_3[3] >= -50 and ele_1[2] - ele_2[3] >= -50:
                                     candidate.append(["++", 
                                                         ele_3[3], 
                                                         ele_2[3], 
@@ -341,45 +351,76 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                                     "DUP",
                                                     ele_2[4]])
 
-                        if ele_1[3] - ele_2[2] < SV_size:
-                            if ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
-                                if ele_2[2] - ele_1[3] <= 100 and (ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize or MaxSize == -1):
-                                    if ele_3[2] >= ele_2[3]:
-                                        candidate.append([(ele_2[2]+ele_1[3])/2, 
-                                                            ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
-                                                            read_name,
-                                                            str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
-                                                            "INS",
-                                                            ele_2[4]])
-                            if ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
-                                if ele_2[0] - ele_1[1] <= 100 and (ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize or MaxSize == -1):
-                                    if ele_3[2] >= ele_2[3]:
-                                        candidate.append([ele_1[3], 
-                                                            ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], 
-                                                            read_name,
-                                                            "DEL",
-                                                            ele_2[4]])
+                        delta_length = ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1]
+                        if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                            if ele_2[2] - ele_1[3] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
+                                if ele_3[2] >= ele_2[3]:
+                                    candidate.append([(ele_2[2]+ele_1[3])/2, 
+                                                        delta_length, 
+                                                        read_name,
+                                                        str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
+                                                        "INS",
+                                                        ele_2[4]])
+                        delta_length = ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3]
+                        if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                            if ele_2[0] - ele_1[1] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
+                                if ele_3[2] >= ele_2[3]:
+                                    candidate.append([ele_1[3], 
+                                                        delta_length, 
+                                                        read_name,
+                                                        "DEL",
+                                                        ele_2[4]])
                         
                         if len(SP_list) - 3 == a:
                             ele_1 = ele_2
                             ele_2 = ele_3
 
-                            if ele_1[3] - ele_2[2] < SV_size and ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1] >= SV_size:
-                                if ele_2[2] - ele_1[3] <= 100 and (ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1] <= MaxSize or MaxSize == -1):
+                            delta_length = ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1]
+                            if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                                if ele_2[2] - ele_1[3] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
                                     candidate.append([(ele_2[2]+ele_1[3])/2, 
-                                                        ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
+                                                        delta_length, 
                                                         read_name,
                                                         str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
                                                         "INS",
                                                         ele_2[4]])
-                    
-                            if ele_1[3] - ele_2[2] < SV_size and ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
-                                if ele_2[0] - ele_1[1] <= 100 and (ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3] <= MaxSize or MaxSize == -1):
+
+                            delta_length = ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3]
+                            if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3] >= SV_size:
+                                if ele_2[0] - ele_1[1] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
                                     candidate.append([ele_1[3], 
-                                                        ele_2[2]-ele_2[0]+ele_1[1]-ele_1[3], 
+                                                        delta_length, 
                                                         read_name,
                                                         "DEL",
                                                         ele_2[4]])
+
+                    if len(SP_list) - 3 == a and ele_1[5] != ele_2[5] and ele_2[5] == ele_3[5]:
+                        ele_1 = ele_2
+                        ele_2 = ele_3
+                        ele_3 = None
+                    if ele_3 == None or (ele_1[5] == ele_2[5] and ele_2[5] != ele_3[5]):
+                        if ele_1[5] == '-':
+                            ele_1 = [RLength-SP_list[a+2][1], RLength-SP_list[a+2][0]]+SP_list[a+2][2:]
+                            ele_2 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
+                            query = query[::-1]
+                        delta_length = ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1]
+                        if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                            if ele_2[2] - ele_1[3] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
+                                candidate.append([(ele_2[2]+ele_1[3])/2, 
+                                                    delta_length, 
+                                                    read_name,
+                                                    str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
+                                                    "INS",
+                                                    ele_2[4]])
+
+                        delta_length = ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3]
+                        if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
+                            if ele_2[0] - ele_1[1] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
+                                candidate.append([ele_1[3], 
+                                                    delta_length, 
+                                                    read_name,
+                                                    "DEL",
+                                                    ele_2[4]])
 
             else:
                 trigger_INS_TRA = 1
@@ -618,6 +659,8 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     samfile = pysam.AlignmentFile(sam_path)
 
     for read in samfile.fetch(Chr_name, task[1], task[2]):
+        if read.flag == 256 or read.flag == 272:
+            continue
         pos_start = read.reference_start # 0-based
         pos_end = read.reference_end
         in_bed = False
