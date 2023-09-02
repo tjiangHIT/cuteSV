@@ -887,6 +887,8 @@ def main_ctrl(args, argv):
     candidates["INV"]=list()
     candidates["TRA"]=list()
     reads_info_list=list()
+    candidates["read_list"]=reads_info_list
+    candidates["chr_reads"]={}
 
     analysis_pools = Pool(processes=int(args.threads))
     os.mkdir("%ssignatures"%temporary_dir)
@@ -926,7 +928,8 @@ def main_ctrl(args, argv):
     candidates["DUP"].sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
     candidates["INV"].sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
     candidates["TRA"].sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
-    for k in candidates.keys():
+    SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
+    for k in SVTYPES:
         candidates[k]=remove_duplicates_sorted(candidates[k])
     # with open("%s/candidates.pickle"%temporary_dir,"wb") as f:
     #     pickle.dump(candidates,f)
@@ -951,7 +954,7 @@ def main_ctrl(args, argv):
         threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
         
         result = force_calling_chrom(args.Ivcf, temporary_dir,
-                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads)
+                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads, candidates)
 
     else:
         valuable_chr = load_valuable_chr(temporary_dir)
