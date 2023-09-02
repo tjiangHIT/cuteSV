@@ -3,7 +3,7 @@
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
- * @author: tjiang & sqcao
+ * @author: tjiang & sqcao & zdzhang
  * @date: June 21st 2023
  * @version V2.0.3
 '''
@@ -12,8 +12,8 @@ import pysam
 import cigar
 from Bio import SeqIO
 from cuteSV.cuteSV_Description import parseArgs
-from multiprocessing import Pool,Manager
-from cuteSV.CommandRunner import *
+from multiprocessing import Pool,Manager,Queue
+from CommandRunner import *
 # from resolution_type import * 
 from cuteSV.cuteSV_resolveINV import run_inv
 from cuteSV.cuteSV_resolveTRA import run_tra
@@ -714,7 +714,7 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
     return candidate
 
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
-                task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions, candidate_queue):
+                task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions):
     # logging.info("enter")
     candidate = {}
     candidate["DEL"]=list()
@@ -722,7 +722,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     candidate["DUP"]=list()
     candidate["INV"]=list()
     candidate["TRA"]=list()
-    reads_info_list = list()
+    reads_info_list= list()
     Chr_name = task[0]
     samfile = pysam.AlignmentFile(sam_path)
 
@@ -787,9 +787,13 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     # reads_file = open(reads_output, 'wb')
     # pickle.dump(reads_info_list,reads_file)
     # reads_file.close()
-    candidate_queue.put((candidate, reads_info_list))
+    # candidate_queue.put((candidate, reads_info_list))
+    # for k in candidate.keys():
+    #     candidates[k].extend(candidate[k])
+    # reads_info_list.extend(reads_info_list_local)
     logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
     gc.collect()
+    return (candidate, reads_info_list)
 
 def multi_run_wrapper(args):
     # logging.info(args)
@@ -874,7 +878,9 @@ def main_ctrl(args, argv):
     bed_regions = load_bed(args.include_bed, Task_list)
     #'''
     
-    candidates={}
+    # candidates={}
+    manager=Manager()
+    candidates=manager.dict()
     candidates["DEL"]=list()
     candidates["INS"]=list()
     candidates["DUP"]=list()
@@ -882,13 +888,11 @@ def main_ctrl(args, argv):
     candidates["TRA"]=list()
     reads_info_list=list()
 
-    manager=Manager()
-    candidate_queue=manager.Queue()
-
     analysis_pools = Pool(processes=int(args.threads))
     os.mkdir("%ssignatures"%temporary_dir)
+    results=[]#use this is faster than make a long paras list
     for i in range(len(Task_list)):
-        para = [(args.input, 
+        paras = [(args.input, 
                     args.min_size, 
                     args.min_mapq, 
                     args.max_split_parts, 
@@ -899,17 +903,18 @@ def main_ctrl(args, argv):
                     args.merge_del_threshold, 
                     args.merge_ins_threshold, 
                     args.max_size,
-                    None if bed_regions == None else bed_regions[i],
-                    candidate_queue)]
-        analysis_pools.map_async(multi_run_wrapper, para)
+                    None if bed_regions == None else bed_regions[i])]
+        results.append(analysis_pools.map_async(multi_run_wrapper, paras))
     analysis_pools.close()
     analysis_pools.join()
     #'''
     #'''
     logging.info("Rebuilding signatures of structural variants.")
 
-    while not candidate_queue.empty():
-        candidate, infolist=candidate_queue.get_nowait()
+    # while not candidate_queue.empty():
+    #     candidate, infolist=candidate_queue.get_nowait()
+    for r in results:
+        candidate, infolist=r.get()[0]
         candidates["DEL"].extend(candidate["DEL"])
         candidates["INS"].extend(candidate["INS"])
         candidates["DUP"].extend(candidate["DUP"])
@@ -928,79 +933,8 @@ def main_ctrl(args, argv):
     
     write_sigs(temporary_dir,candidates,reads_info_list)
     
-    # exit(0)
-    # analysis_pools = Pool(processes=int(args.threads))
-    # cmd_del = ("cat %ssignatures/*.bed | grep -w DEL | sort -u -T %s | sort -k 2,2 -k 3,3n -T %s > %sDEL.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
-    # cmd_ins = ("cat %ssignatures/*.bed | grep -w INS | sort -u -T %s | sort -k 2,2 -k 3,3n -T %s > %sINS.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
-    # cmd_inv = ("cat %ssignatures/*.bed | grep -w INV | sort -u -T %s | sort -k 2,2 -k 3,3 -k 4,4n -T %s > %sINV.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
-    # cmd_tra = ("cat %ssignatures/*.bed | grep -w TRA | sort -u -T %s | sort -k 2,2 -k 5,5 -k 3,3 -k 4,4n -T %s > %sTRA.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
-    # cmd_dup = ("cat %ssignatures/*.bed | grep -w DUP | sort -u -T %s | sort -k 1,1r -k 2,2 -k 3,4n -T %s > %sDUP.sigs"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
-    # cmd_reads = ("cat %ssignatures/*.reads > %sreads.sigs"%(temporary_dir, temporary_dir))
-    # for i in [cmd_ins, cmd_del, cmd_dup, cmd_tra, cmd_inv, cmd_reads]:
-    #     analysis_pools.map_async(exe, (i,))
-    # analysis_pools.close()
-    # analysis_pools.join()
-    # candidates=[]
-    # reads_info_list=[]
-    # for i in range(len(Task_list)):
-    #     try:
-    #         fname="%ssignatures/_%s_%d_%d.pickle"%(temporary_dir, Task_list[i][0], Task_list[i][1], Task_list[i][2])
-    #         with open(fname,"rb") as f:
-    #             candidates+=pickle.load(f)
-    #     except FileNotFoundError:
-    #         continue
-    # del_candidates=[]
-    # ins_candidates=[]
-    # inv_candidates=[]
-    # tra_candidates=[]
-    # dup_candidates=[]
-    # i=0
-    # while i< len(candidates):
-    #     if candidates[i][-2]=="DEL":
-    #         del_candidates.append(candidates[i])
-    #     elif candidates[i][-2]=="INS":
-    #         ins_candidates.append(candidates[i])
-    #     # elif candidates[i][-2]=="INV":
-    #     #     inv_candidates.append(candidates[i])
-    #     # elif candidates[i][-2]=="TRA":
-    #     #     tra_candidates.append(candidates[i])
-    #     # elif candidates[i][-2]=="DUP":
-    #     #     dup_candidates.append(candidates[i])
-    #     i+=1
-    # # del_candidates.sort(key=lambda x: (x[-1], int(x[0])))
-    # # ins_candidates.sort(key=lambda x: (x[-1], int(x[0])))
-    # # inv_candidates.sort(key=lambda x: (x[-1], int(x[0])))
-    # # tra_candidates.sort(key=lambda x: (x[-1], int(x[0])))
-    # # dup_candidates.sort(key=lambda x: (x[-1], int(x[0])))
-    # with open("%s/DEL.sigs"%temporary_dir,"wb") as f:
-    #     pickle.dump(del_candidates,f)
-    # with open("%s/INS.sigs"%temporary_dir,"wb") as f:
-    #     pickle.dump(ins_candidates,f)
-    # with open("%s/INV.sigs"%temporary_dir,"wb") as f:
-    #     pickle.dump(inv_candidates,f)
-    # with open("%s/TRA.sigs"%temporary_dir,"wb") as f:
-    #     pickle.dump(tra_candidates,f)
-    # with open("%s/DUP.sigs"%temporary_dir,"wb") as f:
-    #     pickle.dump(dup_candidates,f)
-    # del del_candidates
-    # del ins_candidates
-    # del inv_candidates
-    # del tra_candidates
-    # del dup_candidates
-    # del candidates
-    # gc.collect()
-    # for i in range(len(Task_list)):
-    #     try:
-    #         fname="%ssignatures/_%s_%d_%d.reads.pickle"%(temporary_dir, Task_list[i][0], Task_list[i][1], Task_list[i][2])
-    #         with open(fname,"rb") as f:
-    #             reads_info_list+=pickle.load(f)
-    #     except FileNotFoundError:
-    #         continue
-    # with open("%s/reads.sigs"%temporary_dir,"wb") as f:
-    #     pickle.dump(reads_info_list,f)
-    # del reads_info_list
     logging.info("Rebuilding signatures completed.")
-    exit(0)
+    # exit(0)
     #'''
     result = list()
 
