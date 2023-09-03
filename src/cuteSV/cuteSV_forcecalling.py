@@ -98,13 +98,18 @@ def parse_record(record):
             ref = record.info['SEQ']
     return sv_type, chrom1, chrom2, start, end, strand, svid, ref, alts
 
-def parse_sigs_chrom(var_type, work_dir, chrom_list):
+def parse_sigs_chrom(var_type, work_dir, chrom_list, index):
     if var_type == 'DEL' or var_type == 'DUP':
         var_dict = dict()  #var_dict[chrom] = [chrom, start, len/end, read_id]
         with open(work_dir + var_type + '.sigs', 'r') as f:
-            for line in f:
-                seq = line.strip().split('\t')
-                if seq[1] in chrom_list:
+            for chrom in chrom_list:
+                if chrom not in index.keys():
+                    continue
+                f.seek(index[chrom])
+                for line in f:
+                    seq = line.strip().split('\t')
+                    if seq[1]!=chrom:
+                        break
                     if seq[1] not in var_dict:
                         var_dict[seq[1]] = []
                     var_dict[seq[1]].append([seq[1], int(seq[2]), int(seq[3]), seq[4]])
@@ -112,9 +117,14 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list):
     if var_type == 'INS':
         var_dict = dict()  #var_dict[chrom] = [chrom, start, len, read_id, seq]
         with open(work_dir + 'INS.sigs', 'r') as f:
-            for line in f:
-                seq = line.strip().split('\t')
-                if seq[1] in chrom_list:
+            for chrom in chrom_list:
+                if chrom not in index.keys():
+                    continue
+                f.seek(index[chrom])
+                for line in f:
+                    seq = line.strip().split('\t')
+                    if seq[1]!=chrom:
+                        break
                     if len(seq) < 6:
                         cigar = '<INS>'
                     else:
@@ -127,10 +137,14 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list):
     if var_type == 'INV':
         var_dict = dict() # var_dict[chrom] = [chrom, start, end, read_id]
         with open(work_dir + 'INV.sigs', 'r') as f:
-            for line in f:
-                seq = line.strip().split('\t')
-                if seq[1] in chrom_list:
-                    chrom = seq[1]
+            for chrom in chrom_list:
+                if chrom not in index.keys():
+                    continue
+                f.seek(index[chrom])
+                for line in f:
+                    seq = line.strip().split('\t')
+                    if chrom != seq[1]:
+                        break
                     if chrom not in var_dict:
                         var_dict[chrom] = []
                     var_dict[chrom].append([chrom, int(seq[3]), int(seq[4]), seq[5]])
@@ -140,37 +154,41 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list):
     if var_type == 'TRA':
         var_dict = dict()  #var_dict[chrom1][chrom2] = [[chrom2, pos1, pos2, read_id]]
         with open(work_dir + 'TRA.sigs', 'r') as f:
-            for line in f:
-                seq = line.strip().split('\t')
-                if seq[1] not in chrom_list:
+            for chrom in chrom_list:
+                if chrom not in index.keys():
                     continue
-                chrom1 = seq[1]
-                tra_type = seq[2]
-                pos1 = int(seq[3])
-                chrom2 = seq[4]
-                pos2 = int(seq[5])
-                read_id = seq[6]
-                '''
-                if chrom1 in var_dict:
-                    if tra_type in var_dict[chrom1]:
-                        if chrom2 in var_dict[chrom1][tra_type]:
-                            var_dict[chrom1][tra_type][chrom2].append([chrom2, pos1, pos2, read_id])
+                f.seek(index[chrom])
+                for line in f:
+                    seq = line.strip().split('\t')
+                    if seq[1] != chrom:
+                        break
+                    chrom1 = seq[1]
+                    tra_type = seq[2]
+                    pos1 = int(seq[3])
+                    chrom2 = seq[4]
+                    pos2 = int(seq[5])
+                    read_id = seq[6]
+                    '''
+                    if chrom1 in var_dict:
+                        if tra_type in var_dict[chrom1]:
+                            if chrom2 in var_dict[chrom1][tra_type]:
+                                var_dict[chrom1][tra_type][chrom2].append([chrom2, pos1, pos2, read_id])
+                            else:
+                                var_dict[chrom1][tra_type][chrom2] = [[chrom2, pos1, pos2, read_id]]
                         else:
+                            var_dict[chrom1][tra_type] = dict()
                             var_dict[chrom1][tra_type][chrom2] = [[chrom2, pos1, pos2, read_id]]
+
                     else:
+                        var_dict[chrom1] = dict()
                         var_dict[chrom1][tra_type] = dict()
                         var_dict[chrom1][tra_type][chrom2] = [[chrom2, pos1, pos2, read_id]]
-
-                else:
-                    var_dict[chrom1] = dict()
-                    var_dict[chrom1][tra_type] = dict()
-                    var_dict[chrom1][tra_type][chrom2] = [[chrom2, pos1, pos2, read_id]]
-                '''
-                if chrom1 not in var_dict:
-                    var_dict[chrom1] = dict()
-                if chrom2 not in var_dict[chrom1]:
-                    var_dict[chrom1][chrom2] = []
-                var_dict[chrom1][chrom2].append([chrom2, pos1, pos2, read_id])
+                    '''
+                    if chrom1 not in var_dict:
+                        var_dict[chrom1] = dict()
+                    if chrom2 not in var_dict[chrom1]:
+                        var_dict[chrom1][chrom2] = []
+                    var_dict[chrom1][chrom2].append([chrom2, pos1, pos2, read_id])
         for chr1 in var_dict:
             for chr2 in var_dict[chr1]:
                 var_dict[chr1][chr2].sort(key=lambda x:x[1])
@@ -419,32 +437,10 @@ def generate_dispatch(reads_count, chrom_list):
             dispatch[0].append(chrom)
     return dispatch
 
-def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, threads, candidates):
+def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, threads, sigs_index):
     logging.info('Check the parameter -Ivcf: OK.')
     logging.info('Enable to perform force calling.')
 
-    for r in candidates["read_list"]:
-        chr = r[-1]
-        # if chr not in chrom_list:
-        #     continue
-        if chr not in candidates["chr_reads"]:
-            candidates["chr_reads"][chr] = list()
-        candidates["chr_reads"][chr].append([int(r[0]), int(r[1]), int(r[2]), r[3]])
-    
-    SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
-    candidates["chr_sigs"]={}
-    for sv_type in SVTYPES:
-        candidates["chr_sigs"]["sv_type"]={}
-        if (len(candidates[sv_type])==0):
-            continue
-        last_chr=candidates[sv_type][0][-1]
-        lasti=0
-        for i in range(1,len(candidates[sv_type])):
-            if candidates[sv_type][i][-1]!=last_chr:
-                candidates["chr_sigs"]["sv_type"][last_chr]=candidates[sv_type][lasti:i]
-                lasti=i
-                last_chr=candidates[sv_type][i][-1]
-    logging.info("Building shared sigs completed.")
     # parse svs tobe genotyped
     vcf_reader = VariantFile(ivcf_path, 'r')
     svs_tobe_genotyped = dict()
@@ -457,31 +453,30 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
         svs_tobe_genotyped[chrom].append([sv_type, sv_chr2, pos, sv_end, svid, ref, alts, sv_strand, chrom])
     
     # parse reads in alignment
-    # reads_count = dict()
-    # with open('%sreads.sigs'%(temporary_dir), 'r') as f:
-    #     for line in f:
-    #         seq = line.strip().split('\t')
-    #         if seq[0] not in reads_count:
-    #             reads_count[seq[0]] = 0
-    #         reads_count[seq[0]] += 1
-    # reads_count = [(chr,len(candidates["chr_reads"][chr])) for chr in candidates["chr_reads"].keys()]
-    # reads_count = sorted(reads_count.items(), key=lambda x:x[1])
-    # dispatch = generate_dispatch(reads_count, svs_tobe_genotyped.keys())
+    reads_count = dict()
+    with open('%sreads.sigs'%(temporary_dir), 'r') as f:
+        for line in f:
+            seq = line.strip().split('\t')
+            if seq[0] not in reads_count:
+                reads_count[seq[0]] = 0
+            reads_count[seq[0]] += 1
+    reads_count = sorted(reads_count.items(), key=lambda x:x[1])
+    dispatch = generate_dispatch(reads_count, svs_tobe_genotyped.keys())
     
     # force calling
     pool_result = list()
     result = list()
     process_pool = Pool(processes = threads)
     # dispatch = [['MT']]
-    for chrom in candidates["chr_reads"].keys():
+    for chroms in dispatch:
         genotype_sv_list = dict()
-        # for chrom in chroms:
-        if chrom in svs_tobe_genotyped:
-            genotype_sv_list[chrom] = svs_tobe_genotyped[chrom]
+        for chrom in chroms:
+            if chrom in svs_tobe_genotyped:
+                genotype_sv_list[chrom] = svs_tobe_genotyped[chrom]
         if len(genotype_sv_list) == 0:
             continue
         # pool_result.append(solve_fc(chroms, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round))
-        fx_para = [(chrom, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, candidates)]
+        fx_para = [(chroms, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index)]
         pool_result.append(process_pool.map_async(solve_fc_wrapper, fx_para))
     process_pool.close()
     process_pool.join()
@@ -492,24 +487,22 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
 
 def solve_fc_wrapper(args):
     return solve_fc(*args)
-def solve_fc(chrom, svs_dict, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, candidates):
-    # reads_info = dict() # [10000, 10468, 0, 'm54238_180901_011437/52298335/ccs']
-    # readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
-    # for line in readsfile:
-    #     seq = line.strip().split('\t')
-    #     chr = seq[0]
-    #     if chr not in chrom_list:
-    #         continue
-    #     if chr not in reads_info:
-    #         reads_info[chr] = list()
-    #     reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
-    # readsfile.close()
-    reads_info=candidates["chr_reads"]
+def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index):
+    reads_info = dict() # [10000, 10468, 0, 'm54238_180901_011437/52298335/ccs']
+    readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
+    for line in readsfile:
+        seq = line.strip().split('\t')
+        chr = seq[0]
+        if chr not in chrom_list:
+            continue
+        if chr not in reads_info:
+            reads_info[chr] = list()
+        reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
+    readsfile.close()
     
     sv_dict = dict()
     for sv_type in ["DEL", "DUP", "INS", "INV", "TRA"]:
-        # sv_dict[sv_type] = parse_sigs_chrom(sv_type, temporary_dir, chrom_list)
-        sv_dict[sv_type] = candidates["chr_sigs"][sv_type][chrom]
+        sv_dict[sv_type] = parse_sigs_chrom(sv_type, temporary_dir, chrom_list, sigs_index)
     
     gt_list = list()
     for chrom in svs_dict:
