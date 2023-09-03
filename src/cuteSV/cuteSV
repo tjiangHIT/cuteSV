@@ -826,7 +826,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
         bytecount=0
         if len(candidates["INS"])!=0:
             for ele in candidates["INS"]:
-                print("%s\t%s\t%d\t%d\t%s\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3]), end="",file=f)
+                line="%s\t%s\t%d\t%d\t%s\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3])
                 if ele[-1]!=chr:
                     if chr==None:
                         chr=ele[-1]
@@ -844,7 +844,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
         bytecount=0
         if len(candidates["DUP"])!=0:
             for ele in candidates["DUP"]:
-                print("%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2]), end="", file=f)
+                line="%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2])
                 if ele[-1]!=chr:
                     if chr==None:
                         chr=ele[-1]
@@ -862,7 +862,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
         bytecount=0
         if len(candidates["INV"])!=0:
             for ele in candidates["INV"]:
-                print("%s\t%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3]), end="",file=f)
+                line="%s\t%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3])
                 if ele[-1]!=chr:
                     if chr==None:
                         chr=ele[-1]
@@ -880,7 +880,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
         bytecount=0
         if len(candidates["TRA"])!=0:
             for ele in candidates["TRA"]:
-                print("%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3], ele[4]), end="",file=f)
+                line="%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3], ele[4])
                 if ele[-1]!=chr:
                     if chr==None:
                         chr=ele[-1]
@@ -1038,8 +1038,8 @@ def main_ctrl(args, argv):
     
     # for k in SVTYPES:
     #     del candidates[k]
-    # del reads_info_list
-    # del results
+    del reads_info_list
+    del results
     del candidates
     gc.collect()
     logging.info("Rebuilding signatures completed.")

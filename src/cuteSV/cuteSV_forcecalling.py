@@ -103,9 +103,9 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list, index):
         var_dict = dict()  #var_dict[chrom] = [chrom, start, len/end, read_id]
         with open(work_dir + var_type + '.sigs', 'r') as f:
             for chrom in chrom_list:
-                if chrom not in index.keys():
+                if chrom not in index[var_type].keys():
                     continue
-                f.seek(index[chrom])
+                f.seek(index[var_type][chrom])
                 for line in f:
                     seq = line.strip().split('\t')
                     if seq[1]!=chrom:
@@ -118,9 +118,9 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list, index):
         var_dict = dict()  #var_dict[chrom] = [chrom, start, len, read_id, seq]
         with open(work_dir + 'INS.sigs', 'r') as f:
             for chrom in chrom_list:
-                if chrom not in index.keys():
+                if chrom not in index[var_type].keys():
                     continue
-                f.seek(index[chrom])
+                f.seek(index[var_type][chrom])
                 for line in f:
                     seq = line.strip().split('\t')
                     if seq[1]!=chrom:
@@ -138,9 +138,9 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list, index):
         var_dict = dict() # var_dict[chrom] = [chrom, start, end, read_id]
         with open(work_dir + 'INV.sigs', 'r') as f:
             for chrom in chrom_list:
-                if chrom not in index.keys():
+                if chrom not in index[var_type].keys():
                     continue
-                f.seek(index[chrom])
+                f.seek(index[var_type][chrom])
                 for line in f:
                     seq = line.strip().split('\t')
                     if chrom != seq[1]:
@@ -155,9 +155,9 @@ def parse_sigs_chrom(var_type, work_dir, chrom_list, index):
         var_dict = dict()  #var_dict[chrom1][chrom2] = [[chrom2, pos1, pos2, read_id]]
         with open(work_dir + 'TRA.sigs', 'r') as f:
             for chrom in chrom_list:
-                if chrom not in index.keys():
+                if chrom not in index[var_type].keys():
                     continue
-                f.seek(index[chrom])
+                f.seek(index[var_type][chrom])
                 for line in f:
                     seq = line.strip().split('\t')
                     if seq[1] != chrom:
@@ -440,7 +440,9 @@ def generate_dispatch(reads_count, chrom_list):
 def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, threads, sigs_index):
     logging.info('Check the parameter -Ivcf: OK.')
     logging.info('Enable to perform force calling.')
-
+    # if sigs_index==None:
+    #     with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
+    #     sigs_index=pickle.load(f)
     # parse svs tobe genotyped
     vcf_reader = VariantFile(ivcf_path, 'r')
     svs_tobe_genotyped = dict()
