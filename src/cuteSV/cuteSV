@@ -820,7 +820,12 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     # for k in candidate.keys():
     #     candidates[k].extend(candidate[k])
     # reads_info_list.extend(reads_info_list_local)
+    # pid=current_process().pid
+    # with open("%ssignatures/%s.pickle"%(temp_dir,pid),"ab") as f:
+    #     pickle.dump((candidate,reads_info_list),f)
     logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
+    # del candidate
+    # del reads_info_list
     gc.collect()
     return (candidate, reads_info_list)
 
@@ -828,9 +833,9 @@ def multi_run_wrapper(args):
     # logging.info(args)
     return single_pipe(*args)
 
-def write_sigs(temporary_dir, candidates, reads_info_list):
+def write_sigs(temporary_dir, candidates, reads_info_list, prefix=""):
     index={}
-    with open("%s/DEL.sigs"%temporary_dir,"w") as f:
+    with open("%s/%sDEL.sigs"%(temporary_dir,prefix),"w") as f:
         index["DEL"]={}
         chr=None
         start=0
@@ -848,7 +853,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
                 bytecount+=len(line)
                 print(line, end="",file=f)
             index["DEL"][chr]=start
-    with open("%s/INS.sigs"%temporary_dir,"w") as f:
+    with open("%s/%sINS.sigs"%(temporary_dir,prefix),"w") as f:
         index["INS"]={}
         chr=None
         start=0
@@ -866,7 +871,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
                 bytecount+=len(line)
                 print(line, end="",file=f)
             index["INS"][chr]=start
-    with open("%s/DUP.sigs"%temporary_dir,"w") as f:
+    with open("%s/%sDUP.sigs"%(temporary_dir,prefix),"w") as f:
         index["DUP"]={}
         chr=None
         start=0
@@ -884,7 +889,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
                 bytecount+=len(line)
                 print(line, end="",file=f)
             index["DUP"][chr]=start
-    with open("%s/INV.sigs"%temporary_dir,"w") as f:
+    with open("%s/%sINV.sigs"%(temporary_dir,prefix),"w") as f:
         index["INV"]={}
         chr=None
         start=0
@@ -902,7 +907,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
                 bytecount+=len(line)
                 print(line, end="",file=f)
             index["INV"][chr]=start
-    with open("%s/TRA.sigs"%temporary_dir,"w") as f:
+    with open("%s/%sTRA.sigs"%(temporary_dir,prefix),"w") as f:
         index["TRA"]={}
         chr=None
         start=0
@@ -920,7 +925,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list):
                 bytecount+=len(line)
                 print(line, end="",file=f)
             index["TRA"][chr]=start
-    with open("%s/reads.sigs"%(temporary_dir), "w") as f:
+    with open("%s/%sreads.sigs"%(temporary_dir,prefix), "w") as f:
         for ele in reads_info_list:
             print("%s\t%d\t%d\t%d\t%s\n"%(ele[-1], ele[0], ele[1], ele[2], ele[3]), end="", file=f)
     with open("%s/sigindex.pickle"%temporary_dir,"wb") as f:
@@ -1025,8 +1030,10 @@ def main_ctrl(args, argv):
                     args.merge_ins_threshold, 
                     args.max_size,
                     None if bed_regions == None else bed_regions[i])]
+        # analysis_pools.map_async(multi_run_wrapper, paras)
         results.append(analysis_pools.map_async(multi_run_wrapper, paras))
         # results.append(analysis_pools.map_async(multi_run_wrapper, paras, callback=add_candidates))#https://stackoverflow.com/questions/18414020/memory-usage-keep-growing-with-pythons-multiprocessing-pool
+    # pids = [process.pid for process in analysis_pools._pool]
     analysis_pools.close()
     analysis_pools.join()
     #'''
@@ -1035,6 +1042,19 @@ def main_ctrl(args, argv):
 
     # while not candidate_queue.empty():
     #     candidate, infolist=candidate_queue.get_nowait()
+    # for pid in pids:
+    #     with open("%ssignatures/%s.pickle"%(temporary_dir,pid), "rb") as f:
+    #         while True:
+    #             try:
+    #                 candidate, infolist=pickle.load(f)
+    #                 candidates["DEL"].extend(candidate["DEL"])
+    #                 candidates["INS"].extend(candidate["INS"])
+    #                 candidates["DUP"].extend(candidate["DUP"])
+    #                 candidates["INV"].extend(candidate["INV"])
+    #                 candidates["TRA"].extend(candidate["TRA"])
+    #                 reads_info_list.extend(infolist)
+    #             except EOFError:
+    #                 break
     for r in results:
         candidate, infolist=r.get()[0]
         candidates["DEL"].extend(candidate["DEL"])
