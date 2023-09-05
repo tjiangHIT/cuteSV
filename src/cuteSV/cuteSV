@@ -574,7 +574,34 @@ def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_di
                                                 svtype,
                                                 Chr_name])
 
+OPLIST=[
+    pysam.CBACK,
+    pysam.CDEL,
+    pysam.CDIFF,
+    pysam.CEQUAL,
+    pysam.CHARD_CLIP,
+    pysam.CINS,
+    pysam.CMATCH,
+    pysam.CPAD,
+    pysam.CREF_SKIP,
+    pysam.CSOFT_CLIP
+]
 RefChangeOp=set([0,2,7,8])
+
+#QUERY CHANGE, REF CHANGE
+CHANGETABLE={
+    pysam.CMATCH:     (True,True),
+    pysam.CINS:       (True,False),
+    pysam.CDEL:       (False,True),
+    pysam.CREF_SKIP:  (False,True),
+    pysam.CPAD:       (False,False),
+    pysam.CEQUAL:     (True,True),
+    pysam.CDIFF:      (True,True)
+}
+
+CHANGEOP=[CHANGETABLE[i] if i in CHANGETABLE.keys() else (False,False) for i in range(max(OPLIST)+1)]
+REFCHANGEOP=[CHANGETABLE[i][1] if i in CHANGETABLE.keys() else False for i in range(max(OPLIST)+1)]
+INDELOP=[(i==pysam.CDEL or i==pysam.CINS) for i in range(max(OPLIST)+1)]
 
 def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
     if read.query_length < min_read_len:
@@ -595,28 +622,30 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
         shift_ins_read = 0
         if read.cigar[0][0] == 4:
             softclip_left = read.cigar[0][1]
-        if read.cigar[0][0] == 5:
+        elif read.cigar[0][0] == 5:
             hardclip_left = read.cigar[0][1]
         
         shift_ins_read=-hardclip_left
-        for element in read.cigar:
+        for op, oplen in read.cigartuples:
             # calculate offset of an ins sig in read
-            if element[0] != 2:
-                shift_ins_read += element[1]
-            if element[1] >= min_siglength:# and (element[0]==2 or element[0]==1):
-                if element[0]==2:
-                    Combine_sig_in_same_read_del.append([sig_start, element[1]])
-                    sig_start += element[1]
-                elif element[0]==1:
-                # else:
-                    Combine_sig_in_same_read_ins.append([sig_start, element[1],
-                        str(read.query_sequence[shift_ins_read-element[1]:shift_ins_read])])
+            if op != 2:#might be fixed later
+                shift_ins_read += oplen
+            if oplen >= min_siglength and INDELOP[op]:
+                if op==2:
+                    Combine_sig_in_same_read_del.append([sig_start, oplen])
+                    sig_start += oplen
+                # elif op==1:
                 else:
-                    if element[0] in RefChangeOp:
-                        sig_start += element[1]
+                    Combine_sig_in_same_read_ins.append([sig_start, oplen,
+                        str(read.query_sequence[shift_ins_read-oplen:shift_ins_read])])
+                # else:
+                #     # if op in RefChangeOp:
+                #     if REFCHANGEOP[op]:
+                #         sig_start += oplen
             else:
-                if element[0] in RefChangeOp:
-                    sig_start += element[1]
+                # if op in RefChangeOp:
+                if REFCHANGEOP[op]:
+                    sig_start += oplen
             # if element[0] == 2 and element[1] < min_siglength: ## changed SV_size to min_siglength
             #     shift_del += element[1]
             # if element[0] == 2 and element[1] >= min_siglength: ## changed SV_size to min_siglength
@@ -633,7 +662,7 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
         
         if read.cigar[-1][0] == 4:
             softclip_right = read.cigar[-1][1]
-        if read.cigar[-1][0] == 5:
+        elif read.cigar[-1][0] == 5:
             hardclip_right = read.cigar[-1][1]
 
         if hardclip_left != 0:
