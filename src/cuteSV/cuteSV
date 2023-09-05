@@ -742,6 +742,56 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
                     SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, read.query_sequence)
     return candidate
 
+# def handle_read_all(read, bed_regions, candidates, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
+#     if read.flag == 256 or read.flag == 272:
+#         return
+#     pos_start = read.reference_start # 0-based
+#     pos_end = read.reference_end
+#     in_bed = False
+#     if bed_regions != None:
+#         for bed_region in bed_regions:
+#             if pos_end <= bed_region[0] or pos_start >= bed_region[1]:
+#                 continue
+#             else:
+#                 in_bed = True
+#                 break
+#     else:
+#         in_bed = True
+#     parse_read(read, candidates, Chr_name, min_length, min_mapq, max_split_parts, 
+#                             min_read_len, min_siglength, merge_del_threshold, 
+#                             merge_ins_threshold, MaxSize)
+#     if read.mapq >= min_mapq:
+#         is_primary = 0
+#         if read.flag in [0, 16]:
+#             is_primary = 1
+#         reads_info_list.append([pos_start, pos_end, is_primary, read.query_name, Chr_name])
+#     return (candidates, reads_info_list)
+
+# def handle_read(read, min_start, bed_regions, candidates, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
+#     if read.flag == 256 or read.flag == 272:
+#         return
+#     pos_start = read.reference_start # 0-based
+#     pos_end = read.reference_end
+#     in_bed = False
+#     if bed_regions != None:
+#         for bed_region in bed_regions:
+#             if pos_end <= bed_region[0] or pos_start >= bed_region[1]:
+#                 continue
+#             else:
+#                 in_bed = True
+#                 break
+#     else:
+#         in_bed = True
+#     if read.reference_start >= min_start and in_bed:
+#         parse_read(read, candidates, Chr_name, min_length, min_mapq, max_split_parts, 
+#                                 min_read_len, min_siglength, merge_del_threshold, 
+#                                 merge_ins_threshold, MaxSize)
+#         if read.mapq >= min_mapq:
+#             is_primary = 0
+#             if read.flag in [0, 16]:
+#                 is_primary = 1
+#             reads_info_list.append([pos_start, pos_end, is_primary, read.query_name, Chr_name])\
+
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
                 task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions):
     # logging.info("enter")
@@ -756,6 +806,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     samfile = pysam.AlignmentFile(sam_path)
 
     for read in samfile.fetch(Chr_name, task[1], task[2]):
+        # handle_read(read, task[1], bed_regions, candidate, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize)
         if read.flag == 256 or read.flag == 272:
             continue
         pos_start = read.reference_start # 0-based
@@ -1015,8 +1066,13 @@ def main_ctrl(args, argv):
     candidates["reads_info"]=reads_info_list
 
     analysis_pools = Pool(processes=int(args.threads))
+    # samfile = pysam.AlignmentFile(args.input)
     # os.mkdir("%ssignatures"%temporary_dir)
     results=[]#use this is faster than make a long paras list
+    # for Chr_name in chr_name_list:
+    #     for read in samfile.fetch(Chr_name):
+    #         paras=[(read, bed_regions, candidates, reads_info_list, Chr_name, args.min_size, args.min_mapq, args.max_split_parts, args. min_read_len, args.min_siglength, args.merge_del_threshold, args.merge_ins_threshold, args.max_size)]
+    #         results.append(analysis_pools.map_async(multi_run_wrapper, paras))
     for i in range(len(Task_list)):
         paras = [(args.input, 
                     args.min_size, 
@@ -1036,6 +1092,7 @@ def main_ctrl(args, argv):
     # pids = [process.pid for process in analysis_pools._pool]
     analysis_pools.close()
     analysis_pools.join()
+    # samfile.close()
     #'''
     #'''
     logging.info("Rebuilding signatures of structural variants.")
