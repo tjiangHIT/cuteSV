@@ -1173,18 +1173,26 @@ def main_ctrl(args, argv):
         temporary_dir = args.work_dir+'/'
 
     ref_ = samfile.get_index_statistics()
+    total_mapped=0
+    for i in ref_:
+        total_mapped+=i[1]
+    mapped_unit=total_mapped/args.threads/10
     for i in ref_:
         chr_name_list.append(i[0])
         local_ref_len = samfile.get_reference_length(i[0])
         contigINFO.append([i[0], local_ref_len])
-        if local_ref_len < args.batches:
+        if total_mapped==0 or i[1]<=mapped_unit:
+            batch_size=args.batches
+        else:
+            batch_size=local_ref_len/(int(i[1]/mapped_unit)+1)
+        if local_ref_len < batch_size:
             Task_list.append([i[0], 0, local_ref_len])
         else:
             pos = 0
-            task_round = int(local_ref_len/args.batches)
+            task_round = int(local_ref_len/batch_size)
             for j in range(task_round):
-                Task_list.append([i[0], pos, pos+args.batches])
-                pos += args.batches
+                Task_list.append([i[0], pos, pos+batch_size])
+                pos += batch_size
             if pos < local_ref_len:
                 Task_list.append([i[0], pos, local_ref_len])
     bed_regions = load_bed(args.include_bed, Task_list)
