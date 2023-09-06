@@ -12,7 +12,7 @@ import pysam
 import cigar
 from Bio import SeqIO
 from cuteSV.cuteSV_Description import parseArgs
-from multiprocessing import Pool,Manager,Queue
+from multiprocessing import Pool,Manager,Queue, current_process
 from CommandRunner import *
 # from resolution_type import * 
 from cuteSV.cuteSV_resolveINV import run_inv
@@ -792,6 +792,8 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
 #                 is_primary = 1
 #             reads_info_list.append([pos_start, pos_end, is_primary, read.query_name, Chr_name])\
 
+SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
+
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
                 task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions):
     # logging.info("enter")
@@ -871,18 +873,153 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     # for k in candidate.keys():
     #     candidates[k].extend(candidate[k])
     # reads_info_list.extend(reads_info_list_local)
-    # pid=current_process().pid
-    # with open("%ssignatures/%s.pickle"%(temp_dir,pid),"ab") as f:
-    #     pickle.dump((candidate,reads_info_list),f)
+    pid=current_process().pid
+    for sv_type in SVTYPES:
+        with open("%ssignatures/%s%s.pickle"%(temp_dir,pid,sv_type),"ab") as f:
+            pickle.dump(candidate[sv_type],f)
+    with open("%ssignatures/%sreads.pickle"%(temp_dir,pid),"ab") as f:
+        pickle.dump(reads_info_list,f)
     logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
     # del candidate
     # del reads_info_list
     gc.collect()
-    return (candidate, reads_info_list)
+    # return (candidate, reads_info_list)
+    return None
 
 def multi_run_wrapper(args):
     # logging.info(args)
     return single_pipe(*args)
+
+def process_process_sigs_type(args):
+    sv_type, temporary_dir, pids=args
+    if sv_type!="reads":
+        #read
+        type_candidates=[]
+        for pid in pids:
+            with open("%ssignatures/%s%s.pickle"%(temporary_dir,pid,sv_type), "rb") as f:
+                while True:
+                    try:
+                        candidate=pickle.load(f)
+                        type_candidates.extend(candidate)
+                    except EOFError:
+                        break
+        #write
+        index={}
+        if sv_type=="DEL":
+            type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
+            type_candidates=remove_duplicates_sorted(type_candidates)
+            with open("%s/DEL.sigs"%(temporary_dir),"w") as f:
+                chr=None
+                start=0
+                bytecount=0
+                if len(type_candidates)!=0:
+                    for ele in type_candidates:
+                        line="%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2])
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                index[chr]=start
+                                chr=ele[-1]
+                                start=bytecount
+                        bytecount+=len(line)
+                        print(line, end="",file=f)
+                    index[chr]=start
+        elif sv_type=="INS":
+            type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
+            type_candidates=remove_duplicates_sorted(type_candidates)
+            with open("%s/INS.sigs"%(temporary_dir),"w") as f:
+                chr=None
+                start=0
+                bytecount=0
+                if len(type_candidates)!=0:
+                    for ele in type_candidates:
+                        line="%s\t%s\t%d\t%d\t%s\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3])
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                index[chr]=start
+                                chr=ele[-1]
+                                start=bytecount
+                        bytecount+=len(line)
+                        print(line, end="",file=f)
+                    index[chr]=start
+        elif sv_type=="DUP":
+            type_candidates.sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
+            type_candidates=remove_duplicates_sorted(type_candidates)
+            with open("%s/DUP.sigs"%(temporary_dir),"w") as f:
+                chr=None
+                start=0
+                bytecount=0
+                if len(type_candidates)!=0:
+                    for ele in type_candidates:
+                        line="%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2])
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                index[chr]=start
+                                chr=ele[-1]
+                                start=bytecount
+                        bytecount+=len(line)
+                        print(line, end="",file=f)
+                    index[chr]=start
+        elif sv_type=="INV":
+            type_candidates.sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
+            type_candidates=remove_duplicates_sorted(type_candidates)
+            with open("%s/INV.sigs"%(temporary_dir),"w") as f:
+                chr=None
+                start=0
+                bytecount=0
+                if len(type_candidates)!=0:
+                    for ele in type_candidates:
+                        line="%s\t%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3])
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                index[chr]=start
+                                chr=ele[-1]
+                                start=bytecount
+                        bytecount+=len(line)
+                        print(line, end="",file=f)
+                    index[chr]=start
+        elif sv_type=="TRA":
+            type_candidates.sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
+            type_candidates=remove_duplicates_sorted(type_candidates)
+            with open("%s/TRA.sigs"%(temporary_dir),"w") as f:
+                chr=None
+                start=0
+                bytecount=0
+                if len(type_candidates)!=0:
+                    for ele in type_candidates:
+                        line="%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3], ele[4])
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                index[chr]=start
+                                chr=ele[-1]
+                                start=bytecount
+                        bytecount+=len(line)
+                        print(line, end="",file=f)
+                    index[chr]=start
+        return (sv_type,index)
+    else:
+        reads_info_list=[]
+        for pid in pids:
+            with open("%ssignatures/%s%s.pickle"%(temporary_dir,pid,sv_type), "rb") as f:
+                while True:
+                    try:
+                        infolist=pickle.load(f)
+                        reads_info_list.extend(infolist)
+                    except EOFError:
+                        break
+        with open("%s/reads.sigs"%(temporary_dir), "w") as f:
+            for ele in reads_info_list:
+                print("%s\t%d\t%d\t%d\t%s\n"%(ele[-1], ele[0], ele[1], ele[2], ele[3]), end="", file=f)
+        return None
 
 def write_sigs(temporary_dir, candidates, reads_info_list, prefix=""):
     index={}
@@ -1067,7 +1204,7 @@ def main_ctrl(args, argv):
 
     analysis_pools = Pool(processes=int(args.threads))
     # samfile = pysam.AlignmentFile(args.input)
-    # os.mkdir("%ssignatures"%temporary_dir)
+    os.mkdir("%ssignatures"%temporary_dir)
     results=[]#use this is faster than make a long paras list
     # for Chr_name in chr_name_list:
     #     for read in samfile.fetch(Chr_name):
@@ -1086,10 +1223,10 @@ def main_ctrl(args, argv):
                     args.merge_ins_threshold, 
                     args.max_size,
                     None if bed_regions == None else bed_regions[i])]
-        # analysis_pools.map_async(multi_run_wrapper, paras)
-        results.append(analysis_pools.map_async(multi_run_wrapper, paras))
+        analysis_pools.map_async(multi_run_wrapper, paras)
+        # results.append(analysis_pools.map_async(multi_run_wrapper, paras))
         # results.append(analysis_pools.map_async(multi_run_wrapper, paras, callback=add_candidates))#https://stackoverflow.com/questions/18414020/memory-usage-keep-growing-with-pythons-multiprocessing-pool
-    # pids = [process.pid for process in analysis_pools._pool]
+    pids = [process.pid for process in analysis_pools._pool]
     analysis_pools.close()
     analysis_pools.join()
     # samfile.close()
@@ -1112,35 +1249,47 @@ def main_ctrl(args, argv):
     #                 reads_info_list.extend(infolist)
     #             except EOFError:
     #                 break
-    for r in results:
-        candidate, infolist=r.get()[0]
-        candidates["DEL"].extend(candidate["DEL"])
-        candidates["INS"].extend(candidate["INS"])
-        candidates["DUP"].extend(candidate["DUP"])
-        candidates["INV"].extend(candidate["INV"])
-        candidates["TRA"].extend(candidate["TRA"])
-        reads_info_list.extend(infolist)
-    candidates["DEL"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
-    logging.info("Sorted DEL.")
-    candidates["INS"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
-    logging.info("Sorted INS.")
-    candidates["DUP"].sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
-    logging.info("Sorted DUP.")
-    candidates["INV"].sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
-    logging.info("Sorted INV.")
-    candidates["TRA"].sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
-    logging.info("Sorted TRA.")
-    SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
-    for k in SVTYPES:
-        candidates[k]=remove_duplicates_sorted(candidates[k])
-    logging.info("removed dups.")
-    # from pympler import asizeof
-    # logging.info("candidates size: %.2fMB."%(asizeof.asizeof(candidates)/1024/1024))
-    # with open("%s/candidates.pickle"%temporary_dir,"wb") as f:
-    #     pickle.dump(candidates,f)
-    
+    # for r in results:
+    #     candidate, infolist=r.get()[0]
+    #     candidates["DEL"].extend(candidate["DEL"])
+    #     candidates["INS"].extend(candidate["INS"])
+    #     candidates["DUP"].extend(candidate["DUP"])
+    #     candidates["INV"].extend(candidate["INV"])
+    #     candidates["TRA"].extend(candidate["TRA"])
+    #     reads_info_list.extend(infolist)
+    # candidates["DEL"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
+    # logging.info("Sorted DEL.")
+    # candidates["INS"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
+    # logging.info("Sorted INS.")
+    # candidates["DUP"].sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
+    # logging.info("Sorted DUP.")
+    # candidates["INV"].sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
+    # logging.info("Sorted INV.")
+    # candidates["TRA"].sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
+    # logging.info("Sorted TRA.")
+    # SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
+    # for k in SVTYPES:
+    #     candidates[k]=remove_duplicates_sorted(candidates[k])
+    # logging.info("removed dups.")
+    # # from pympler import asizeof
+    # # logging.info("candidates size: %.2fMB."%(asizeof.asizeof(candidates)/1024/1024))
+    # # with open("%s/candidates.pickle"%temporary_dir,"wb") as f:
+    # #     pickle.dump(candidates,f)
 
-    sigs_index=write_sigs(temporary_dir,candidates,reads_info_list)
+    # sigs_index=write_sigs(temporary_dir,candidates,reads_info_list)
+
+    analysis_pools = Pool(processes=int(args.threads))
+    paras=[]
+    for sv_type in SVTYPES:
+        paras.append((sv_type,temporary_dir,pids))
+    paras.append(("reads",temporary_dir,pids))
+    results=analysis_pools.map_async(process_process_sigs_type, paras)
+    analysis_pools.close()
+    analysis_pools.join()
+    sigs_index={}
+    for r in results.get():
+        if r!=None:
+            sigs_index[r[0]]=r[1]
     
     # for k in SVTYPES:
     #     del candidates[k]
