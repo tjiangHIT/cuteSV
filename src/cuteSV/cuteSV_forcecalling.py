@@ -5,6 +5,7 @@ import math
 import time
 import logging
 import numpy as np
+import pickle
 
 def parse_svtype(sv_type):
     if 'DEL' in sv_type:
@@ -440,9 +441,9 @@ def generate_dispatch(reads_count, chrom_list):
 def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, threads, sigs_index):
     logging.info('Check the parameter -Ivcf: OK.')
     logging.info('Enable to perform force calling.')
-    # if sigs_index==None:
-    #     with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
-    #     sigs_index=pickle.load(f)
+    if sigs_index==None:
+        with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
+            sigs_index=pickle.load(f)
     # parse svs tobe genotyped
     vcf_reader = VariantFile(ivcf_path, 'r')
     svs_tobe_genotyped = dict()
@@ -485,6 +486,15 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
 
     for x in pool_result:
         result.extend(x.get()[0])
+    # result=[]
+    # for chroms in dispatch:
+    #     genotype_sv_list = dict()
+    #     for chrom in chroms:
+    #         if chrom in svs_tobe_genotyped:
+    #             genotype_sv_list[chrom] = svs_tobe_genotyped[chrom]
+    #     if len(genotype_sv_list) == 0:
+    #         continue
+    #     result.extend(solve_fc(chroms, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index))
     return result
 
 def solve_fc_wrapper(args):
@@ -492,14 +502,16 @@ def solve_fc_wrapper(args):
 def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index):
     reads_info = dict() # [10000, 10468, 0, 'm54238_180901_011437/52298335/ccs']
     readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
-    for line in readsfile:
-        seq = line.strip().split('\t')
-        chr = seq[0]
-        if chr not in chrom_list:
-            continue
-        if chr not in reads_info:
-            reads_info[chr] = list()
-        reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
+    for chrom in chrom_list:
+        readsfile.seek(sigs_index["reads"][chrom])
+        for line in readsfile:
+            seq = line.strip().split('\t')
+            chr = seq[0]
+            if chr != chrom:
+                break
+            if chr not in reads_info:
+                reads_info[chr] = list()
+            reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
     readsfile.close()
     
     sv_dict = dict()
