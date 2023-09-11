@@ -100,6 +100,70 @@ def parse_record(record):
     return sv_type, chrom1, chrom2, start, end, strand, svid, ref, alts
 
 def parse_sigs_chrom(var_type, work_dir, chrom_list, index):
+    var_dict={}
+    # with open(work_dir + var_type + '.pickle', 'rb') as f:
+    #     for chrom in chrom_list:
+    #         if chrom not in index[var_type].keys():
+    #             continue
+    #         f.seek(index[var_type][chrom])
+    #         var_dict[chrom]=pickle.load(f)
+    # return var_dict
+    if False and var_type != 'TRA':
+        with open(work_dir + var_type + '.pickle', 'rb') as f:
+            for chrom in chrom_list:
+                if chrom not in index[var_type].keys():
+                    continue
+                f.seek(index[var_type][chrom])
+                var_dict[chrom]=pickle.load(f)
+    else:
+            # var_dict = dict()  #var_dict[chrom] = [chrom, start, len/end, read_id]
+        with open(work_dir + var_type + '.pickle', 'rb') as f:
+            for chrom in chrom_list:
+                if chrom not in index[var_type].keys():
+                    continue
+                f.seek(index[var_type][chrom])
+                sigs=pickle.load(f)
+                #file_sig[]=mem_sig[DEL: -2,-1,0,1,2, INS: -2,-1,0,1,2,3, DUP: -2,-1,0,1,2, INV: -2,-1,0,1,2,3, TRA: -2,-1,0,1,2,3,4, reads: -1,0,1,2,3]
+                #from file: DEL,DUP:  1,2,3,4, INS: 1,2,3,4,5, INV:1,3,4,5, TRA[1][4]:4,3,5,6
+                #from mem: DEL,DUP: -1,0,1,2, INS: -1,0,1,2,3, INV: -1,1,2,3, TRA[-1][2]:2,1,3,4
+                if var_type == 'DEL' or var_type == 'DUP':
+                    for seq in sigs:
+                        if chrom not in var_dict:
+                            var_dict[chrom] = []
+                        var_dict[chrom].append([seq[-1], int(seq[0]), int(seq[1]), seq[2]])
+                elif var_type == 'INS':
+                    for seq in sigs:
+                        if chrom not in var_dict:
+                            var_dict[chrom] = []
+                        if len(seq) < 6:
+                            cigar = '<INS>'
+                        else:
+                            cigar = seq[3]
+                        cigar = '<INS>'
+                        var_dict[chrom].append([seq[-1], int(seq[0]), int(seq[1]), seq[2], cigar])
+                elif var_type == 'INV':
+                    for seq in sigs:
+                        if chrom not in var_dict:
+                            var_dict[chrom] = []
+                        var_dict[chrom].append([seq[-1], int(seq[1]), int(seq[2]), seq[3]])
+                else:
+                    for seq in sigs:
+                        chrom1 = seq[-1]
+                        tra_type = seq[0]
+                        pos1 = int(seq[1])
+                        chrom2 = seq[2]
+                        pos2 = int(seq[3])
+                        read_id = seq[4]
+                        if chrom1 not in var_dict:
+                            var_dict[chrom1] = dict()
+                        if chrom2 not in var_dict[chrom1]:
+                            var_dict[chrom1][chrom2] = []
+                        var_dict[chrom1][chrom2].append([chrom2, pos1, pos2, read_id])
+                    for chr1 in var_dict:
+                        for chr2 in var_dict[chr1]:
+                            var_dict[chr1][chr2].sort(key=lambda x:x[1])
+            return var_dict
+    return var_dict
     if var_type == 'DEL' or var_type == 'DUP':
         var_dict = dict()  #var_dict[chrom] = [chrom, start, len/end, read_id]
         with open(work_dir + var_type + '.sigs', 'r') as f:
@@ -419,6 +483,235 @@ def find_in_indel_list(var_type, var_list, bias_origin, pos, sv_end, threshold_g
                 search_threshold = min(abs(pos - search_start), abs(pos - search_end))
     return list(read_id_set), search_threshold, CIPOS, CILEN
 
+# # var_list read_id which is similar to (pos, sv_end), the reads support the variant
+# #var_list[*][]=(chrom, pos, pos2, )
+# type_i_index={"TRA":[0,1,2,3], "INV":[-1,1,2,3], "DUP": [-1,0,1,2]}
+# def find_in_list(var_type, var_list, bias, pos, sv_end):
+#     '''
+#     if interval_start == 44058795:
+#         print('start find in list')
+#         print('interval_start=%d, interval_end=%d, pos=%d, sv_end=%d'%(interval_start, interval_end, pos, sv_end))
+#     '''
+#     if len(var_list) == 0:
+#         return [], 0
+#     i_index=type_i_index[var_type]
+#     left = 0
+#     right = len(var_list) - 1
+#     mid = 0
+#     while left < right:
+#         mid = (left + right) >> 1
+#         if var_list[mid][i_index[1]] < pos:
+#             left = mid + 1
+#         else:
+#             right = mid
+#     read_id_list = set()
+#     search_start = -1
+#     search_end = -1
+#     if right > 0 and pos - var_list[right - 1][i_index[1]] <= bias: ##
+#         for i in range(right - 1, -1, -1):
+#             if check_same_variant(var_type, var_list[i][i_index[2]], sv_end):
+#                 read_id_list.add(var_list[i][i_index[3]])
+#                 search_start = var_list[i][i_index[1]]
+#             if i > 0 and (var_list[i][i_index[1]] - var_list[i - 1][i_index[1]] > bias or pos - var_list[i - 1][i_index[1]] > 2000):
+#                 break
+#     if var_list[right][i_index[1]] - pos <= bias:
+#         for i in range(right, len(var_list)):
+#             if check_same_variant(var_type, var_list[i][i_index[2]], sv_end):  # if abs(var_list[i][2] - sv_end) < 1000:
+#                 read_id_list.add(var_list[i][i_index[3]])
+#                 search_end = var_list[i][i_index[1]]
+#             if i < len(var_list) - 1 and (var_list[i + 1][i_index[1]] - var_list[i][i_index[1]] > bias or var_list[i + 1][i_index[1]] - pos > 2000):
+#                 break
+#     if search_start == -1:
+#         search_start = pos
+#     if search_end == -1:
+#         search_end = pos
+#     search_threshold = max(abs(pos - search_start), abs(pos - search_end))
+#     return list(read_id_list), search_threshold
+
+# def compare_len(len1, len2): # len1 < len2
+#     if len2 < 100:
+#         if len1 / len2 > 0.6:
+#             return True
+#     else:
+#         if len1 / len2 > 0.8:
+#             return True
+#     return False
+
+# #varlist[*]=[seq[1], int(seq[2]), int(seq[3]), seq[4],seq[5]]= [-1, 0, 1, 2, 3] in original sig
+# def find_in_indel_list(var_type, var_list, bias_origin, pos, sv_end, threshold_gloab):
+#     # bias = min(bias_origin * 10, 2000)
+#     bias = bias_origin
+#     debug_pos = -1
+#     if len(var_list) == 0:
+#         return [], 0, '.,.', '.,.'
+#     left = 0
+#     right = len(var_list) - 1
+#     mid = 0
+#     while left < right:
+#         mid = (left + right) >> 1
+#         if var_list[mid][0] < pos:
+#             left = mid + 1
+#         else:
+#             right = mid
+#     candidates = []
+#     if right > 0 and pos - var_list[right - 1][0] <= bias:
+#         for i in range(right - 1, -1, -1):
+#             candidates.append(var_list[i]) # [chrom, start, len, read_id] or [chrom, start, len, read_id, seq]
+#             if i > 0 and (var_list[i][0] - var_list[i - 1][0] > bias or pos - var_list[i - 1][0] > 2 * bias):
+#                 break
+#     if var_list[right][0] - pos <= bias:
+#         for i in range(right, len(var_list)):
+#             candidates.append(var_list[i])
+#             if i < len(var_list) - 1 and (var_list[i + 1][0] - var_list[i][0] > bias or var_list[i + 1][0] - pos > 2 * bias):
+#                 break
+#     if len(candidates) == 0:
+#         return [], 0, '.,.', '.,.'
+#     read_tag = dict()
+#     if var_type=="DEL":
+#         for element in candidates:
+#             if element[2] not in read_tag:
+#                 read_tag[element[2]]=[]
+#             read_tag[element[2]].append([element[-1], int(element[0]), int(element[1]), element[2]])
+#     else:
+#         for element in candidates:
+#             if element[2] not in read_tag:
+#                 read_tag[element[2]]=[]
+#             read_tag[element[2]].append([element[-1], int(element[0]), int(element[1]), element[2], element[3] if len(element)>3 else "<INS>"])
+
+#     # merge sigs on the same read
+#     read_tag2SortedList = []
+#     for read_id in read_tag:
+#         for i in range(len(read_tag[read_id])):
+#             read_tag2SortedList.append(read_tag[read_id][i])
+#             for j in range(i + 1, len(read_tag[read_id]), 1):
+#                 if var_type == 'DEL':
+#                     read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1])/2), read_tag[read_id][i][2]+read_tag[read_id][j][2], read_tag[read_id][i][3] ])
+#                 else:
+#                     read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1])/2), read_tag[read_id][i][2]+read_tag[read_id][j][2], read_tag[read_id][i][3], read_tag[read_id][i][4] ])
+#                 for k in range(j + 1, len(read_tag[read_id]), 1):
+#                     if var_type == 'DEL':
+#                         read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1]+read_tag[read_id][k][1])/3), read_tag[read_id][i][2]+read_tag[read_id][j][2]+read_tag[read_id][k][2], read_tag[read_id][i][3] ])
+#                     else:
+#                         read_tag2SortedList.append([read_tag[read_id][i][0], int((read_tag[read_id][i][1]+read_tag[read_id][j][1]+read_tag[read_id][k][1])/3), read_tag[read_id][i][2]+read_tag[read_id][j][2]+read_tag[read_id][k][2], read_tag[read_id][i][3], read_tag[read_id][i][4] ])
+    
+#     read_tag2SortedList = sorted(read_tag2SortedList, key = lambda x:x[2])
+#     # print(read_tag2SortedList)
+#     global_len = [i[2] for i in read_tag2SortedList]
+#     DISCRETE_THRESHOLD_LEN_CLUSTER_TEMP = threshold_gloab * np.mean(global_len)
+#     if var_type == 'DEL':
+#         last_len = read_tag2SortedList[0][2]
+#         cur_bias = last_len * threshold_gloab
+#         allele_collect = list()
+#         allele_collect.append([[read_tag2SortedList[0][1]],  # start
+#                                 [read_tag2SortedList[0][2]],  # len
+#                                 [],  # support
+#                                 [read_tag2SortedList[0][3]]])  # read_id
+#         for i in read_tag2SortedList[1:]:
+#             if i[2] - last_len > cur_bias:
+#                 allele_collect[-1][2].append(len(allele_collect[-1][0]))
+#                 allele_collect.append([[],[],[],[]])
+#             allele_collect[-1][0].append(i[1])
+#             allele_collect[-1][1].append(i[2])
+#             allele_collect[-1][3].append(i[3])
+#             last_len = (last_len * (len(allele_collect[-1][0]) - 1) + i[2]) / len(allele_collect[-1][0])
+#             cur_bias = last_len * threshold_gloab
+
+#         allele_collect[-1][2].append(len(allele_collect[-1][0]))
+#         allele_idx = -1
+#         nearest_gap = 0x3f3f3f3f
+#         for i in range(len(allele_collect)):
+#             allele = allele_collect[i]
+#             signalLen = np.mean(allele[1])
+#             if min(signalLen, sv_end) / max(signalLen, sv_end) > 0.7 and abs(signalLen - sv_end) < nearest_gap:
+#                 allele_idx = i
+#                 nearest_gap = abs(signalLen - sv_end)
+        
+#         if allele_idx == -1:
+#             read_id_set = set()
+#             CIPOS = "-0,0"
+#             CILEN = "-0,0"
+#             seq = '<DEL>'
+#             search_threshold = 0
+#         else:
+#             final_alleles = [[],[],[],[]]
+#             for i in range(len(allele_collect[allele_idx][0])):
+#                 if min(allele_collect[allele_idx][1][i], sv_end) / max(allele_collect[allele_idx][1][i], sv_end) > 0:
+#                     final_alleles[0].append(allele_collect[allele_idx][0][i])
+#                     final_alleles[1].append(allele_collect[allele_idx][1][i])
+#                     final_alleles[3].append(allele_collect[allele_idx][3][i])
+#             if len(final_alleles[0]) == 0:
+#                 read_id_set = set()
+#                 CIPOS = "-0,0"
+#                 CILEN = "-0,0"
+#                 seq = '<DEL>'
+#                 search_threshold = 0
+#             else:
+#                 read_id_set = set(final_alleles[3])
+#                 CIPOS = cal_CIPOS(np.std(final_alleles[0]), len(final_alleles[0]))
+#                 CILEN = cal_CIPOS(np.std(final_alleles[1]), len(final_alleles[1]))
+#                 seq = '<DEL>'
+#                 search_start = min(final_alleles[0])
+#                 search_end = max(final_alleles[0])
+#                 search_threshold = min(abs(pos - search_start), abs(pos - search_end))
+#     if var_type == 'INS':
+#         last_len = read_tag2SortedList[0][2]
+#         cur_bias = last_len * threshold_gloab
+#         allele_collect = list()
+#         allele_collect.append([[read_tag2SortedList[0][1]],  # start
+#                                 [read_tag2SortedList[0][2]],  # len
+#                                 [],  # support
+#                                 [read_tag2SortedList[0][3]],  # read_id
+#                                 [read_tag2SortedList[0][4]]])  # ins_seq
+#         for i in read_tag2SortedList[1:]:
+#             if i[2] - last_len > cur_bias:
+#                 allele_collect[-1][2].append(len(allele_collect[-1][0]))
+#                 allele_collect.append([[],[],[],[],[]])
+#             allele_collect[-1][0].append(i[1])
+#             allele_collect[-1][1].append(i[2])
+#             allele_collect[-1][3].append(i[3])
+#             allele_collect[-1][4].append(i[4])
+#             last_len = (last_len * (len(allele_collect[-1][0]) - 1) + i[2]) / len(allele_collect[-1][0])
+#             cur_bias = last_len * threshold_gloab
+#         allele_collect[-1][2].append(len(allele_collect[-1][0]))
+#         allele_idx = -1
+#         nearest_gap = 0x3f3f3f3f
+#         for i in range(len(allele_collect)):
+#             allele = allele_collect[i]
+#             signalLen = np.mean(allele[1])
+#             if min(signalLen, sv_end) / max(signalLen, sv_end) > 0.7 and abs(signalLen - sv_end) < nearest_gap:
+#                 allele_idx = i
+#                 nearest_gap = abs(signalLen - sv_end)
+ 
+#         if allele_idx == -1:
+#             read_id_set = set()
+#             CIPOS = "-0,0"
+#             CILEN = "-0,0"
+#             seq = '<INS>'
+#             search_threshold = 0
+#         else:
+#             final_alleles = [[],[],[],[],[]]
+#             for i in range(len(allele_collect[allele_idx][0])):
+#                 if min(allele_collect[allele_idx][1][i], sv_end) / max(allele_collect[allele_idx][1][i], sv_end) > 0:
+#                     final_alleles[0].append(allele_collect[allele_idx][0][i])
+#                     final_alleles[1].append(allele_collect[allele_idx][1][i])
+#                     final_alleles[3].append(allele_collect[allele_idx][3][i])
+#                     final_alleles[4].append(allele_collect[allele_idx][4][i])
+#             if len(final_alleles[0]) == 0:
+#                 read_id_set = set()
+#                 CIPOS = "-0,0"
+#                 CILEN = "-0,0"
+#                 seq = '<DEL>'
+#                 search_threshold = 0
+#             else:
+#                 read_id_set = set(final_alleles[3])
+#                 CIPOS = cal_CIPOS(np.std(final_alleles[0]), len(final_alleles[0]))
+#                 CILEN = cal_CIPOS(np.std(final_alleles[1]), len(final_alleles[1]))
+#                 seq = '<DEL>'
+#                 search_start = min(final_alleles[0])
+#                 search_end = max(final_alleles[0])
+#                 search_threshold = min(abs(pos - search_start), abs(pos - search_end))
+#     return list(read_id_set), search_threshold, CIPOS, CILEN
+
 def generate_dispatch(reads_count, chrom_list):
     dispatch = [[]]
     cur_count = 0
@@ -456,13 +749,7 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
         svs_tobe_genotyped[chrom].append([sv_type, sv_chr2, pos, sv_end, svid, ref, alts, sv_strand, chrom])
     
     # parse reads in alignment
-    reads_count = dict()
-    with open('%sreads.sigs'%(temporary_dir), 'r') as f:
-        for line in f:
-            seq = line.strip().split('\t')
-            if seq[0] not in reads_count:
-                reads_count[seq[0]] = 0
-            reads_count[seq[0]] += 1
+    reads_count = sigs_index["reads_count"]
     reads_count = sorted(reads_count.items(), key=lambda x:x[1])
     dispatch = generate_dispatch(reads_count, svs_tobe_genotyped.keys())
     
@@ -501,17 +788,22 @@ def solve_fc_wrapper(args):
     return solve_fc(*args)
 def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index):
     reads_info = dict() # [10000, 10468, 0, 'm54238_180901_011437/52298335/ccs']
-    readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
+    readsfile = open("%sreads.pickle"%(temporary_dir), 'rb')
     for chrom in chrom_list:
         readsfile.seek(sigs_index["reads"][chrom])
-        for line in readsfile:
-            seq = line.strip().split('\t')
-            chr = seq[0]
-            if chr != chrom:
-                break
-            if chr not in reads_info:
-                reads_info[chr] = list()
-            reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
+        reads_info[chrom]=pickle.load(readsfile)
+        # if chrom=="1":
+        #     with open("cuteWork/reads.txt","w") as f:
+        #         for r in reads_info[chrom]:
+        #             print(r,file=f)
+        # for line in readsfile:
+        #     seq = line.strip().split('\t')
+        #     chr = seq[0]
+        #     if chr != chrom:
+        #         break
+        #     if chr not in reads_info:
+        #         reads_info[chr] = list()
+        #     reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
     readsfile.close()
     
     sv_dict = dict()

@@ -13,7 +13,7 @@ import cigar
 from Bio import SeqIO
 from cuteSV.cuteSV_Description import parseArgs
 from multiprocessing import Pool,Manager,Queue, current_process
-from CommandRunner import *
+from cuteSV.CommandRunner import *
 # from resolution_type import * 
 from cuteSV.cuteSV_resolveINV import run_inv
 from cuteSV.cuteSV_resolveTRA import run_tra
@@ -902,151 +902,128 @@ def multi_run_wrapper(args):
     # logging.info(args)
     return single_pipe(*args)
 
+#file_sig[]=mem_sig[DEL: -2,-1,0,1,2, INS: -2,-1,0,1,2,3, DUP: -2,-1,0,1,2, INV: -2,-1,0,1,2,3, TRA: -2,-1,0,1,2,3,4, reads: -1,0,1,2,3]
 def process_process_sigs_type(args):
     sv_type, temporary_dir, pids=args
-    if sv_type!="reads":
-        #read
-        type_candidates=[]
-        for pid in pids:
-            with open("%ssignatures/%s%s.pickle"%(temporary_dir,pid,sv_type), "rb") as f:
-                while True:
-                    try:
-                        candidate=pickle.load(f)
-                        type_candidates.extend(candidate)
-                    except EOFError:
-                        break
-        #write
-        index={}
-        if sv_type=="DEL":
-            type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
-            type_candidates=remove_duplicates_sorted(type_candidates)
+    write_old_sigs=True
+    #read
+    type_candidates=[]
+    for pid in pids:
+        with open("%ssignatures/%s%s.pickle"%(temporary_dir,pid,sv_type), "rb") as f:
+            while True:
+                try:
+                    candidate=pickle.load(f)
+                    type_candidates.extend(candidate)
+                except EOFError:
+                    break
+    #write
+    if sv_type=="DEL":
+        type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
+        type_candidates=remove_duplicates_sorted(type_candidates)
+        if write_old_sigs:
             with open("%s/DEL.sigs"%(temporary_dir),"w") as f:
-                chr=None
-                start=0
-                bytecount=0
+                # chr=None
+                # start=0
+                # bytecount=0
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
                         line="%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2])
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                index[chr]=start
-                                chr=ele[-1]
-                                start=bytecount
-                        bytecount+=len(line)
+                        # if ele[-1]!=chr:
+                        #     if chr==None:
+                        #         chr=ele[-1]
+                        #     else:
+                        #         index[chr]=start
+                        #         chr=ele[-1]
+                        #         start=bytecount
+                        # bytecount+=len(line)
                         print(line, end="",file=f)
-                    index[chr]=start
-        elif sv_type=="INS":
-            type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
-            type_candidates=remove_duplicates_sorted(type_candidates)
+                    # index[chr]=start
+
+    elif sv_type=="INS":
+        type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
+        type_candidates=remove_duplicates_sorted(type_candidates)
+        if write_old_sigs:
             with open("%s/INS.sigs"%(temporary_dir),"w") as f:
-                chr=None
-                start=0
-                bytecount=0
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
                         line="%s\t%s\t%d\t%d\t%s\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3])
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                index[chr]=start
-                                chr=ele[-1]
-                                start=bytecount
-                        bytecount+=len(line)
                         print(line, end="",file=f)
-                    index[chr]=start
-        elif sv_type=="DUP":
-            type_candidates.sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
-            type_candidates=remove_duplicates_sorted(type_candidates)
+    elif sv_type=="DUP":
+        type_candidates.sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
+        type_candidates=remove_duplicates_sorted(type_candidates)
+        if write_old_sigs:
             with open("%s/DUP.sigs"%(temporary_dir),"w") as f:
-                chr=None
-                start=0
-                bytecount=0
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
                         line="%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2])
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                index[chr]=start
-                                chr=ele[-1]
-                                start=bytecount
-                        bytecount+=len(line)
                         print(line, end="",file=f)
-                    index[chr]=start
-        elif sv_type=="INV":
-            type_candidates.sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
-            type_candidates=remove_duplicates_sorted(type_candidates)
+    elif sv_type=="INV":
+        type_candidates.sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
+        type_candidates=remove_duplicates_sorted(type_candidates)
+        if write_old_sigs:
             with open("%s/INV.sigs"%(temporary_dir),"w") as f:
-                chr=None
-                start=0
-                bytecount=0
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
                         line="%s\t%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3])
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                index[chr]=start
-                                chr=ele[-1]
-                                start=bytecount
-                        bytecount+=len(line)
                         print(line, end="",file=f)
-                    index[chr]=start
-        elif sv_type=="TRA":
-            type_candidates.sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
-            type_candidates=remove_duplicates_sorted(type_candidates)
+    elif sv_type=="TRA":
+        type_candidates.sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
+        type_candidates=remove_duplicates_sorted(type_candidates)
+        if write_old_sigs:
             with open("%s/TRA.sigs"%(temporary_dir),"w") as f:
-                chr=None
-                start=0
-                bytecount=0
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
                         line="%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3], ele[4])
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                index[chr]=start
-                                chr=ele[-1]
-                                start=bytecount
-                        bytecount+=len(line)
                         print(line, end="",file=f)
-                    index[chr]=start
-        return (sv_type,index)
-    else:
-        reads_info_list=[]
-        for pid in pids:
-            with open("%ssignatures/%s%s.pickle"%(temporary_dir,pid,sv_type), "rb") as f:
-                while True:
-                    try:
-                        infolist=pickle.load(f)
-                        reads_info_list.extend(infolist)
-                    except EOFError:
-                        break
-        index={}
-        reads_info_list.sort(key=lambda x: (x[-1]))
-        with open("%s/reads.sigs"%(temporary_dir), "w") as f:
-            chr=None
-            start=0
-            bytecount=0
-            if len(reads_info_list)!=0:
-                for ele in reads_info_list:
-                    line="%s\t%d\t%d\t%d\t%s\n"%(ele[-1], ele[0], ele[1], ele[2], ele[3])
+    elif sv_type=="reads":
+        type_candidates.sort(key=lambda x: (x[-1]))#reads file not deduped, might be resolved later
+        if write_old_sigs:
+            with open("%s/reads.sigs"%(temporary_dir), "w") as f:
+                if len(type_candidates)!=0:
+                    for ele in type_candidates:
+                        line="%s\t%d\t%d\t%d\t%s\n"%(ele[-1], ele[0], ele[1], ele[2], ele[3])
+                        print(line,end="",file=f)
+    index={}
+    reads_count={}
+    with open("%s/%s.pickle"%(temporary_dir,sv_type),"wb") as f:
+        chr=None
+        startl=0
+        start=0
+        if sv_type=="reads":
+            if len(type_candidates)!=0:
+                for i in range(len(type_candidates)):
+                    ele=type_candidates[i]
                     if ele[-1]!=chr:
                         if chr==None:
                             chr=ele[-1]
                         else:
+                            dump=pickle.dumps(type_candidates[startl:i])
+                            f.write(dump)
                             index[chr]=start
+                            reads_count[chr]=i-startl
+                            start+=len(dump)
                             chr=ele[-1]
-                            start=bytecount
-                    bytecount+=len(line)
-                    print(line,end="",file=f)
-        return (sv_type,index)
+                            startl=i
+                pickle.dump(type_candidates[startl:],f)
+                index[chr]=start
+                reads_count[chr]=len(type_candidates)-startl
+        else:
+            if len(type_candidates)!=0:
+                for i in range(len(type_candidates)):
+                    ele=type_candidates[i]
+                    if ele[-1]!=chr:
+                        if chr==None:
+                            chr=ele[-1]
+                        else:
+                            dump=pickle.dumps(type_candidates[startl:i])
+                            f.write(dump)
+                            index[chr]=start
+                            start+=len(dump)
+                            chr=ele[-1]
+                            startl=i
+                pickle.dump(type_candidates[startl:],f)
+                index[chr]=start
+    return (sv_type,index,reads_count)
 
 def write_sigs(temporary_dir, candidates, reads_info_list, prefix=""):
     index={}
@@ -1326,6 +1303,8 @@ def main_ctrl(args, argv):
     for r in results.get():
         if r!=None:
             sigs_index[r[0]]=r[1]
+            if r[0]=="reads":
+                sigs_index["reads_count"]=r[2]
     with open("%s/sigindex.pickle"%temporary_dir,"wb") as f:
         pickle.dump(sigs_index,f)
     # for k in SVTYPES:
@@ -1351,10 +1330,8 @@ def main_ctrl(args, argv):
         threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
         threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
         
-        sigs_index=None
         result = force_calling_chrom(args.Ivcf, temporary_dir,
                          max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads, sigs_index)
-        exit(0)
 
     else:
         valuable_chr = load_valuable_chr(temporary_dir)
