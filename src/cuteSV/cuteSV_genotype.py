@@ -2,6 +2,7 @@
 from cuteSV.cuteSV_Description import Generation_VCF_header
 from math import log10
 import numpy as np
+import pysam
 
 err = 0.1
 prior = float(1/3)
@@ -370,11 +371,16 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
             svid["BND"] += 1
 
 
-def generate_pvcf(args, result, contigINFO, argv, ref_g):
-    file = open(args.output, 'w')
-    Generation_VCF_header(file, contigINFO, args.sample, argv)
-    file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
+# def generate_pvcf(args, result, contigINFO, argv, ref_g):
+def generate_pvcf(args, result, refernce, chrom):
+    fa_file = pysam.FastaFile(refernce)
+    ref_chrom=fa_file.fetch(chrom)
+    fa_file.close()
+    # file = open(args.output, 'w')
+    # Generation_VCF_header(file, contigINFO, args.sample, argv)
+    # file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
     # [chrom(0), sv_start, genotype(2), sv_type, sv_end(4), CIPOS, CILEN(6), [gt_re, DR, GT(new), GL, GQ, QUAL], rname(8), svid, ref(10), alts, sv_strand(12), seq]
+    lines=[]
     for i in result:
         if i == []:
             continue
@@ -395,7 +401,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 ref = i[10]
                 alt = i[11]
             '''
-            ref = str(ref_g[i[0]].seq[max(i[1]-1, 0)])
+            ref = str(ref_chrom[max(i[1]-1, 0)])
             alt = i[11]
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
@@ -410,7 +416,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -430,8 +436,8 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
             if abs(i[4]) > args.max_size and args.max_size != -1:
                 continue
             if i[12] == '<DEL>':
-                ref = str(ref_g[i[0]].seq[max(int(i[1])-1, 0):int(i[1])-int(i[4])])
-                alt = str(ref_g[i[0]].seq[max(int(i[1])-1, 0)])
+                ref = str(ref_chrom[max(int(i[1])-1, 0):int(i[1])-int(i[4])])
+                alt = str(ref_chrom[max(int(i[1])-1, 0)])
             else:
                 ref = i[10]
                 alt = i[11]
@@ -448,7 +454,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -478,7 +484,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -510,7 +516,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -543,7 +549,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                     CHR2 = i[15].split(':')[0],
                     END = i[15].split(':')[1])
             '''
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(i[1]), 
                 ID = i[9],
@@ -559,6 +565,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 PL = i[7][3],
                 GQ = i[7][4]
                 ))
+    return lines
 
             
 def load_valuable_chr(path):

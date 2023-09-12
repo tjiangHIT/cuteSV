@@ -755,7 +755,8 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
     
     # force calling
     pool_result = list()
-    result = list()
+    # result = list()
+    result= {}
     process_pool = Pool(processes = threads)
     # dispatch = [['MT']]
     for chroms in dispatch:
@@ -772,7 +773,8 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
     process_pool.join()
 
     for x in pool_result:
-        result.extend(x.get()[0])
+        # result.extend(x.get()[0])
+        result.update(x.get()[0])
     # result=[]
     # for chroms in dispatch:
     #     genotype_sv_list = dict()
@@ -810,8 +812,9 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
     for sv_type in ["DEL", "DUP", "INS", "INV", "TRA"]:
         sv_dict[sv_type] = parse_sigs_chrom(sv_type, temporary_dir, chrom_list, sigs_index)
     
-    gt_list = list()
+    gt_list = {}
     for chrom in svs_dict:
+        gt_list[chrom]=[]
         read_id_dict = dict()
         ci_dict = dict()
         search_list = list()
@@ -875,7 +878,7 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
                 seq = str(record[1]) + ':' + str(record[3])
             else:
                 seq = '<' + record[0] + '>'
-            gt_list.append([record[8], record[2], assign_list[i][2], record[0], record[3],
+            gt_list[record[8]].append([record[8], record[2], assign_list[i][2], record[0], record[3],
                             ci_dict[i][0], ci_dict[i][1], assign_list[i], rname, record[4],
                             record[5], record[6],
                             record[7], seq])
