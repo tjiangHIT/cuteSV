@@ -1202,118 +1202,118 @@ def main_ctrl(args, argv):
     bed_regions = load_bed(args.include_bed, Task_list)
     #'''
     
-    # # manager=Manager()
-    # # candidates=manager.dict()
-    # candidates={}
-    # # global candidates
-    # candidates["DEL"]=list()
-    # candidates["INS"]=list()
-    # candidates["DUP"]=list()
-    # candidates["INV"]=list()
-    # candidates["TRA"]=list()
-    # reads_info_list=list()
-    # candidates["reads_info"]=reads_info_list
+    # manager=Manager()
+    # candidates=manager.dict()
+    candidates={}
+    # global candidates
+    candidates["DEL"]=list()
+    candidates["INS"]=list()
+    candidates["DUP"]=list()
+    candidates["INV"]=list()
+    candidates["TRA"]=list()
+    reads_info_list=list()
+    candidates["reads_info"]=reads_info_list
     
-    # atexit.register(cleanup)
-    # analysis_pools = Pool(processes=int(args.threads), initializer=init_reading_process, initargs=(args.input,))
-    # # samfile = pysam.AlignmentFile(args.input)
-    # os.mkdir("%ssignatures"%temporary_dir)
-    # results=[]#use this is faster than make a long paras list
-    # # for Chr_name in chr_name_list:
-    # #     for read in samfile.fetch(Chr_name):
-    # #         paras=[(read, bed_regions, candidates, reads_info_list, Chr_name, args.min_size, args.min_mapq, args.max_split_parts, args. min_read_len, args.min_siglength, args.merge_del_threshold, args.merge_ins_threshold, args.max_size)]
-    # #         results.append(analysis_pools.map_async(multi_run_wrapper, paras))
-    # for i in range(len(Task_list)):
-    #     paras = [(args.input, 
-    #                 args.min_size, 
-    #                 args.min_mapq, 
-    #                 args.max_split_parts, 
-    #                 args.min_read_len, 
-    #                 temporary_dir, 
-    #                 Task_list[i], 
-    #                 args.min_siglength, 
-    #                 args.merge_del_threshold, 
-    #                 args.merge_ins_threshold, 
-    #                 args.max_size,
-    #                 None if bed_regions == None else bed_regions[i])]
-    #     analysis_pools.map_async(multi_run_wrapper, paras)
-    #     # results.append(analysis_pools.map_async(multi_run_wrapper, paras))
-    #     # results.append(analysis_pools.map_async(multi_run_wrapper, paras, callback=add_candidates))#https://stackoverflow.com/questions/18414020/memory-usage-keep-growing-with-pythons-multiprocessing-pool
-    # pids = [process.pid for process in analysis_pools._pool]
-    # analysis_pools.close()
-    # analysis_pools.join()
-    # # samfile.close()
-    # #'''
-    # #'''
-    # logging.info("Rebuilding signatures of structural variants.")
+    atexit.register(cleanup)
+    analysis_pools = Pool(processes=int(args.threads), initializer=init_reading_process, initargs=(args.input,))
+    # samfile = pysam.AlignmentFile(args.input)
+    os.mkdir("%ssignatures"%temporary_dir)
+    results=[]#use this is faster than make a long paras list
+    # for Chr_name in chr_name_list:
+    #     for read in samfile.fetch(Chr_name):
+    #         paras=[(read, bed_regions, candidates, reads_info_list, Chr_name, args.min_size, args.min_mapq, args.max_split_parts, args. min_read_len, args.min_siglength, args.merge_del_threshold, args.merge_ins_threshold, args.max_size)]
+    #         results.append(analysis_pools.map_async(multi_run_wrapper, paras))
+    for i in range(len(Task_list)):
+        paras = [(args.input, 
+                    args.min_size, 
+                    args.min_mapq, 
+                    args.max_split_parts, 
+                    args.min_read_len, 
+                    temporary_dir, 
+                    Task_list[i], 
+                    args.min_siglength, 
+                    args.merge_del_threshold, 
+                    args.merge_ins_threshold, 
+                    args.max_size,
+                    None if bed_regions == None else bed_regions[i])]
+        analysis_pools.map_async(multi_run_wrapper, paras)
+        # results.append(analysis_pools.map_async(multi_run_wrapper, paras))
+        # results.append(analysis_pools.map_async(multi_run_wrapper, paras, callback=add_candidates))#https://stackoverflow.com/questions/18414020/memory-usage-keep-growing-with-pythons-multiprocessing-pool
+    pids = [process.pid for process in analysis_pools._pool]
+    analysis_pools.close()
+    analysis_pools.join()
+    # samfile.close()
+    #'''
+    #'''
+    logging.info("Rebuilding signatures of structural variants.")
 
-    # # while not candidate_queue.empty():
-    # #     candidate, infolist=candidate_queue.get_nowait()
-    # # for pid in pids:
-    # #     with open("%ssignatures/%s.pickle"%(temporary_dir,pid), "rb") as f:
-    # #         while True:
-    # #             try:
-    # #                 candidate, infolist=pickle.load(f)
-    # #                 candidates["DEL"].extend(candidate["DEL"])
-    # #                 candidates["INS"].extend(candidate["INS"])
-    # #                 candidates["DUP"].extend(candidate["DUP"])
-    # #                 candidates["INV"].extend(candidate["INV"])
-    # #                 candidates["TRA"].extend(candidate["TRA"])
-    # #                 reads_info_list.extend(infolist)
-    # #             except EOFError:
-    # #                 break
-    # # for r in results:
-    # #     candidate, infolist=r.get()[0]
-    # #     candidates["DEL"].extend(candidate["DEL"])
-    # #     candidates["INS"].extend(candidate["INS"])
-    # #     candidates["DUP"].extend(candidate["DUP"])
-    # #     candidates["INV"].extend(candidate["INV"])
-    # #     candidates["TRA"].extend(candidate["TRA"])
-    # #     reads_info_list.extend(infolist)
-    # # candidates["DEL"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
-    # # logging.info("Sorted DEL.")
-    # # candidates["INS"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
-    # # logging.info("Sorted INS.")
-    # # candidates["DUP"].sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
-    # # logging.info("Sorted DUP.")
-    # # candidates["INV"].sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
-    # # logging.info("Sorted INV.")
-    # # candidates["TRA"].sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
-    # # logging.info("Sorted TRA.")
-    # # SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
-    # # for k in SVTYPES:
-    # #     candidates[k]=remove_duplicates_sorted(candidates[k])
-    # # logging.info("removed dups.")
-    # # # from pympler import asizeof
-    # # # logging.info("candidates size: %.2fMB."%(asizeof.asizeof(candidates)/1024/1024))
-    # # # with open("%s/candidates.pickle"%temporary_dir,"wb") as f:
-    # # #     pickle.dump(candidates,f)
+    # while not candidate_queue.empty():
+    #     candidate, infolist=candidate_queue.get_nowait()
+    # for pid in pids:
+    #     with open("%ssignatures/%s.pickle"%(temporary_dir,pid), "rb") as f:
+    #         while True:
+    #             try:
+    #                 candidate, infolist=pickle.load(f)
+    #                 candidates["DEL"].extend(candidate["DEL"])
+    #                 candidates["INS"].extend(candidate["INS"])
+    #                 candidates["DUP"].extend(candidate["DUP"])
+    #                 candidates["INV"].extend(candidate["INV"])
+    #                 candidates["TRA"].extend(candidate["TRA"])
+    #                 reads_info_list.extend(infolist)
+    #             except EOFError:
+    #                 break
+    # for r in results:
+    #     candidate, infolist=r.get()[0]
+    #     candidates["DEL"].extend(candidate["DEL"])
+    #     candidates["INS"].extend(candidate["INS"])
+    #     candidates["DUP"].extend(candidate["DUP"])
+    #     candidates["INV"].extend(candidate["INV"])
+    #     candidates["TRA"].extend(candidate["TRA"])
+    #     reads_info_list.extend(infolist)
+    # candidates["DEL"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
+    # logging.info("Sorted DEL.")
+    # candidates["INS"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
+    # logging.info("Sorted INS.")
+    # candidates["DUP"].sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
+    # logging.info("Sorted DUP.")
+    # candidates["INV"].sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
+    # logging.info("Sorted INV.")
+    # candidates["TRA"].sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
+    # logging.info("Sorted TRA.")
+    # SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
+    # for k in SVTYPES:
+    #     candidates[k]=remove_duplicates_sorted(candidates[k])
+    # logging.info("removed dups.")
+    # # from pympler import asizeof
+    # # logging.info("candidates size: %.2fMB."%(asizeof.asizeof(candidates)/1024/1024))
+    # # with open("%s/candidates.pickle"%temporary_dir,"wb") as f:
+    # #     pickle.dump(candidates,f)
 
-    # # sigs_index=write_sigs(temporary_dir,candidates,reads_info_list)
+    # sigs_index=write_sigs(temporary_dir,candidates,reads_info_list)
 
-    # analysis_pools = Pool(processes=int(args.threads))
-    # paras=[]
-    # for sv_type in SVTYPES:
-    #     paras.append((sv_type,temporary_dir,pids))
-    # paras.append(("reads",temporary_dir,pids))
-    # results=analysis_pools.map_async(process_process_sigs_type, paras)
-    # analysis_pools.close()
-    # analysis_pools.join()
-    # sigs_index={}
-    # for r in results.get():
-    #     if r!=None:
-    #         sigs_index[r[0]]=r[1]
-    #         if r[0]=="reads":
-    #             sigs_index["reads_count"]=r[2]
-    # with open("%s/sigindex.pickle"%temporary_dir,"wb") as f:
-    #     pickle.dump(sigs_index,f)
-    # # for k in SVTYPES:
-    # #     del candidates[k]
-    # del reads_info_list
-    # del results
-    # del candidates
-    # gc.collect()
-    # logging.info("Rebuilding signatures completed.")
+    analysis_pools = Pool(processes=int(args.threads))
+    paras=[]
+    for sv_type in SVTYPES:
+        paras.append((sv_type,temporary_dir,pids))
+    paras.append(("reads",temporary_dir,pids))
+    results=analysis_pools.map_async(process_process_sigs_type, paras)
+    analysis_pools.close()
+    analysis_pools.join()
+    sigs_index={}
+    for r in results.get():
+        if r!=None:
+            sigs_index[r[0]]=r[1]
+            if r[0]=="reads":
+                sigs_index["reads_count"]=r[2]
+    with open("%s/sigindex.pickle"%temporary_dir,"wb") as f:
+        pickle.dump(sigs_index,f)
+    # for k in SVTYPES:
+    #     del candidates[k]
+    del reads_info_list
+    del results
+    del candidates
+    gc.collect()
+    logging.info("Rebuilding signatures completed.")
     # exit(0)
     #'''
     result = list()
@@ -1330,7 +1330,7 @@ def main_ctrl(args, argv):
         threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
         threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
         
-        sigs_index=None
+        # sigs_index=None
         result = force_calling_chrom(args.Ivcf, temporary_dir,
                          max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads, sigs_index)
 
