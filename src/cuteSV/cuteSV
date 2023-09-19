@@ -1,16 +1,17 @@
+#!/usr/bin/python3
 #!/usr/bin/env python
 
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang & sqcao & zdzhang
- * @date: June 21st 2023
- * @version V2.0.3
+ * @date: Sep. 19th 2023
+ * @version V2.1.0
 '''
 
 import pysam
 import cigar
-from Bio import SeqIO
+import pyfastx
 from cuteSV.cuteSV_Description import parseArgs
 from multiprocessing import Pool,Manager,Queue, current_process
 from cuteSV.CommandRunner import *
@@ -31,6 +32,7 @@ import pickle
 import atexit
 
 dic_starnd = {1: '+', 2: '-'}
+RefChangeOp=set([0,2,7,8])
 signal = {1 << 2: 0, \
             1 >> 1: 1, \
             1 << 4: 2, \
@@ -193,6 +195,9 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
     #0			#1			#2			#3		#4	#5
     '''
     SP_list = sorted(split_read, key = lambda x:x[0])
+    # print(split_read)
+    # print('{},{},{},{},{}'.format(SV_size, RLength, read_name, MaxSize, query))
+    # print(candidate)
     # print(read_name)
     # for i in SP_list:
     # 	print(i)
@@ -1332,7 +1337,7 @@ def main_ctrl(args, argv):
         
         # sigs_index=None
         result = force_calling_chrom(args.Ivcf, temporary_dir,
-                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.threads, sigs_index)
+                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, args.multi_allele, sigs_index)
 
     else:
         valuable_chr = load_valuable_chr(temporary_dir)
@@ -1452,7 +1457,7 @@ def main_ctrl(args, argv):
         # sort SVs by [chr] and [pos]
         semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
         logging.info("Loading reference genome...")
-        ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
+        ref_g = pyfastx.Fasta(args.reference)
         generate_output(args, semi_result, contigINFO, argv, ref_g)	
 
     if args.retain_work_dir:
