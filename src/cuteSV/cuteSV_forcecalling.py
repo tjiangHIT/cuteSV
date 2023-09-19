@@ -876,7 +876,7 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
         if chrom not in svs_tobe_genotyped:
             svs_tobe_genotyped[chrom] = list()
         svs_tobe_genotyped[chrom].append([sv_type, sv_chr2, pos, sv_end, sv_len, svid, ref, alts, sv_strand, chrom])
-    logging.info('finish svs_tobe_genotyped in {}.'.format(time.time() - start_time))
+    # logging.info('finish svs_tobe_genotyped in {}.'.format(time.time() - start_time))
     start_time = time.time()
     # parse reads in alignment
     reads_count = sigs_index["reads_count"]
@@ -940,12 +940,12 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
         #         reads_info[chr] = list()
         #     reads_info[chr].append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
     readsfile.close()
-    logging.info('finish reads chrom {} in {}.'.format(chrom_list[0], time.time() - start_time))
+    # logging.info('finish reads chrom {} in {}.'.format(chrom_list[0], time.time() - start_time))
     start_time = time.time()
     sv_dict = dict()
     for sv_type in ["DEL", "DUP", "INS", "INV", "TRA"]:
         sv_dict[sv_type] = parse_sigs_chrom(sv_type, temporary_dir, chrom_list, sigs_index)
-    logging.info('finish sigs chrom {} in {}.'.format(chrom_list[0], time.time() - start_time))
+    # logging.info('finish sigs chrom {} in {}.'.format(chrom_list[0], time.time() - start_time))
     
     gt_list = {}
     for chrom in svs_dict:
@@ -1047,11 +1047,16 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
                 seq = str(record[1]) + ':' + str(record[3])
             else:
                 seq = '<' + record[0] + '>'
-            gt_list[record[8]].append([record[8], record[2], assign_list[i][2], record[0], record[3],
-                            ci_dict[i][0], ci_dict[i][1], assign_list[i], rname, record[4],
-                            record[5], record[6],
-                            record[7], seq])
-        # logging.info("Finished calling %s."%(chrom))
-        logging.info("Finished calling %s in %f seconds."%(chrom, time.time() - start_time))
-    logging.info('finish total fc of chrom {} in {}.'.format(chrom_list[0], time.time() - tots))
+            # [sv_type, sv_chr2, pos, sv_end, sv_len, svid, ref, alts, sv_strand, chrom]
+            gt_list[record[9]].append([record[9], record[2], assign_list[i][2], record[0], record[3],
+                        ci_dict[i][0], ci_dict[i][1], assign_list[i], rname, record[5],
+                        record[6], record[7],
+                        record[8], seq, record[4]])
+            # gt_list[record[9]].append([record[8], record[2], assign_list[i][2], record[0], record[3],
+            #                 ci_dict[i][0], ci_dict[i][1], assign_list[i], rname, record[4],
+            #                 record[5], record[6],
+            #                 record[7], seq])
+        logging.info("Finished calling %s."%(chrom))
+        # logging.info("Finished calling %s in %f seconds."%(chrom, time.time() - start_time))
+    # logging.info('finish total fc of chrom {} in {}.'.format(chrom_list[0], time.time() - tots))
     return gt_list

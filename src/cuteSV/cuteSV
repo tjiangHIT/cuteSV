@@ -909,8 +909,10 @@ def multi_run_wrapper(args):
 
 #file_sig[]=mem_sig[DEL: -2,-1,0,1,2, INS: -2,-1,0,1,2,3, DUP: -2,-1,0,1,2, INV: -2,-1,0,1,2,3, TRA: -2,-1,0,1,2,3,4, reads: -1,0,1,2,3]
 def process_process_sigs_type(args):
-    sv_type, temporary_dir, pids=args
+    sv_type, temporary_dir, pids, forcecalling=args
     write_old_sigs=False
+    if not forcecalling:
+        write_old_sigs=True
     #read
     type_candidates=[]
     for pid in pids:
@@ -990,44 +992,45 @@ def process_process_sigs_type(args):
                         print(line,end="",file=f)
     index={}
     reads_count={}
-    with open("%s/%s.pickle"%(temporary_dir,sv_type),"wb") as f:
-        chr=None
-        startl=0
-        start=0
-        if sv_type=="reads":
-            if len(type_candidates)!=0:
-                for i in range(len(type_candidates)):
-                    ele=type_candidates[i]
-                    if ele[-1]!=chr:
-                        if chr==None:
-                            chr=ele[-1]
-                        else:
-                            dump=pickle.dumps(type_candidates[startl:i])
-                            f.write(dump)
-                            index[chr]=start
-                            reads_count[chr]=i-startl
-                            start+=len(dump)
-                            chr=ele[-1]
-                            startl=i
-                pickle.dump(type_candidates[startl:],f)
-                index[chr]=start
-                reads_count[chr]=len(type_candidates)-startl
-        else:
-            if len(type_candidates)!=0:
-                for i in range(len(type_candidates)):
-                    ele=type_candidates[i]
-                    if ele[-1]!=chr:
-                        if chr==None:
-                            chr=ele[-1]
-                        else:
-                            dump=pickle.dumps(type_candidates[startl:i])
-                            f.write(dump)
-                            index[chr]=start
-                            start+=len(dump)
-                            chr=ele[-1]
-                            startl=i
-                pickle.dump(type_candidates[startl:],f)
-                index[chr]=start
+    if forcecalling:
+        with open("%s/%s.pickle"%(temporary_dir,sv_type),"wb") as f:
+            chr=None
+            startl=0
+            start=0
+            if sv_type=="reads":
+                if len(type_candidates)!=0:
+                    for i in range(len(type_candidates)):
+                        ele=type_candidates[i]
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                dump=pickle.dumps(type_candidates[startl:i])
+                                f.write(dump)
+                                index[chr]=start
+                                reads_count[chr]=i-startl
+                                start+=len(dump)
+                                chr=ele[-1]
+                                startl=i
+                    pickle.dump(type_candidates[startl:],f)
+                    index[chr]=start
+                    reads_count[chr]=len(type_candidates)-startl
+            else:
+                if len(type_candidates)!=0:
+                    for i in range(len(type_candidates)):
+                        ele=type_candidates[i]
+                        if ele[-1]!=chr:
+                            if chr==None:
+                                chr=ele[-1]
+                            else:
+                                dump=pickle.dumps(type_candidates[startl:i])
+                                f.write(dump)
+                                index[chr]=start
+                                start+=len(dump)
+                                chr=ele[-1]
+                                startl=i
+                    pickle.dump(type_candidates[startl:],f)
+                    index[chr]=start
     return (sv_type,index,reads_count)
 
 def write_sigs(temporary_dir, candidates, reads_info_list, prefix=""):
@@ -1299,7 +1302,7 @@ def main_ctrl(args, argv):
     analysis_pools = Pool(processes=int(args.threads))
     paras=[]
     for sv_type in SVTYPES:
-        paras.append((sv_type,temporary_dir,pids))
+        paras.append((sv_type,temporary_dir,pids,args.Ivcf!=None))
     paras.append(("reads",temporary_dir,pids))
     results=analysis_pools.map_async(process_process_sigs_type, paras)
     analysis_pools.close()
