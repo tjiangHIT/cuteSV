@@ -2,12 +2,12 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
  * @author: tjiang & sqcao
- * @date: Nov 3rd 2022
- * @version V2.0.2
+ * @date: June 29th 2023
+ * @version V2.0.3
 '''
 import argparse
 
-VERSION = '2.0.2'
+VERSION = '2.0.3'
 
 class cuteSVdp(object):
 	'''
@@ -155,6 +155,10 @@ def parseArgs(argv):
 		help = "Maximum round of iteration for alignments searching if perform genotyping.[%(default)s]", 
 		default = 500, 
 		type = int)
+	GroupGenotype.add_argument('--read_range', 
+		help = "The interval range for counting reads distribution.[%(default)s]", 
+		default = 1000, 
+		type = int)
 	# GroupGenotype.add_argument('--hom', 
 	# 	help = "Threshold on allele frequency for homozygous.[%(default)s]", 
 	# 	default = 0.8, 
@@ -235,6 +239,10 @@ def parseArgs(argv):
 		help = "The ratio of reads remained in cluster. Set lower when the alignment data have high quality but recommand over 0.5.[%(default)s]", 
 		default = 1.0, 
 		type = float)
+
+	GroupAdvanced.add_argument('--multi_allele',
+		help = "Enable to detect multi-alleles.",
+		action="store_true")
 
 	# parser.add_argument('-d', '--max_distance', 
 	# 	help = "Maximum distance to group SV together..[%(default)s]", 
