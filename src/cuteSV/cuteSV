@@ -804,7 +804,7 @@ def main_ctrl(args, argv):
         threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
         threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
         
-        result = force_calling_chrom(args.Ivcf, '%ssignatures'%(temporary_dir),
+        result = force_calling_chrom(args.Ivcf, temporary_dir,
                          max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, args.multi_allele)
 
     else:
