@@ -3,6 +3,7 @@ from cuteSV.cuteSV_Description import Generation_VCF_header
 from math import log10
 import numpy as np
 import pysam
+import pickle
 
 err = 0.1
 prior = float(1/3)
@@ -223,7 +224,7 @@ def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, 
         idx += 1
     print('Correct iteration cover %d; overlap %d'%(correct_cover, correct_overlap))
 
-def generate_output(args, semi_result, reference, chrom):
+def generate_output(args, semi_result, reference, chrom, temporary_dir):
     
     '''
     Generation of VCF format file.
@@ -238,7 +239,8 @@ def generate_output(args, semi_result, reference, chrom):
     ref_chrom=fa_file.fetch(chrom)
     fa_file.close()
     lines=[]
-
+    BATCH_SIZE=1000
+    f=open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb")
     for i in semi_result:
         if i[1] in ["DEL", "INS"]:
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
@@ -393,7 +395,15 @@ def generate_output(args, semi_result, reference, chrom):
                 GQ = i[9],
                 QUAL = i[10],
                 PASS = filter_lable)))
-    return lines
+        if len(lines)>BATCH_SIZE:
+            pickle.dump(lines,f)
+            lines=[]
+    # with open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb") as f:
+    #     pickle.dump(lines,f)
+    if len(lines)!=0:
+        pickle.dump(lines,f)
+    # f.close()
+    # return lines
 
 
 # def generate_pvcf(args, result, contigINFO, argv, ref_g):

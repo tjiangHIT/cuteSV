@@ -1338,9 +1338,10 @@ def main_ctrl(args, argv):
                          max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, args.multi_allele, sigs_index)
 
     else:
-        if sigs_index==None:
-            with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
-                sigs_index=pickle.load(f)
+        # sigs_index=None
+        # if sigs_index==None:
+        #     with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
+        #         sigs_index=pickle.load(f)
         # valuable_chr = load_valuable_chr(temporary_dir)
 
         logging.info("Clustering structural variants.")
@@ -1469,19 +1470,42 @@ def main_ctrl(args, argv):
         svid["BND"] = 0
         svid["DUP"] = 0
         svid["INV"] = 0
+        chroms=sorted(results.keys())
+        os.mkdir("%sresults"%temporary_dir)
         Generation_VCF_header(file, contigINFO, args.sample, argv)
         file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
+        # size_chroms=sorted(chroms,key=lambda x: len(results[x]))
+        # mid=int(len(size_chroms)/2)
         analysis_pools = Pool(processes=int(args.threads))
         paras=[]
-        for chrom in sorted(results.keys()):
-            paras.append((args, results[chrom], args.reference, chrom))
+        #To distribute more evenly
+        # for i in range(len(size_chroms)-1, -1, -1):
+        #     chrom=size_chroms[(mid-int(i/2)-1 if i%2==0 else mid+int(i/2))]
+        for chrom in chroms:
+            paras.append((args, results[chrom], args.reference, chrom, temporary_dir))
         results=analysis_pools.starmap_async(generate_output, paras)
         analysis_pools.close()
         analysis_pools.join()
-        for r in results.get():
-            for svtype, line in r:
-                file.write(line.replace("<SVID>",str(svid[svtype])))
-                svid[svtype]+=1
+        for chrom in chroms:
+            with open("%sresults/%s.pickle"%(temporary_dir,chrom), "rb") as f:
+                # for svtype, line in pickle.load(f):
+                #     file.write(line.replace("<SVID>",str(svid[svtype])))
+                #     svid[svtype]+=1
+                # # lines=pickle.load(f)
+                while True:
+                    try:
+                        lines = pickle.load(f)
+                        for svtype, line in lines:
+                            file.write(line.replace("<SVID>",str(svid[svtype])))
+                            svid[svtype]+=1
+                    except EOFError:
+                        break
+                    # file.write(line.replace("<SVID>",str(svid[svtype])))
+                    # svid[svtype]+=1
+        # for r in results.get():
+        #     for svtype, line in r:
+        #         file.write(line.replace("<SVID>",str(svid[svtype])))
+        #         svid[svtype]+=1
         file.close()
 
     if args.retain_work_dir:
