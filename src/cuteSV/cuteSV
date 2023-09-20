@@ -10,7 +10,6 @@
 
 import pysam
 import cigar
-import pyfastx
 from cuteSV.cuteSV_Description import parseArgs
 from multiprocessing import Pool,Manager,Queue, current_process
 from cuteSV.CommandRunner import *
