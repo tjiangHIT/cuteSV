@@ -1302,7 +1302,7 @@ def main_ctrl(args, argv):
     paras=[]
     for sv_type in SVTYPES:
         paras.append((sv_type,temporary_dir,pids,args.Ivcf!=None))
-    paras.append(("reads",temporary_dir,pids))
+    paras.append(("reads",temporary_dir,pids,args.Ivcf!=None))
     results=analysis_pools.map_async(process_process_sigs_type, paras)
     analysis_pools.close()
     analysis_pools.join()
