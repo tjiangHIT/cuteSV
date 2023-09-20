@@ -906,12 +906,9 @@ def multi_run_wrapper(args):
     # logging.info(args)
     return single_pipe(*args)
 
-#file_sig[]=mem_sig[DEL: -2,-1,0,1,2, INS: -2,-1,0,1,2,3, DUP: -2,-1,0,1,2, INV: -2,-1,0,1,2,3, TRA: -2,-1,0,1,2,3,4, reads: -1,0,1,2,3]
+#old_file_sig[]=mem_sig[DEL: -2,-1,0,1,2, INS: -2,-1,0,1,2,3, DUP: -2,-1,0,1,2, INV: -2,-1,0,1,2,3, TRA: -2,-1,0,1,2,3,4, reads: -1,0,1,2,3]
 def process_process_sigs_type(args):
-    sv_type, temporary_dir, pids, forcecalling=args
-    write_old_sigs=False
-    if not forcecalling:
-        write_old_sigs=True
+    sv_type, temporary_dir, pids, write_old_sigs=args
     #read
     type_candidates=[]
     for pid in pids:
@@ -991,45 +988,44 @@ def process_process_sigs_type(args):
                         print(line,end="",file=f)
     index={}
     reads_count={}
-    if forcecalling:
-        with open("%s/%s.pickle"%(temporary_dir,sv_type),"wb") as f:
-            chr=None
-            startl=0
-            start=0
-            if sv_type=="reads":
-                if len(type_candidates)!=0:
-                    for i in range(len(type_candidates)):
-                        ele=type_candidates[i]
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                dump=pickle.dumps(type_candidates[startl:i])
-                                f.write(dump)
-                                index[chr]=start
-                                reads_count[chr]=i-startl
-                                start+=len(dump)
-                                chr=ele[-1]
-                                startl=i
-                    pickle.dump(type_candidates[startl:],f)
-                    index[chr]=start
-                    reads_count[chr]=len(type_candidates)-startl
-            else:
-                if len(type_candidates)!=0:
-                    for i in range(len(type_candidates)):
-                        ele=type_candidates[i]
-                        if ele[-1]!=chr:
-                            if chr==None:
-                                chr=ele[-1]
-                            else:
-                                dump=pickle.dumps(type_candidates[startl:i])
-                                f.write(dump)
-                                index[chr]=start
-                                start+=len(dump)
-                                chr=ele[-1]
-                                startl=i
-                    pickle.dump(type_candidates[startl:],f)
-                    index[chr]=start
+    with open("%s/%s.pickle"%(temporary_dir,sv_type),"wb") as f:
+        chr=None
+        startl=0
+        start=0
+        if sv_type=="reads":
+            if len(type_candidates)!=0:
+                for i in range(len(type_candidates)):
+                    ele=type_candidates[i]
+                    if ele[-1]!=chr:
+                        if chr==None:
+                            chr=ele[-1]
+                        else:
+                            dump=pickle.dumps(type_candidates[startl:i])
+                            f.write(dump)
+                            index[chr]=start
+                            reads_count[chr]=i-startl
+                            start+=len(dump)
+                            chr=ele[-1]
+                            startl=i
+                pickle.dump(type_candidates[startl:],f)
+                index[chr]=start
+                reads_count[chr]=len(type_candidates)-startl
+        else:
+            if len(type_candidates)!=0:
+                for i in range(len(type_candidates)):
+                    ele=type_candidates[i]
+                    if ele[-1]!=chr:
+                        if chr==None:
+                            chr=ele[-1]
+                        else:
+                            dump=pickle.dumps(type_candidates[startl:i])
+                            f.write(dump)
+                            index[chr]=start
+                            start+=len(dump)
+                            chr=ele[-1]
+                            startl=i
+                pickle.dump(type_candidates[startl:],f)
+                index[chr]=start
     return (sv_type,index,reads_count)
 
 def write_sigs(temporary_dir, candidates, reads_info_list, prefix=""):
@@ -1301,8 +1297,8 @@ def main_ctrl(args, argv):
     analysis_pools = Pool(processes=int(args.threads))
     paras=[]
     for sv_type in SVTYPES:
-        paras.append((sv_type,temporary_dir,pids,args.Ivcf!=None))
-    paras.append(("reads",temporary_dir,pids,args.Ivcf!=None))
+        paras.append((sv_type,temporary_dir,pids,args.write_old_sigs))
+    paras.append(("reads",temporary_dir,pids,args.write_old_sigs))
     results=analysis_pools.map_async(process_process_sigs_type, paras)
     analysis_pools.close()
     analysis_pools.join()
@@ -1342,13 +1338,16 @@ def main_ctrl(args, argv):
                          max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, args.multi_allele, sigs_index)
 
     else:
-        valuable_chr = load_valuable_chr(temporary_dir)
+        if sigs_index==None:
+            with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
+                sigs_index=pickle.load(f)
+        # valuable_chr = load_valuable_chr(temporary_dir)
 
         logging.info("Clustering structural variants.")
         analysis_pools = Pool(processes=int(args.threads))
 
         # +++++DEL+++++
-        for chr in valuable_chr["DEL"]:
+        for chr in sigs_index["DEL"]:
             para = [(temporary_dir, 
                     chr, 
                     "DEL", 
@@ -1360,11 +1359,12 @@ def main_ctrl(args, argv):
                     args.input, 
                     args.genotype,
                     args.gt_round,
-                    args.remain_reads_ratio)]
+                    args.remain_reads_ratio,
+                    sigs_index)]
             result.append(analysis_pools.map_async(run_del, para))
 
         # +++++INS+++++
-        for chr in valuable_chr["INS"]:
+        for chr in sigs_index["INS"]:
             para = [(temporary_dir, 
                     chr, 
                     "INS", 
@@ -1376,11 +1376,12 @@ def main_ctrl(args, argv):
                     args.input, 
                     args.genotype,
                     args.gt_round,
-                    args.remain_reads_ratio)]
+                    args.remain_reads_ratio,
+                    sigs_index)]
             result.append(analysis_pools.map_async(run_ins, para))
 
         # +++++INV+++++
-        for chr in valuable_chr["INV"]:
+        for chr in sigs_index["INV"]:
             para = [(temporary_dir, 
                     chr, 
                     "INV", 
@@ -1390,11 +1391,12 @@ def main_ctrl(args, argv):
                     args.input, 
                     args.genotype, 
                     args.max_size,
-                    args.gt_round)]
+                    args.gt_round,
+                    sigs_index)]
             result.append(analysis_pools.map_async(run_inv, para))
 
         # +++++DUP+++++
-        for chr in valuable_chr["DUP"]:
+        for chr in sigs_index["DUP"]:
             para = [(temporary_dir, 
                     chr, 
                     args.min_support, 
@@ -1403,25 +1405,36 @@ def main_ctrl(args, argv):
                     args.input, 
                     args.genotype, 
                     args.max_size,
-                    args.gt_round)]
+                    args.gt_round,
+                    sigs_index)]
             result.append(analysis_pools.map_async(run_dup, para))
 
         # +++++TRA+++++
-        for chr in valuable_chr["TRA"]:
-            for chr2 in valuable_chr["TRA"][chr]:
-                para = [(temporary_dir, 
-                        chr, 
-                        chr2, 
-                        args.min_support, 
-                        args.diff_ratio_filtering_TRA, 
-                        args.max_cluster_bias_TRA, 
-                        args.input, 
-                        args.genotype,
-                        args.gt_round)]
-                result.append(analysis_pools.map_async(run_tra, para))
+        for chr in sigs_index["TRA"]:
+            para = [(temporary_dir, 
+                    chr, 
+                    args.min_support, 
+                    args.diff_ratio_filtering_TRA, 
+                    args.max_cluster_bias_TRA, 
+                    args.input, 
+                    args.genotype,
+                    args.gt_round,
+                    sigs_index)]
+            result.append(analysis_pools.map_async(run_tra, para))
 
         analysis_pools.close()
         analysis_pools.join()
+
+        results={}
+        for res in result:
+            try:
+                chr, svs= res.get()[0]
+                if chr not in results.keys():
+                    results[chr]=[]
+                results[chr].extend(svs)
+            except:
+                pass
+        file = open(args.output, 'w')
         
     logging.info("Writing to your output file.")
 
@@ -1450,23 +1463,32 @@ def main_ctrl(args, argv):
         file.close()
 
     else:
-        semi_result = list()
-        for res in result:
-            try:
-                semi_result += res.get()[0]
-            except:
-                pass
-        # sort SVs by [chr] and [pos]
-        semi_result = sorted(semi_result, key = lambda x:(x[0], int(x[2])))
-        logging.info("Loading reference genome...")
-        ref_g = pyfastx.Fasta(args.reference)
-        generate_output(args, semi_result, contigINFO, argv, ref_g)	
+        svid = dict()
+        svid["INS"] = 0
+        svid["DEL"] = 0
+        svid["BND"] = 0
+        svid["DUP"] = 0
+        svid["INV"] = 0
+        Generation_VCF_header(file, contigINFO, args.sample, argv)
+        file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
+        analysis_pools = Pool(processes=int(args.threads))
+        paras=[]
+        for chrom in sorted(results.keys()):
+            paras.append((args, results[chrom], args.reference, chrom))
+        results=analysis_pools.starmap_async(generate_output, paras)
+        analysis_pools.close()
+        analysis_pools.join()
+        for r in results.get():
+            for svtype, line in r:
+                file.write(line.replace("<SVID>",str(svid[svtype])))
+                svid[svtype]+=1
+        file.close()
 
     if args.retain_work_dir:
         pass
     else:
         logging.info("Cleaning temporary files.")
-        cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs"%(temporary_dir, temporary_dir))
+        cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir))
         exe(cmd_remove_tempfile)
     
     samfile.close()

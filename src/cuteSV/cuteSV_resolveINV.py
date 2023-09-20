@@ -1,9 +1,10 @@
 import numpy as np
 import logging
 from cuteSV.cuteSV_genotype import overlap_cover, assign_gt
+import pickle
 
 def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size, 
-    bam_path, action, MaxSize, gt_round):
+    bam_path, action, MaxSize, gt_round, sigs_index):
     '''
     cluster INV
     ************************************************************************
@@ -29,22 +30,24 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
     ************************************************************************
     '''
 
+    if chr not in sigs_index["INV"].keys():
+        return (chr,[])
     # Initialization of some temporary variables
     semi_inv_cluster = list()
     semi_inv_cluster.append([0,0,'',''])
     candidate_single_SV = list()
 
     # Load inputs & cluster breakpoint from each signature read 
-    file = open("%s%s.sigs"%(path, "INV"), 'r')
-    for line in file:
-        seq = line.strip('\n').split('\t')
-        if seq[1] != chr:
-            continue
 
-        strand = seq[2]
-        breakpoint_1_in_read = int(seq[3])
-        breakpoint_2_in_read = int(seq[4])
-        read_id = seq[5]
+    with open("%s%s.pickle"%(path, "INV"), 'rb') as f:
+        f.seek(sigs_index["INV"][chr])
+        seqs=pickle.load(f)
+    for seq in seqs:
+
+        strand = seq[0]
+        breakpoint_1_in_read = int(seq[1])
+        breakpoint_2_in_read = int(seq[2])
+        read_id = seq[3]
 
         # print("new")
         # print(seq[1], seq[2], seq[3], seq[4], seq[5])
@@ -87,14 +90,13 @@ def resolution_INV(path, chr, svtype, read_count, max_cluster_bias, sv_size,
                                     action,
                                     MaxSize,
                                     gt_round)
-    file.close()
     if action:
-        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, max_cluster_bias)
+        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, max_cluster_bias, sigs_index)
         logging.info("Finished %s:%s."%(chr, "INV"))
-        return candidate_single_SV_gt
+        return (chr,candidate_single_SV_gt)
     else:
         logging.info("Finished %s:%s."%(chr, "INV"))
-        return candidate_single_SV
+        return (chr,candidate_single_SV)
 
 def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size, 
     candidate_single_SV, max_cluster_bias, action, MaxSize, gt_round):
@@ -203,14 +205,14 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, svtype, read_count, sv_size
 def run_inv(args):
     return resolution_INV(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias):
-    reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
-    readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
-    for line in readsfile:
-        seq = line.strip().split('\t')
-        if seq[0] != chr:
-            continue
-        reads_list.append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
+def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias, sigs_index):
+    # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
+    
+    if chr not in sigs_index["reads"].keys():
+        return []
+    readsfile = open("%sreads.pickle"%(temporary_dir), 'rb')
+    readsfile.seek(sigs_index["reads"][chr])
+    reads_list=pickle.load(readsfile)
     readsfile.close()
     svs_list = list()
     for item in candidate_single_SV:

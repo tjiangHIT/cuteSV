@@ -1,6 +1,7 @@
 import numpy as np
 from cuteSV.cuteSV_genotype import cal_CIPOS, overlap_cover, assign_gt
 import logging
+import pickle
 
 '''
 *******************************************
@@ -14,7 +15,7 @@ import logging
 '''
 
 def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_bias,
-                 minimum_support_reads, bam_path, action, gt_round, remain_reads_ratio):
+                 minimum_support_reads, bam_path, action, gt_round, remain_reads_ratio, sigs_index):
 
     '''
     cluster DEL
@@ -40,21 +41,22 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
     #5	read ID
     ********************************************************************************************
     '''
+    if chr not in sigs_index["DEL"].keys():
+        return (chr,[])
     if remain_reads_ratio > 1:
         remain_reads_ratio = 1
     semi_del_cluster = list()
     semi_del_cluster.append([0,0,''])
     candidate_single_SV = list()
+    
+    file = open("%s%s.pickle"%(path, "DEL"), 'rb')
+    file.seek(sigs_index["DEL"][chr])
+    seqs=pickle.load(file)
+    for seq in seqs:
 
-    file = open("%s%s.sigs"%(path, "DEL"), 'r')
-    for line in file:
-        seq = line.strip('\n').split('\t')
-        if seq[1] != chr:
-            continue
-
-        pos = int(seq[2])
-        indel_len = int(seq[3])
-        read_id = seq[4]
+        pos = int(seq[0])
+        indel_len = int(seq[1])
+        read_id = seq[2]
         
         if pos - semi_del_cluster[-1][0] > max_cluster_bias:
             if len(semi_del_cluster) >= read_count:
@@ -98,12 +100,12 @@ def resolution_DEL(path, chr, svtype, read_count, threshold_gloab, max_cluster_b
                                 remain_reads_ratio)
     file.close()
     if action:
-        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, max_cluster_bias, 'DEL')
+        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, max_cluster_bias, 'DEL', sigs_index)
         logging.info("Finished %s:%s."%(chr, "DEL"))
-        return candidate_single_SV_gt
+        return (chr,candidate_single_SV_gt)
     else:
         logging.info("Finished %s:%s."%(chr, "DEL"))
-        return candidate_single_SV
+        return (chr,candidate_single_SV)
 
 def generate_del_cluster(semi_del_cluster, chr, svtype, read_count, 
     threshold_gloab, minimum_support_reads, candidate_single_SV, 
@@ -218,7 +220,7 @@ def generate_del_cluster(semi_del_cluster, chr, svtype, read_count,
     
 
 def resolution_INS(path, chr, svtype, read_count, threshold_gloab, 
-    max_cluster_bias, minimum_support_reads, bam_path, action, gt_round, remain_reads_ratio):
+    max_cluster_bias, minimum_support_reads, bam_path, action, gt_round, remain_reads_ratio, sigs_index):
     
     '''
     cluster INS
@@ -245,23 +247,24 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
     #6  INS sequence
     ********************************************************************************************
     '''
+    if chr not in sigs_index["INS"].keys():
+        return (chr,[])
     if remain_reads_ratio > 1:
         remain_reads_ratio = 1
     semi_ins_cluster = list()
     semi_ins_cluster.append([0,0,'',''])
     candidate_single_SV = list()
 
-    file = open("%s%s.sigs"%(path, "INS"), 'r')
-    for line in file:
-        seq = line.strip('\n').split('\t')
-        if seq[1] != chr:
-            continue
+    with open("%s%s.pickle"%(path, "INS"), 'rb') as f:
+        f.seek(sigs_index["INS"][chr])
+        seqs=pickle.load(f)
+    for seq in seqs:
 
-        pos = int(seq[2])
-        indel_len = int(seq[3])
-        read_id = seq[4]
+        pos = int(seq[0])
+        indel_len = int(seq[1])
+        read_id = seq[2]
         try:
-            ins_seq = seq[5]
+            ins_seq = seq[3]
         except:
             ins_seq = ''
         
@@ -305,14 +308,13 @@ def resolution_INS(path, chr, svtype, read_count, threshold_gloab,
                                 action,
                                 gt_round,
                                 remain_reads_ratio)
-    file.close()
     if action:
-        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, 1000, 'INS') # max_cluster_bias
+        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, 1000, 'INS', sigs_index) # max_cluster_bias
         logging.info("Finished %s:%s."%(chr, "INS"))
-        return candidate_single_SV_gt
+        return (chr,candidate_single_SV_gt)
     else:
         logging.info("Finished %s:%s."%(chr, "INS"))
-        return candidate_single_SV
+        return (chr,candidate_single_SV)
 
 def generate_ins_cluster(semi_ins_cluster, chr, svtype, read_count, 
     threshold_gloab, minimum_support_reads, candidate_single_SV, 
@@ -436,14 +438,13 @@ def run_del(args):
 def run_ins(args):
     return resolution_INS(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias, svtype):
-    reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
-    readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
-    for line in readsfile:
-        seq = line.strip().split('\t')
-        if seq[0] != chr:
-            continue
-        reads_list.append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
+def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias, svtype, sigs_index):
+    # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
+    if chr not in sigs_index["reads"].keys():
+        return []
+    readsfile = open("%sreads.pickle"%(temporary_dir), 'rb')
+    readsfile.seek(sigs_index["reads"][chr])
+    reads_list=pickle.load(readsfile)
     readsfile.close()
     svs_list = list()
     for item in candidate_single_SV:

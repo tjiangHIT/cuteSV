@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 from cuteSV.cuteSV_genotype import overlap_cover, assign_gt
+import pickle
 
 '''
 *******************************************
@@ -14,20 +15,21 @@ from cuteSV.cuteSV_genotype import overlap_cover, assign_gt
 '''
 
 def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size, 
-    bam_path, action, MaxSize, gt_round):
+    bam_path, action, MaxSize, gt_round, sigs_index):
+    if chr not in sigs_index["DUP"].keys():
+        return (chr,[])
     semi_dup_cluster = list()
     semi_dup_cluster.append([0, 0, ''])
     candidate_single_SV = list()
 
-    file = open("%s%s.sigs"%(path, "DUP"), 'r')
-    for line in file:
-        seq = line.strip('\n').split('\t')
-        if seq[1] != chr:
-            continue
+    with open("%s%s.pickle"%(path, "DUP"), 'rb') as f:
+        f.seek(sigs_index["DUP"][chr])
+        seqs=pickle.load(f)
+    for seq in seqs:
 
-        pos_1 = int(seq[2])
-        pos_2 = int(seq[3])
-        read_id = seq[4]
+        pos_1 = int(seq[0])
+        pos_2 = int(seq[1])
+        read_id = seq[2]
         
         # if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias or pos_2 - semi_dup_cluster[-1][1] > max_cluster_bias:
         if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias:
@@ -66,14 +68,13 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, sv_size,
                                 action,
                                 MaxSize,
                                 gt_round)
-    file.close()
     if action:
-        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, max_cluster_bias)
+        candidate_single_SV_gt = call_gt(path, chr, candidate_single_SV, max_cluster_bias, sigs_index)
         logging.info("Finished %s:%s."%(chr, "DUP"))
-        return candidate_single_SV_gt
+        return (chr,candidate_single_SV_gt)
     else:
         logging.info("Finished %s:%s."%(chr, "DUP"))
-        return candidate_single_SV
+        return (chr,candidate_single_SV)
 
 def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, 
     sv_size, candidate_single_SV, action, MaxSize, gt_round):
@@ -133,14 +134,13 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 def run_dup(args):
     return resolution_DUP(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias):
-    reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
-    readsfile = open("%sreads.sigs"%(temporary_dir), 'r')
-    for line in readsfile:
-        seq = line.strip().split('\t')
-        if seq[0] != chr:
-            continue
-        reads_list.append([int(seq[1]), int(seq[2]), int(seq[3]), seq[4]])
+def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias, sigs_index):
+    # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
+    if chr not in sigs_index["reads"].keys():
+        return []
+    readsfile = open("%sreads.pickle"%(temporary_dir), 'rb')
+    readsfile.seek(sigs_index["reads"][chr])
+    reads_list=pickle.load(readsfile)
     readsfile.close()
     svs_list = list()
     for item in candidate_single_SV:

@@ -92,6 +92,10 @@ def parseArgs(argv):
 	parser.add_argument('--retain_work_dir',
 		help = "Enable to retain temporary folder and files.",
 		action="store_true")
+	
+	parser.add_argument('--write_old_sigs',
+		help = "Enable to write old sigs file in temporary folder, this is for legacy compatibilities.",
+		action="store_true")
 
 	parser.add_argument('--report_readid',
 		help = "Enable to report supporting read ids for each SV.",
