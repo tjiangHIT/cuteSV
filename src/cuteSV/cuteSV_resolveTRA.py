@@ -40,6 +40,22 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, bam_
 	for seq in seqs:
 		if seq[2]!=chr_2:
 			logging.info("Finished %s-%s:%s."%(chr_1, chr_2, "TRA/BND"))
+			if len(semi_tra_cluster) >= read_count:
+				if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
+					pass
+				else:
+					generate_semi_tra_cluster(semi_tra_cluster, 
+											chr_1, 
+											chr_2, 
+											read_count, 
+											overlap_size, 
+											max_cluster_bias, 
+											candidate_single_SV,
+											bam_path,
+											action,
+											gt_round)
+			semi_tra_cluster = list()
+			semi_tra_cluster.append([0,0,'','N'])
 			chr_2=seq[2]
 		pos_1 = int(seq[1])
 		pos_2 = int(seq[3])
