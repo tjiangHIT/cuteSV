@@ -1334,7 +1334,7 @@ def main_ctrl(args, argv):
         
         # sigs_index=None
         result = force_calling_chrom(args.Ivcf, temporary_dir,
-                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, args.multi_allele, sigs_index)
+                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, sigs_index)
 
     else:
         # sigs_index=None

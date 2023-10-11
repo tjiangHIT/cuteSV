@@ -156,7 +156,21 @@ def overlap_cover(svs_list, reads_list):
     # return iteration_dict, primary_num_dict, cover2_dict
     return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict
 
-def assign_gt(iteration_dict, primary_num_dict, cover_dict, overlap_dict, read_id_dict, svtype_id_dict):
+def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict):
+    assign_list = list()
+    for idx in read_id_dict:
+        iteration = iteration_dict[idx]
+        primary_num = primary_num_dict[idx]
+        read_count = cover_dict[idx]
+        DR = 0
+        for query in read_count:
+            if query not in read_id_dict[idx]:
+                DR += 1
+        GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_dict[idx]))
+        assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL])
+    return assign_list
+
+def assign_gt_fc(iteration_dict, primary_num_dict, cover_dict, overlap_dict, read_id_dict, svtype_id_dict):
     assign_list = list()
     for idx in read_id_dict:
         iteration = iteration_dict[idx]

@@ -1,4 +1,4 @@
-from cuteSV.cuteSV_genotype import cal_CIPOS, overlap_cover, assign_gt
+from cuteSV.cuteSV_genotype import cal_CIPOS, overlap_cover, assign_gt_fc
 from multiprocessing import Pool
 from pysam import VariantFile
 import math
@@ -860,7 +860,53 @@ def generate_dispatch(reads_count, chrom_list):
             dispatch[0].append(chrom)
     return dispatch
 
-def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, read_range, threads, multi_allele, sigs_index):
+def check_ivcf(ivcf_path):
+    vcf_reader = VariantFile(ivcf_path, 'r')
+    svs_pre = dict()
+    cnt = 0
+    tot = 0
+    for record in vcf_reader.fetch():
+        sv_type, chrom, sv_chr2, pos, sv_end, sv_len, sv_strand, svid, ref, alts = parse_record(record)
+        if sv_type not in ["DEL", "INS", "DUP", "INV", "TRA", "BND"]:
+            continue
+        if chrom not in svs_pre:
+            svs_pre[chrom] = dict()
+        if pos not in svs_pre[chrom]:
+            svs_pre[chrom][pos] = 0
+        svs_pre[chrom][pos] += 1
+        tot += 1
+    for c in svs_pre:
+        for s in svs_pre[c]:
+            if svs_pre[c][s] == 2:
+                cnt += 1
+    if cnt / tot > 0.05:
+        return True
+    return False
+def check_multi(ivcf_path):
+    vcf_reader = VariantFile(ivcf_path, 'r')
+    svs_pre = dict()
+    cnt = 0
+    for record in vcf_reader.fetch():
+        sv_type, chrom, sv_chr2, pos, sv_end, sv_len, sv_strand, svid, ref, alts = parse_record(record)
+        if sv_type not in ["DEL", "INS", "DUP", "INV", "TRA", "BND"]:
+            continue
+        if chrom not in svs_pre:
+            svs_pre[chrom] = dict()
+        if pos not in svs_pre[chrom]:
+            svs_pre[chrom][pos] = 0
+        svs_pre[chrom][pos] += 1
+    svs_multi = dict()
+    for c in svs_pre:
+        for s in svs_pre[c]:
+            if svs_pre[c][s] == 2:
+                if c not in svs_multi:
+                    svs_multi[c] = set()
+                svs_multi[c].add(s)
+    for c in svs_multi:
+        cnt += len(svs_multi[c])
+    return svs_multi
+
+def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, read_range, threads, sigs_index):
     logging.info('Check the parameter -Ivcf: OK.')
     logging.info('Enable to perform force calling.')
     if sigs_index==None:
@@ -877,6 +923,8 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
             svs_tobe_genotyped[chrom] = list()
         svs_tobe_genotyped[chrom].append([sv_type, sv_chr2, pos, sv_end, sv_len, svid, ref, alts, sv_strand, chrom])
     # logging.info('finish svs_tobe_genotyped in {}.'.format(time.time() - start_time))
+    # multi_allele = check_ivcf(ivcf_path)
+    svs_multi = check_multi(ivcf_path)
     start_time = time.time()
     # parse reads in alignment
     reads_count = sigs_index["reads_count"]
@@ -899,7 +947,7 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
         if len(genotype_sv_list) == 0:
             continue
         # pool_result.append(solve_fc(chroms, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round))
-        fx_para = [(chroms, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index, read_range, multi_allele)]
+        fx_para = [(chroms, genotype_sv_list, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index, read_range, svs_multi)]
         pool_result.append(process_pool.map_async(solve_fc_wrapper, fx_para))
         # result.append(solve_fc_wrapper(fx_para[0]))
     process_pool.close()
@@ -921,7 +969,7 @@ def force_calling_chrom(ivcf_path, temporary_dir, max_cluster_bias_dict, thresho
 
 def solve_fc_wrapper(args):
     return solve_fc(*args)
-def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index, read_range, multi_allele):
+def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, threshold_gloab_dict, gt_round, sigs_index, read_range, svs_multi):
     reads_info = dict() # [10000, 10468, 0, 'm54238_180901_011437/52298335/ccs']
     readsfile = open("%sreads.pickle"%(temporary_dir), 'rb')
     for chrom in chrom_list:
@@ -977,6 +1025,10 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
                 #     if svs_dict[chrom][j][0] == sv_type:
                 #         sigs_bias = min(sigs_bias, max(100, svs_dict[chrom][j][2] - sv_start))
                 #         break
+                if chrom in svs_multi and sv_start in svs_multi[chrom]:
+                    multi_allele = True
+                else:
+                    multi_allele = False
                 read_id_list, search_start, search_end, CIPOS, CILEN = find_in_indel_list(sv_type, search_id_list, sigs_bias, sv_start, sv_len, threshold_gloab_dict[sv_type], multi_allele)
             else:
                 sv_temp = sv_type
@@ -1036,7 +1088,7 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
         assert len(iteration_dict) == len(read_id_dict), "overlap length error"
         assert len(cover_dict) == len(svs_dict[chrom]), "cover length error"
         assert len(overlap_dict) == len(svs_dict[chrom]), "overlap length error"
-        assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, overlap_dict, read_id_dict, svtype_id_dict)
+        assign_list = assign_gt_fc(iteration_dict, primary_num_dict, cover_dict, overlap_dict, read_id_dict, svtype_id_dict)
         for i in range(len(svs_dict[chrom])):
             assert len(assign_list[i]) == 6, "assign genotype error"
             record = svs_dict[chrom][i]

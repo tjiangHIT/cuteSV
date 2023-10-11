@@ -244,10 +244,6 @@ def parseArgs(argv):
 		default = 1.0, 
 		type = float)
 
-	GroupAdvanced.add_argument('--multi_allele',
-		help = "Enable to detect multi-alleles.",
-		action="store_true")
-
 	# parser.add_argument('-d', '--max_distance', 
 	# 	help = "Maximum distance to group SV together..[%(default)s]", 
 	# 	default = 1000, type = int)

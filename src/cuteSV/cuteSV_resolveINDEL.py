@@ -449,7 +449,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, max_cluster_bias, svtype, s
     svs_list = list()
     for item in candidate_single_SV:
         svs_list.append((max(item[7] - max_cluster_bias, 0), item[7] + max_cluster_bias))
-    iteration_dict, primary_num_dict, cover_dict = overlap_cover(svs_list, reads_list) # both key(sv idx), value(set(read id))
+    iteration_dict, primary_num_dict, cover_dict, overlap_dict = overlap_cover(svs_list, reads_list) # both key(sv idx), value(set(read id))
     assert len(cover_dict) == len(candidate_single_SV), "overlap length error"
 
     read_id_dict = dict()
