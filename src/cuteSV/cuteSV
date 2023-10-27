@@ -193,12 +193,6 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
     #0			#1			#2			#3		#4	#5
     '''
     SP_list = sorted(split_read, key = lambda x:x[0])
-    # print(split_read)
-    # print('{},{},{},{},{}'.format(SV_size, RLength, read_name, MaxSize, query))
-    # print(candidate)
-    # print(read_name)
-    # for i in SP_list:
-    # 	print(i)
 
     # detect INS involoved in a translocation
     trigger_INS_TRA = 0	
@@ -437,8 +431,6 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
 
     if len(SP_list) >= 3 and trigger_INS_TRA == 1:
         if SP_list[0][4] == SP_list[-1][4]:
-            # print(SP_list[0])
-            # print(SP_list[-1])
             if SP_list[0][5] != SP_list[-1][5]:
                 pass
             else:
@@ -449,12 +441,9 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                     ele_1 = [RLength-SP_list[-1][1], RLength-SP_list[-1][0]]+SP_list[-1][2:]
                     ele_2 = [RLength-SP_list[0][1],RLength-SP_list[0][0]]+SP_list[0][2:]
                     query = query[::-1]
-                # print(ele_1)
-                # print(ele_2)
                 dis_ref = ele_2[2] - ele_1[3]
                 dis_read = ele_2[0] - ele_1[1]
                 if dis_ref < 100 and dis_read - dis_ref >= SV_size and (dis_read - dis_ref <= MaxSize or MaxSize == -1):
-                    # print(min(ele_2[2], ele_1[3]), dis_read - dis_ref, read_name)
                     candidate["INS"].append((min(ele_2[2], ele_1[3]), 
                                         dis_read - dis_ref, 
                                         read_name,
@@ -500,7 +489,6 @@ def organize_split_signal(primary_info, Supplementary_info, total_L, SV_size,
         local_strand = seq[2]
         local_mapq = int(seq[4])
         if local_mapq >= min_mapq:
-        # if local_mapq >= 0:	
             local_set = acquire_clip_pos(local_cigar)
             if local_strand == '+':
                  split_read.append([local_set[0], total_L-local_set[1], local_start, 
@@ -515,8 +503,6 @@ def organize_split_signal(primary_info, Supplementary_info, total_L, SV_size,
         analysis_split_read(split_read, SV_size, total_L, read_name, candidate, MaxSize, query)
 
 def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_dis):
-    # for i in sigs:
-    # 	print(svtype,i, len(sigs))
     if len(sigs) == 0:
         pass
     elif len(sigs) == 1:
@@ -638,30 +624,13 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
                 if op==2:
                     Combine_sig_in_same_read_del.append([sig_start, oplen])
                     sig_start += oplen
-                # elif op==1:
                 else:
                     Combine_sig_in_same_read_ins.append([sig_start, oplen,
                         str(read.query_sequence[shift_ins_read-oplen:shift_ins_read])])
-                # else:
-                #     # if op in RefChangeOp:
-                #     if REFCHANGEOP[op]:
-                #         sig_start += oplen
             else:
                 # if op in RefChangeOp:
                 if REFCHANGEOP[op]:
                     sig_start += oplen
-            # if element[0] == 2 and element[1] < min_siglength: ## changed SV_size to min_siglength
-            #     shift_del += element[1]
-            # if element[0] == 2 and element[1] >= min_siglength: ## changed SV_size to min_siglength
-            #     Combine_sig_in_same_read_del.append([pos_start+shift_del, element[1]])
-            #     shift_del += element[1]
-
-
-            # if element[0] in [0, 2, 7, 8]:
-            #     shift_ins += element[1]
-            # if element[0] == 1 and element[1] >= min_siglength: ## changed SV_size to min_siglength
-            #     Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
-            #         str(read.query_sequence[shift_ins_read-element[1]-hardclip_left:shift_ins_read-hardclip_left])])
 
         
         if read.cigar[-1][0] == 4:
@@ -673,55 +642,6 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
             softclip_left = hardclip_left
         if hardclip_right != 0:
             softclip_right = hardclip_right
-    # new end
-
-    # #old start
-    # process_signal = detect_flag(read.flag)
-    # if read.mapq >= min_mapq:
-    #     pos_start = read.reference_start # 0-based
-    #     pos_end = read.reference_end
-    #     shift_del = 0
-    #     shift_ins = 0
-    #     softclip_left = 0
-    #     softclip_right = 0
-    #     hardclip_left = 0
-    #     hardclip_right = 0
-    #     shift_ins_read = 0
-    #     if read.cigar[0][0] == 4:
-    #         softclip_left = read.cigar[0][1]
-    #     if read.cigar[0][0] == 5:
-    #         hardclip_left = read.cigar[0][1]
-
-    #     for element in read.cigar:
-    #         if element[0] in [0, 7 ,8]:
-    #             shift_del += element[1]
-    #         if element[0] == 2 and element[1] < min_siglength: ## changed SV_size to min_siglength
-    #             shift_del += element[1]
-    #         if element[0] == 2 and element[1] >= min_siglength: ## changed SV_size to min_siglength
-    #             Combine_sig_in_same_read_del.append([pos_start+shift_del, element[1]])
-    #             shift_del += element[1]
-
-    #         # calculate offset of an ins sig in read
-    #         if element[0] != 2:
-    #             shift_ins_read += element[1]
-
-    #         if element[0] in [0, 2, 7, 8]:
-    #             shift_ins += element[1]
-    #         if element[0] == 1 and element[1] >= min_siglength: ## changed SV_size to min_siglength
-    #             Combine_sig_in_same_read_ins.append([pos_start+shift_ins, element[1],
-    #                 str(read.query_sequence[shift_ins_read-element[1]-hardclip_left:shift_ins_read-hardclip_left])])
-
-        
-    #     if read.cigar[-1][0] == 4:
-    #         softclip_right = read.cigar[-1][1]
-    #     if read.cigar[-1][0] == 5:
-    #         hardclip_right = read.cigar[-1][1]
-
-    #     if hardclip_left != 0:
-    #         softclip_left = hardclip_left
-    #     if hardclip_right != 0:
-    #         softclip_right = hardclip_right
-    # #old end
 
     # ************Combine signals in same read********************
     generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate["INS"], merge_ins_threshold)
@@ -746,56 +666,6 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
                     SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, read.query_sequence)
     return candidate
 
-# def handle_read_all(read, bed_regions, candidates, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
-#     if read.flag == 256 or read.flag == 272:
-#         return
-#     pos_start = read.reference_start # 0-based
-#     pos_end = read.reference_end
-#     in_bed = False
-#     if bed_regions != None:
-#         for bed_region in bed_regions:
-#             if pos_end <= bed_region[0] or pos_start >= bed_region[1]:
-#                 continue
-#             else:
-#                 in_bed = True
-#                 break
-#     else:
-#         in_bed = True
-#     parse_read(read, candidates, Chr_name, min_length, min_mapq, max_split_parts, 
-#                             min_read_len, min_siglength, merge_del_threshold, 
-#                             merge_ins_threshold, MaxSize)
-#     if read.mapq >= min_mapq:
-#         is_primary = 0
-#         if read.flag in [0, 16]:
-#             is_primary = 1
-#         reads_info_list.append([pos_start, pos_end, is_primary, read.query_name, Chr_name])
-#     return (candidates, reads_info_list)
-
-# def handle_read(read, min_start, bed_regions, candidates, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize):
-#     if read.flag == 256 or read.flag == 272:
-#         return
-#     pos_start = read.reference_start # 0-based
-#     pos_end = read.reference_end
-#     in_bed = False
-#     if bed_regions != None:
-#         for bed_region in bed_regions:
-#             if pos_end <= bed_region[0] or pos_start >= bed_region[1]:
-#                 continue
-#             else:
-#                 in_bed = True
-#                 break
-#     else:
-#         in_bed = True
-#     if read.reference_start >= min_start and in_bed:
-#         parse_read(read, candidates, Chr_name, min_length, min_mapq, max_split_parts, 
-#                                 min_read_len, min_siglength, merge_del_threshold, 
-#                                 merge_ins_threshold, MaxSize)
-#         if read.mapq >= min_mapq:
-#             is_primary = 0
-#             if read.flag in [0, 16]:
-#                 is_primary = 1
-#             reads_info_list.append([pos_start, pos_end, is_primary, read.query_name, Chr_name])\
-
 def init_reading_process(sam_path):
     global samfile
     samfile=pysam.AlignmentFile(sam_path)
@@ -810,7 +680,6 @@ SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
 samfile=None
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
                 task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions):
-    # logging.info("enter")
     candidate = {}
     candidate["DEL"]=list()
     candidate["INS"]=list()
@@ -819,7 +688,6 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     candidate["TRA"]=list()
     reads_info_list= list()
     Chr_name = task[0]
-    # samfile = pysam.AlignmentFile(sam_path)
     global samfile
 
     for read in samfile.fetch(Chr_name, task[1], task[2]):
@@ -847,47 +715,6 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
                 if read.flag in [0, 16]:
                     is_primary = 1
                 reads_info_list.append((pos_start, pos_end, is_primary, read.query_name, Chr_name))
-    # samfile.close()
-    # print('finish %s:%d-%d in %f seconds.'%(task[0], task[1], len(reads_info_list), time.time() - start_time))
-   
-    # if len(candidate) == 0:
-    #     logging.info("Skip %s:%d-%d."%(Chr_name, task[1], task[2]))
-    #     return
-
-    # output = "%ssignatures/_%s_%d_%d.bed"%(temp_dir, Chr_name, task[1], task[2])
-    # file = open(output, 'w')
-    # for ele in candidate:
-    #     if len(ele) == 5:
-    #         file.write("%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2]))
-    #     elif len(ele) == 7:
-    #         file.write("%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], 
-    #             ele[1], ele[2], ele[3], ele[4]))
-    #     elif len(ele) == 6:
-    #         try:
-    #             file.write("%s\t%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3]))
-    #             # INV chr strand pos1 pos2 read_ID
-    #         except:
-    #             file.write("%s\t%s\t%d\t%d\t%s\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3]))
-    #             # INS chr pos len read_ID seq
-    # file.close()
-    # reads_output = "%ssignatures/_%s_%d_%d.reads"%(temp_dir, Chr_name, task[1], task[2])
-    # reads_file = open(reads_output, 'w')
-    # for ele in reads_info_list:
-    #     reads_file.write("%s\t%d\t%d\t%d\t%s\n"%(Chr_name, ele[0], ele[1], ele[2], ele[3]))
-    # reads_file.close()
-
-    # output = "%ssignatures/_%s_%d_%d.pickle"%(temp_dir, Chr_name, task[1], task[2])
-    # file = open(output, 'wb')
-    # pickle.dump(candidate, file)
-    # file.close()
-    # reads_output = "%ssignatures/_%s_%d_%d.reads.pickle"%(temp_dir, Chr_name, task[1], task[2])
-    # reads_file = open(reads_output, 'wb')
-    # pickle.dump(reads_info_list,reads_file)
-    # reads_file.close()
-    # candidate_queue.put((candidate, reads_info_list))
-    # for k in candidate.keys():
-    #     candidates[k].extend(candidate[k])
-    # reads_info_list.extend(reads_info_list_local)
     pid=current_process().pid
     for sv_type in SVTYPES:
         with open("%ssignatures/%s%s.pickle"%(temp_dir,pid,sv_type),"ab") as f:
@@ -895,8 +722,6 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     with open("%ssignatures/%sreads.pickle"%(temp_dir,pid),"ab") as f:
         pickle.dump(reads_info_list,f)
     logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
-    # del candidate
-    # del reads_info_list
     gc.collect()
     # return (candidate, reads_info_list)
     return None
@@ -924,22 +749,10 @@ def process_process_sigs_type(args):
         type_candidates=remove_duplicates_sorted(type_candidates)
         if write_old_sigs:
             with open("%s/DEL.sigs"%(temporary_dir),"w") as f:
-                # chr=None
-                # start=0
-                # bytecount=0
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
                         line="%s\t%s\t%d\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2])
-                        # if ele[-1]!=chr:
-                        #     if chr==None:
-                        #         chr=ele[-1]
-                        #     else:
-                        #         index[chr]=start
-                        #         chr=ele[-1]
-                        #         start=bytecount
-                        # bytecount+=len(line)
                         print(line, end="",file=f)
-                    # index[chr]=start
 
     elif sv_type=="INS":
         type_candidates.sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
@@ -1204,10 +1017,7 @@ def main_ctrl(args, argv):
     bed_regions = load_bed(args.include_bed, Task_list)
     #'''
     
-    # manager=Manager()
-    # candidates=manager.dict()
     candidates={}
-    # global candidates
     candidates["DEL"]=list()
     candidates["INS"]=list()
     candidates["DUP"]=list()
@@ -1218,13 +1028,8 @@ def main_ctrl(args, argv):
     
     atexit.register(cleanup)
     analysis_pools = Pool(processes=int(args.threads), initializer=init_reading_process, initargs=(args.input,))
-    # samfile = pysam.AlignmentFile(args.input)
     os.mkdir("%ssignatures"%temporary_dir)
     results=[]#use this is faster than make a long paras list
-    # for Chr_name in chr_name_list:
-    #     for read in samfile.fetch(Chr_name):
-    #         paras=[(read, bed_regions, candidates, reads_info_list, Chr_name, args.min_size, args.min_mapq, args.max_split_parts, args. min_read_len, args.min_siglength, args.merge_del_threshold, args.merge_ins_threshold, args.max_size)]
-    #         results.append(analysis_pools.map_async(multi_run_wrapper, paras))
     for i in range(len(Task_list)):
         paras = [(args.input, 
                     args.min_size, 
@@ -1239,59 +1044,11 @@ def main_ctrl(args, argv):
                     args.max_size,
                     None if bed_regions == None else bed_regions[i])]
         analysis_pools.map_async(multi_run_wrapper, paras)
-        # results.append(analysis_pools.map_async(multi_run_wrapper, paras))
-        # results.append(analysis_pools.map_async(multi_run_wrapper, paras, callback=add_candidates))#https://stackoverflow.com/questions/18414020/memory-usage-keep-growing-with-pythons-multiprocessing-pool
     pids = [process.pid for process in analysis_pools._pool]
     analysis_pools.close()
     analysis_pools.join()
-    # samfile.close()
-    #'''
     #'''
     logging.info("Rebuilding signatures of structural variants.")
-
-    # while not candidate_queue.empty():
-    #     candidate, infolist=candidate_queue.get_nowait()
-    # for pid in pids:
-    #     with open("%ssignatures/%s.pickle"%(temporary_dir,pid), "rb") as f:
-    #         while True:
-    #             try:
-    #                 candidate, infolist=pickle.load(f)
-    #                 candidates["DEL"].extend(candidate["DEL"])
-    #                 candidates["INS"].extend(candidate["INS"])
-    #                 candidates["DUP"].extend(candidate["DUP"])
-    #                 candidates["INV"].extend(candidate["INV"])
-    #                 candidates["TRA"].extend(candidate["TRA"])
-    #                 reads_info_list.extend(infolist)
-    #             except EOFError:
-    #                 break
-    # for r in results:
-    #     candidate, infolist=r.get()[0]
-    #     candidates["DEL"].extend(candidate["DEL"])
-    #     candidates["INS"].extend(candidate["INS"])
-    #     candidates["DUP"].extend(candidate["DUP"])
-    #     candidates["INV"].extend(candidate["INV"])
-    #     candidates["TRA"].extend(candidate["TRA"])
-    #     reads_info_list.extend(infolist)
-    # candidates["DEL"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2]))
-    # logging.info("Sorted DEL.")
-    # candidates["INS"].sort(key=lambda x: (x[-1], int(x[0]), x[1], x[2], x[3]))
-    # logging.info("Sorted INS.")
-    # candidates["DUP"].sort(key=lambda x: (x[-1], int(x[0]), int(x[1]), x[2]))
-    # logging.info("Sorted DUP.")
-    # candidates["INV"].sort(key=lambda x: (x[-1], x[0], int(x[1]), x[2], x[3]))
-    # logging.info("Sorted INV.")
-    # candidates["TRA"].sort(key=lambda x: (x[-1], x[2], x[0], int(x[1]), x[3], x[4], x[5]))
-    # logging.info("Sorted TRA.")
-    # SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
-    # for k in SVTYPES:
-    #     candidates[k]=remove_duplicates_sorted(candidates[k])
-    # logging.info("removed dups.")
-    # # from pympler import asizeof
-    # # logging.info("candidates size: %.2fMB."%(asizeof.asizeof(candidates)/1024/1024))
-    # # with open("%s/candidates.pickle"%temporary_dir,"wb") as f:
-    # #     pickle.dump(candidates,f)
-
-    # sigs_index=write_sigs(temporary_dir,candidates,reads_info_list)
 
     analysis_pools = Pool(processes=int(args.threads))
     paras=[]
@@ -1309,14 +1066,11 @@ def main_ctrl(args, argv):
                 sigs_index["reads_count"]=r[2]
     with open("%s/sigindex.pickle"%temporary_dir,"wb") as f:
         pickle.dump(sigs_index,f)
-    # for k in SVTYPES:
-    #     del candidates[k]
     del reads_info_list
     del results
     del candidates
     gc.collect()
     logging.info("Rebuilding signatures completed.")
-    # exit(0)
     #'''
     result = list()
 
@@ -1332,16 +1086,10 @@ def main_ctrl(args, argv):
         threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
         threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
         
-        # sigs_index=None
         result = force_calling_chrom(args.Ivcf, temporary_dir,
                          max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, sigs_index)
 
     else:
-        # sigs_index=None
-        # if sigs_index==None:
-        #     with open("%s/sigindex.pickle"%temporary_dir,"rb") as f:
-        #         sigs_index=pickle.load(f)
-        # valuable_chr = load_valuable_chr(temporary_dir)
 
         logging.info("Clustering structural variants.")
         analysis_pools = Pool(processes=int(args.threads))
@@ -1439,17 +1187,9 @@ def main_ctrl(args, argv):
     logging.info("Writing to your output file.")
 
     if args.Ivcf != None:
-        # result = sorted(result, key = lambda x:(x[0], x[1]))
-        # ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
-        # generate_pvcf(args, result, contigINFO, argv, ref_g)
-        # ref_g = SeqIO.to_dict(SeqIO.parse(args.reference, "fasta"))
         file = open(args.output, 'w')
         Generation_VCF_header(file, contigINFO, args.sample, argv)
         file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
-        # for chrom in sorted(result.keys()):
-        #     lines=generate_pvcf(args, result[chrom], contigINFO, args.reference, chrom)
-        #     for line in lines:
-        #         file.write(line)
         analysis_pools = Pool(processes=int(args.threads))
         paras=[]
         for chrom in sorted(result.keys()):
@@ -1473,13 +1213,8 @@ def main_ctrl(args, argv):
         os.mkdir("%sresults"%temporary_dir)
         Generation_VCF_header(file, contigINFO, args.sample, argv)
         file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
-        # size_chroms=sorted(chroms,key=lambda x: len(results[x]))
-        # mid=int(len(size_chroms)/2)
         analysis_pools = Pool(processes=int(args.threads))
         paras=[]
-        #To distribute more evenly
-        # for i in range(len(size_chroms)-1, -1, -1):
-        #     chrom=size_chroms[(mid-int(i/2)-1 if i%2==0 else mid+int(i/2))]
         for chrom in chroms:
             paras.append((args, results[chrom], args.reference, chrom, temporary_dir))
         results=analysis_pools.starmap_async(generate_output, paras)
@@ -1487,10 +1222,6 @@ def main_ctrl(args, argv):
         analysis_pools.join()
         for chrom in chroms:
             with open("%sresults/%s.pickle"%(temporary_dir,chrom), "rb") as f:
-                # for svtype, line in pickle.load(f):
-                #     file.write(line.replace("<SVID>",str(svid[svtype])))
-                #     svid[svtype]+=1
-                # # lines=pickle.load(f)
                 while True:
                     try:
                         lines = pickle.load(f)
@@ -1499,12 +1230,6 @@ def main_ctrl(args, argv):
                             svid[svtype]+=1
                     except EOFError:
                         break
-                    # file.write(line.replace("<SVID>",str(svid[svtype])))
-                    # svid[svtype]+=1
-        # for r in results.get():
-        #     for svtype, line in r:
-        #         file.write(line.replace("<SVID>",str(svid[svtype])))
-        #         svid[svtype]+=1
         file.close()
 
     if args.retain_work_dir:
