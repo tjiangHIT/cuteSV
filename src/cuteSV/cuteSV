@@ -1296,8 +1296,8 @@ def main_ctrl(args, argv):
     analysis_pools = Pool(processes=int(args.threads))
     paras=[]
     for sv_type in SVTYPES:
-        paras.append((sv_type,temporary_dir,pids,args.retain_work_dir))
-    paras.append(("reads",temporary_dir,pids,args.retain_work_dir))
+        paras.append((sv_type,temporary_dir,pids,args.write_old_sigs))
+    paras.append(("reads",temporary_dir,pids,args.write_old_sigs))
     results=analysis_pools.map_async(process_process_sigs_type, paras)
     analysis_pools.close()
     analysis_pools.join()
@@ -1508,23 +1508,11 @@ def main_ctrl(args, argv):
         file.close()
 
     if args.retain_work_dir:
-        logging.info("Cleaning temporary files.")
-        if args.Ivcf != None:
-            cmd_remove_tempfile = ("rm -r %ssignatures %s*.pickle"%(temporary_dir, temporary_dir))
-            exe(cmd_remove_tempfile)
-        else:
-            cmd_remove_tempfile = ("rm -r %ssignatures %sresults %s*.pickle"%(temporary_dir, temporary_dir, temporary_dir))
-            exe(cmd_remove_tempfile)
         pass
     else:
         logging.info("Cleaning temporary files.")
-        if args.Ivcf != None:
-            cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir, temporary_dir))
-            exe(cmd_remove_tempfile)
-        else:
-            cmd_remove_tempfile = ("rm -r %ssignatures %sresults %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
-            exe(cmd_remove_tempfile)
-    
+        cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir))
+        exe(cmd_remove_tempfile)
     samfile.close()
 
 def setupLogging(debug=False):
