@@ -165,7 +165,6 @@ def check_same_variant(sv_type, end1, end2, bias):
 # var_list read_id which is similar to (pos, sv_end), the reads support the variant
 def find_in_list(var_type, var_list, bias, pos, sv_end):
     if len(var_list) == 0:
-        # return [], 0
         return [], pos, pos
     left = 0
     right = len(var_list) - 1
@@ -209,7 +208,6 @@ def find_in_indel_list(var_type, var_list, bias_origin, pos, sv_end, threshold_g
     bias = bias_origin
     debug_pos = -1
     if len(var_list) == 0:
-        # return [], 0, '.,.', '.,.'
         return [], pos, pos, '.,.', '.,.'
     left = 0
     right = len(var_list) - 1

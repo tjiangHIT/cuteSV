@@ -1236,7 +1236,10 @@ def main_ctrl(args, argv):
         pass
     else:
         logging.info("Cleaning temporary files.")
-        cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir))
+        if args.Ivcf != None:
+            cmd_remove_tempfile = ("rm -r %ssignatures %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir, temporary_dir))
+        else:
+            cmd_remove_tempfile = ("rm -r %ssignatures %sresults %s*.sigs %s*.pickle"%(temporary_dir, temporary_dir, temporary_dir, temporary_dir))
         exe(cmd_remove_tempfile)
     samfile.close()
 
