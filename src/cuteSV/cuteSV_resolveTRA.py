@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
+import pickle
 
 '''
 *******************************************
@@ -26,23 +27,40 @@ from cuteSV.cuteSV_genotype import cal_GL, threshold_ref_count, count_coverage
 			*****************************
 			'''
 
-def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bias, bam_path, action, gt_round):
+def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, bam_path, action, gt_round, sigs_index):
+	if chr_1 not in sigs_index["TRA"].keys():
+		return (chr_1,[])
 	semi_tra_cluster = list()
 	semi_tra_cluster.append([0,0,'','N'])
 	candidate_single_SV = list()
-
-	file = open("%s%s.sigs"%(path, "TRA"), 'r')
-	for line in file:
-		seq = line.strip('\n').split('\t')
-		if seq[1] != chr_1:
-			continue
-		if seq[4] != chr_2:
-			continue
-
-		pos_1 = int(seq[3])
-		pos_2 = int(seq[5])
-		read_id = seq[6]
-		BND_type = seq[2]
+	with open("%s%s.pickle"%(path, "TRA"), 'rb') as f:
+		f.seek(sigs_index["TRA"][chr_1])
+		seqs=pickle.load(f)
+	chr_2=seqs[0][2]
+	for seq in seqs:
+		if seq[2]!=chr_2:
+			logging.info("Finished %s-%s:%s."%(chr_1, chr_2, "TRA/BND"))
+			if len(semi_tra_cluster) >= read_count:
+				if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
+					pass
+				else:
+					generate_semi_tra_cluster(semi_tra_cluster, 
+											chr_1, 
+											chr_2, 
+											read_count, 
+											overlap_size, 
+											max_cluster_bias, 
+											candidate_single_SV,
+											bam_path,
+											action,
+											gt_round)
+			semi_tra_cluster = list()
+			semi_tra_cluster.append([0,0,'','N'])
+			chr_2=seq[2]
+		pos_1 = int(seq[1])
+		pos_2 = int(seq[3])
+		read_id = seq[4]
+		BND_type = seq[0]
 	
 		if pos_1 - semi_tra_cluster[-1][0] > max_cluster_bias or BND_type != semi_tra_cluster[-1][3]:
 			if len(semi_tra_cluster) >= read_count:
@@ -82,9 +100,8 @@ def resolution_TRA(path, chr_1, chr_2, read_count, overlap_size, max_cluster_bia
 									bam_path,
 									action,
 									gt_round)
-	file.close()
 	logging.info("Finished %s-%s:%s."%(chr_1, chr_2, "TRA/BND"))
-	return candidate_single_SV
+	return (chr_1,candidate_single_SV)
 
 def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overlap_size, 
 	max_cluster_bias, candidate_single_SV, bam_path, action, gt_round):

@@ -2,6 +2,8 @@
 from cuteSV.cuteSV_Description import Generation_VCF_header
 from math import log10
 import numpy as np
+import pysam
+import pickle
 
 err = 0.1
 prior = float(1/3)
@@ -27,8 +29,12 @@ def rescale_read_counts(c0, c1, max_allowed_reads=100):
     return c0, c1
 
 def cal_GL(c0, c1):
+    if c0==3 and c1==1:
+        return '0/1', '3,3,24', 3, 3.0
+    if c0==6 and c1==2:
+        return '0/1', '3,3,45', 3, 3.0
     # Approximate adjustment of events with larger read depth
-    c0, c1 = rescale_read_counts(c0, c1)
+    c0, c1 = rescale_read_counts(c0, c1) # DR, DV
     # original genotype likelihood
     # ori_GL00 = np.float64(pow((1-err), c0)*pow(err, c1)*comb(c0+c1,c0)*(1-prior)/2)
     # ori_GL11 = np.float64(pow(err, c0)*pow((1-err), c1)*comb(c0+c1,c0)*(1-prior)/2)
@@ -128,6 +134,7 @@ def overlap_cover(svs_list, reads_list):
             for x in read_set:
                 temp_set.add(x)
             cover_dict[node[2]] = cover_dict[node[2]] & temp_set
+    overlap2_dict = dict()
     cover2_dict = dict()
     iteration_dict = dict()
     primary_num_dict = dict()
@@ -141,8 +148,13 @@ def overlap_cover(svs_list, reads_list):
         for x in cover_dict[idx]:
             if reads_list[x][2] == 1:
                 cover2_dict[idx].add(reads_list[x][3])
-    # duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict)
-    return iteration_dict, primary_num_dict, cover2_dict
+        overlap2_dict[idx] = set()
+        for x in overlap_dict[idx]:
+            if reads_list[x][2] == 1:
+                overlap2_dict[idx].add(reads_list[x][3])
+    # duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, overlap2_dict)
+    # return iteration_dict, primary_num_dict, cover2_dict
+    return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict
 
 def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict):
     assign_list = list()
@@ -158,14 +170,33 @@ def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict):
         assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL])
     return assign_list
 
-def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict):
+def assign_gt_fc(iteration_dict, primary_num_dict, cover_dict, overlap_dict, read_id_dict, svtype_id_dict):
+    assign_list = list()
+    for idx in read_id_dict:
+        iteration = iteration_dict[idx]
+        primary_num = primary_num_dict[idx]
+        if svtype_id_dict[idx] == 'DEL':
+            read_count = overlap_dict[idx]
+        else:
+            read_count = cover_dict[idx]
+        DR = 0
+        for query in read_count:
+            if query not in read_id_dict[idx]:
+                DR += 1
+        GT, GL, GQ, QUAL = cal_GL(DR, len(read_id_dict[idx]))
+        assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL])
+    return assign_list
+
+def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, overlap2_dict):
     # [(10024, 12024), (89258, 91258), ...]
     # [[10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'], [10000, 17490, 1, 'm54238_180901_011437/44762027/ccs'], ...]
     print('start duipai')
     idx = 0
-    correct_num = 0
+    correct_cover = 0
+    correct_overlap = 0
     bb = set()
     for i in svs_list:
+        cover = set()
         overlap = set()
         primary_num = 0
         iteration = 0
@@ -173,28 +204,40 @@ def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict):
             if (j[0] <= i[0] and j[1] > i[0]) or (i[0] <= j[0] < i[1]):
                 iteration += 1
                 if j[2] == 1:
+                    overlap.add(j[3])
                     primary_num += 1
                     if i[0] >= j[0] and i[1] <= j[1]:
-                        overlap.add(j[3])
+                        cover.add(j[3])
         flag = 0
         if iteration != iteration_dict[idx]:
             print('Iteration error %d:%d(now) %d(ans)'%(idx, iteration_dict[idx], iteration))
         if primary_num != primary_num_dict[idx]:
             print('Primary_num error %d:%d(now) %d(ans)'%(idx, primary_num_dict[idx], primary_num))
-        if len(overlap) == len(cover2_dict[idx]): flag += 1
-        if len(overlap - cover2_dict[idx]) == 0: flag += 1
-        if len(cover2_dict[idx] - overlap) == 0: flag += 1
+        if len(cover) == len(cover2_dict[idx]): flag += 1
+        if len(cover - cover2_dict[idx]) == 0: flag += 1
+        if len(cover2_dict[idx] - cover) == 0: flag += 1
+        if flag != 3:
+            print(idx)
+            print(cover)
+            print(cover2_dict[idx])
+            print(cover - cover2_dict[idx])
+        else:
+            correct_cover += 1
+        flag = 0
+        if len(overlap) == len(overlap2_dict[idx]): flag += 1
+        if len(overlap - overlap2_dict[idx]) == 0: flag += 1
+        if len(overlap2_dict[idx] - overlap) == 0: flag += 1
         if flag != 3:
             print(idx)
             print(overlap)
-            print(cover2_dict[idx])
-            print(overlap - cover2_dict[idx])
+            print(overlap2_dict[idx])
+            print(overlap - overlap2_dict[idx])
         else:
-            correct_num += 1
+            correct_overlap += 1
         idx += 1
-    print('Correct iteration %d'%(correct_num))
+    print('Correct iteration cover %d; overlap %d'%(correct_cover, correct_overlap))
 
-def generate_output(args, semi_result, contigINFO, argv, ref_g):
+def generate_output(args, semi_result, reference, chrom, temporary_dir):
     
     '''
     Generation of VCF format file.
@@ -203,17 +246,14 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
 
     # genotype_trigger = TriggerGT[args.genotype]
 
-    svid = dict()
-    svid["INS"] = 0
-    svid["DEL"] = 0
-    svid["BND"] = 0
-    svid["DUP"] = 0
-    svid["INV"] = 0
-
-    file = open(args.output, 'w')
+    semi_result.sort(key = lambda x:int(x[2]))
     action = args.genotype
-    Generation_VCF_header(file, contigINFO, args.sample, argv)
-    file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
+    fa_file = pysam.FastaFile(reference)
+    ref_chrom=fa_file.fetch(chrom)
+    fa_file.close()
+    lines=[]
+    BATCH_SIZE=1000
+    f=open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb")
     for i in semi_result:
         if i[1] in ["DEL", "INS"]:
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
@@ -244,12 +284,12 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[11]) >= 5.0 else "q5"
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2])), 
-                ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
-                REF = str(ref_g[i[0]].seq[max(int(i[2])-1, 0)]) if i[1] == 'INS' else str(ref_g[i[0]].seq[max(int(i[2])-1, 0):int(i[2])-int(i[3])]),
-                ALT = "%s"%(str(ref_g[i[0]].seq[max(int(i[2])-1, 0)])+i[13] if i[1] == 'INS' else str(ref_g[i[0]].seq[max(int(i[2])-1, 0)])), 
+                ID = "cuteSV.%s.<SVID>"%(i[1]),
+                REF = ref_chrom[max(int(i[2])-1, 0)] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0):int(i[2])-int(i[3])],
+                ALT = "%s"%(ref_chrom[max(int(i[2])-1, 0)]+i[13] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0)]), 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
                 GT = i[8],
@@ -258,8 +298,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 PL = i[9],
                 GQ = i[10],
                 QUAL = i[11],
-                PASS = filter_lable))
-            svid[i[1]] += 1
+                PASS = filter_lable)))
         elif i[1] == "DUP":
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
@@ -280,11 +319,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[9]) >= 5.0 else "q5"
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
-                ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
-                REF = str(ref_g[i[0]].seq[int(i[2])]),
+                ID = "cuteSV.%s.<SVID>"%(i[1]),
+                REF = ref_chrom[int(i[2])],
                 ALT = "<%s>"%(i[1]), 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
@@ -294,8 +333,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 PL = i[7],
                 GQ = i[8],
                 QUAL = i[9],
-                PASS = filter_lable))
-            svid[i[1]] += 1
+                PASS = filter_lable)))
         elif i[1] == "INV":
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
@@ -317,11 +355,11 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
-                ID = "cuteSV.%s.%d"%(i[1], svid[i[1]]),
-                REF = str(ref_g[i[0]].seq[int(i[2])]),
+                ID = "cuteSV.%s.<SVID>"%(i[1]),
+                REF = ref_chrom[int(i[2])],
                 ALT = "<%s>"%(i[1]), 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
@@ -331,8 +369,7 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 PL = i[8],
                 GQ = i[9],
                 QUAL = i[10],
-                PASS = filter_lable))
-            svid[i[1]] += 1
+                PASS = filter_lable)))
         else:
             # BND
             # info_list = "{PRECISION};SVTYPE={SVTYPE};CHR2={CHR2};END={END};RE={RE};RNAMES={RNAMES}".format(
@@ -352,11 +389,15 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            try:
+                ref_bnd = ref_chrom[int(i[2])]
+            except:
+                ref_bnd = 'N'
+            lines.append(("BND","{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
-                ID = "cuteSV.%s.%d"%("BND", svid["BND"]), 
-                REF = 'N',
+                ID = "cuteSV.%s.<SVID>"%("BND"), 
+                REF = ref_bnd,
                 ALT = i[1], 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
@@ -366,26 +407,37 @@ def generate_output(args, semi_result, contigINFO, argv, ref_g):
                 PL = i[8],
                 GQ = i[9],
                 QUAL = i[10],
-                PASS = filter_lable))
-            svid["BND"] += 1
+                PASS = filter_lable)))
+        if len(lines)>BATCH_SIZE:
+            pickle.dump(lines,f)
+            lines=[]
+    # with open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb") as f:
+    #     pickle.dump(lines,f)
+    if len(lines)!=0:
+        pickle.dump(lines,f)
+    # f.close()
+    # return lines
 
 
-def generate_pvcf(args, result, contigINFO, argv, ref_g):
-    file = open(args.output, 'w')
-    Generation_VCF_header(file, contigINFO, args.sample, argv)
-    file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
+# def generate_pvcf(args, result, contigINFO, argv, ref_g):
+def generate_pvcf(args, result, reference, chrom):
+    fa_file = pysam.FastaFile(reference)
+    ref_chrom=fa_file.fetch(chrom)
+    fa_file.close()
+    # file = open(args.output, 'w')
+    # Generation_VCF_header(file, contigINFO, args.sample, argv)
+    # file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
     # [chrom(0), sv_start, genotype(2), sv_type, sv_end(4), CIPOS, CILEN(6), [gt_re, DR, GT(new), GL, GQ, QUAL], rname(8), svid, ref(10), alts, sv_strand(12), seq]
+    lines=[]
     for i in result:
         if i == []:
             continue
-        # if i[7][5] == '.,.':
-        #     print(i)
         if i[7][5] == "." or i[7][5] == None:
             filter_lable = "PASS"
         else:
             filter_lable = "PASS" if float(i[7][5]) >= 2.5 else "q5"
         if i[3] == 'INS':
-            if abs(i[4]) > args.max_size and args.max_size != -1:
+            if abs(i[14]) > args.max_size and args.max_size != -1:
                 continue
             '''
             if i[11] == '<INS>':
@@ -395,12 +447,12 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 ref = i[10]
                 alt = i[11]
             '''
-            ref = str(ref_g[i[0]].seq[max(i[1]-1, 0)])
+            ref = str(ref_chrom[max(i[1]-1, 0)])
             alt = i[11]
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                 SVTYPE = i[3], 
-                SVLEN = i[4], 
+                SVLEN = i[14], 
                 END = i[1], 
                 CIPOS = i[5], 
                 CILEN = i[6], 
@@ -410,7 +462,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -427,19 +479,19 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 GQ = i[7][4]
                 ))
         elif i[3] == 'DEL':
-            if abs(i[4]) > args.max_size and args.max_size != -1:
+            if abs(i[14]) > args.max_size and args.max_size != -1:
                 continue
             if i[12] == '<DEL>':
-                ref = str(ref_g[i[0]].seq[max(int(i[1])-1, 0):int(i[1])-int(i[4])])
-                alt = str(ref_g[i[0]].seq[max(int(i[1])-1, 0)])
+                ref = str(ref_chrom[max(int(i[1])-1, 0):int(i[1])-int(i[4])])
+                alt = str(ref_chrom[max(int(i[1])-1, 0)])
             else:
                 ref = i[10]
                 alt = i[11]
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND=+-".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                 SVTYPE = i[3], 
-                SVLEN = -abs(i[4]), 
-                END = i[1] + abs(i[4]), 
+                SVLEN = -abs(i[14]), 
+                END = i[1] + abs(i[14]), 
                 CIPOS = i[5], 
                 CILEN = i[6], 
                 RE = i[7][0],
@@ -448,7 +500,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -478,7 +530,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -510,7 +562,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
                 info_list += ";AF=."
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = i[1], 
                 ID = i[9],
@@ -533,6 +585,8 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                     SVTYPE = i[3], 
                     RE = i[7][0],
                     RNAMES = i[8] if args.report_readid else "NULL")
+            if i[14] != 0:
+                info_list += ';SVLEN=%d'%(i[14])
             try:
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
@@ -543,7 +597,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                     CHR2 = i[15].split(':')[0],
                     END = i[15].split(':')[1])
             '''
-            file.write("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
+            lines.append("{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(i[1]), 
                 ID = i[9],
@@ -559,6 +613,7 @@ def generate_pvcf(args, result, contigINFO, argv, ref_g):
                 PL = i[7][3],
                 GQ = i[7][4]
                 ))
+    return lines
 
             
 def load_valuable_chr(path):

@@ -1,13 +1,13 @@
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
- * @author: tjiang & sqcao
- * @date: May 12th 2023
- * @version V2.0.3
+ * @author: tjiang & sqcao & zdzhang
+ * @date: Nov. 29th 2023
+ * @version V2.1.0
 '''
 import argparse
 
-VERSION = '2.0.3'
+VERSION = '2.1.0'
 
 class cuteSVdp(object):
 	'''
@@ -92,6 +92,10 @@ def parseArgs(argv):
 	parser.add_argument('--retain_work_dir',
 		help = "Enable to retain temporary folder and files.",
 		action="store_true")
+	
+	parser.add_argument('--write_old_sigs',
+		help = "Enable to write sigs file in temporary folder for legacy compatibilities.",
+		action="store_true")
 
 	parser.add_argument('--report_readid',
 		help = "Enable to report supporting read ids for each SV.",
@@ -154,6 +158,10 @@ def parseArgs(argv):
 	GroupGenotype.add_argument('--gt_round', 
 		help = "Maximum round of iteration for alignments searching if perform genotyping.[%(default)s]", 
 		default = 500, 
+		type = int)
+	GroupGenotype.add_argument('--read_range', 
+		help = "The interval range for counting reads distribution.[%(default)s]", 
+		default = 1000, 
 		type = int)
 	# GroupGenotype.add_argument('--hom', 
 	# 	help = "Threshold on allele frequency for homozygous.[%(default)s]", 
