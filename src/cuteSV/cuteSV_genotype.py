@@ -177,7 +177,6 @@ def assign_gt_fc(iteration_dict, primary_num_dict, cover_dict, overlap_dict, rea
         primary_num = primary_num_dict[idx]
         if svtype_id_dict[idx] == 'DEL':
             read_count = overlap_dict[idx]
-            # read_count = cover_dict[idx]
         else:
             read_count = cover_dict[idx]
         DR = 0
@@ -433,8 +432,6 @@ def generate_pvcf(args, result, reference, chrom):
     for i in result:
         if i == []:
             continue
-        # if i[7][5] == '.,.':
-        #     print(i)
         if i[7][5] == "." or i[7][5] == None:
             filter_lable = "PASS"
         else:

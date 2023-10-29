@@ -4,7 +4,7 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang & sqcao & zdzhang
- * @date: Sep. 19th 2023
+ * @date: Nov. 29th 2023
  * @version V2.1.0
 '''
 
@@ -974,10 +974,20 @@ def add_candidates(result):
 
 # candidates={}
 def main_ctrl(args, argv):
+    if args.work_dir[-1] == '/':
+        temporary_dir = args.work_dir
+    else:
+        temporary_dir = args.work_dir+'/'
+    # check the temporary files
     if not os.path.isfile(args.reference):
         raise FileNotFoundError("[Errno 2] No such file: '%s'"%args.reference)
     if not os.path.exists(args.work_dir):
         raise FileNotFoundError("[Errno 2] No such directory: '%s'"%args.work_dir)
+    for item in SVTYPES:
+        if os.path.exists(temporary_dir + item + '.sigs'):
+            raise FileExistsError("[Errno 2] File exists: '%s'"%(temporary_dir+item+'.sigs'))
+        if os.path.exists(temporary_dir + item + '.pickle'):
+            raise FileExistsError("[Errno 2] File exists: '%s'"%(temporary_dir+item+'.pickle'))
 
     samfile = pysam.AlignmentFile(args.input)
     contig_num = len(samfile.get_index_statistics())
@@ -986,10 +996,6 @@ def main_ctrl(args, argv):
     Task_list = list()
     chr_name_list = list()
     contigINFO = list()
-    if args.work_dir[-1] == '/':
-        temporary_dir = args.work_dir
-    else:
-        temporary_dir = args.work_dir+'/'
 
     ref_ = samfile.get_index_statistics()
     total_mapped=0

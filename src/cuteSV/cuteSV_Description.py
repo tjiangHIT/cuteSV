@@ -1,8 +1,8 @@
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSV_Description.py
- * @author: tjiang & sqcao
- * @date: Sep. 19th 2023
+ * @author: tjiang & sqcao & zdzhang
+ * @date: Nov. 29th 2023
  * @version V2.1.0
 '''
 import argparse
@@ -94,7 +94,7 @@ def parseArgs(argv):
 		action="store_true")
 	
 	parser.add_argument('--write_old_sigs',
-		help = "Enable to write old sigs file in temporary folder, this is for legacy compatibilities.",
+		help = "Enable to write sigs file in temporary folder for legacy compatibilities.",
 		action="store_true")
 
 	parser.add_argument('--report_readid',
