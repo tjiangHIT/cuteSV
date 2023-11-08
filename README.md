@@ -88,6 +88,7 @@ We provided a new document for applying **force calling** (or **regenotyping**) 
 |--batches| Batch of genome segmentation interval.|10,000,000|
 |--sample| Sample name/id |NULL|
 |--retain_work_dir|Enable to retain temporary folder and files.|False|
+|--write_old_sigs|Enable to output temporary sig files.|False|
 |--report_readid|Enable to report supporting read ids for each SV.|False|
 |--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored. All split segments are considered when using -1. (Recommand -1 when applying assembly-based alignment.)|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
@@ -99,6 +100,7 @@ We provided a new document for applying **force calling** (or **regenotyping**) 
 |--max_size|Maximum size of SV to be reported. Full length SVs are reported when using -1.|100000|
 |--genotype|Enable to generate genotypes.|False|
 |--gt_round|Maximum round of iteration for alignments searching if perform genotyping.|500|
+|--read_range|The interval range for counting reads distribution.|1000|
 |-Ivcf|Optional given vcf file. Enable to perform force calling.|NULL|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
 |--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.3|
@@ -122,7 +124,13 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
-	cuteSV (v2.0.3):
+	cuteSV (v2.1.0)
+ 	1. Speed up both SV discovery calling and force calling comprehensively.
+  	2. Upgrade the force calling module.
+   	3. Modify the temporary files. The sigs file are only generated with the "write_old_sigs" parameter.
+    	4. Update several regulations in signature extraction.
+ 
+ 	cuteSV (v2.0.3):
 	1. Fix the error of missing min_size parameter.
 	2. Fix the missing signatures in duplication clustering.
 	
