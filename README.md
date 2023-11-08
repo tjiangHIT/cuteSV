@@ -128,7 +128,7 @@ Please cite the manuscript of cuteSV before using these callsets.
  	1. Speed up both SV discovery calling and force calling comprehensively.
   	2. Upgrade the force calling module.
    	3. Modify the temporary files. The sigs file are only generated with the "write_old_sigs" parameter.
-    	4. Update several regulations in signature extraction.
+	4. Update several regulations in signature extraction.
  
  	cuteSV (v2.0.3):
 	1. Fix the error of missing min_size parameter.
