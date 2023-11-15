@@ -1,6 +1,6 @@
 # Force Calling Benchmark
 
-We provide a demo to help users of performing the regenotyping and evaluating performance. Here, we regard the "High confidence variant" of HG002 from the Genome in a Bottle (GiaB) ground truth set (SV v0.6) from the National Institute of Standards and Technology (NIST) as the target SVs. Then the HG002 alignments are selected to complete regenotyping on the above target SVs.
+We provide a demo to help users of performing the regenotyping and evaluating performance. Here, we regard the "High confidence variant" of HG002 from the Genome in a Bottle (GiaB) ground truth set (SV v0.6) from the National Institute of Standards and Technology (NIST) as the target SVs. Then the HG002 alignments from PacBio HiFi sequencing are selected to complete regenotyping on the above target SVs.
 The following procedures show the steps of applying regenotyping and reproducing the benchmark results. 
 
 # Get tools
@@ -25,16 +25,11 @@ conda activate test_fc
 mkdir -p ref alns tools giab
 ```
 
-2) Download NIST ground truth (CMRG ground truth is also provided):
+2) Download NIST ground truth:
 ```sh
 FTPDIR=https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/AshkenazimTrio/analysis
 curl -s ${FTPDIR}/NIST_SVs_Integration_v0.6/HG002_SVs_Tier1_v0.6.bed > giab/HG002_SVs_Tier1_v0.6.bed
 curl -s ${FTPDIR}/NIST_SVs_Integration_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz > giab/HG002_SVs_Tier1_v0.6.vcf.gz
-```
-```sh
-FTPDIR=https://ftp.ncbi.nlm.nih.gov/giab/ftp/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh37/StructuralVariant
-curl -s ${FTPDIR}/HG002_GRCh37_CMRG_SV_v1.00.bed > giab/HG002_GRCh37_CMRG_SV_v1.00.bed
-curl -s ${FTPDIR}/HG002_GRCh37_CMRG_SV_v1.00.vcf.gz > giab/HG002_GRCh37_CMRG_SV_v1.00.vcf.gz
 ```
 
 3) Download hg19 reference with decoys and map non-ACGT characters to N:
@@ -60,7 +55,6 @@ grep '#' giab/HG002_SVs_Tier1_v0.6.vcf > giab/HG002_SVs_Tier1_v0.6.filter.vcf
 grep -v '#' giab/HG002_SVs_Tier1_v0.6.vcf | awk -F '\t' '{split($10,X,":"); if(X[1]!="0/0"&&X[1]!="./.") print $0}' >> giab/HG002_SVs_Tier1_v0.6.filter.vcf
 bgzip -c giab/HG002_SVs_Tier1_v0.6.filter.vcf > giab/HG002_SVs_Tier1_v0.6.filter.vcf.gz
 tabix giab/HG002_SVs_Tier1_v0.6.filter.vcf.gz
-gzip -d giab/HG002_GRCh37_CMRG_SV_v1.00.vcf.gz
 ```
 
 # Run Sniffles1
@@ -101,7 +95,7 @@ tabix tools/sniffles2.sort.vcf.gz
 
 8a) Run cuteSV2 (v2.1.0):
 ```sh
-cuteSV alns/HG002_all.bam ref/human_hs37d5.fasta tools/cutesv.call.vcf ./ --max_cluster_bias_INS 1000 --diff_ratio_merging_INS 0.9 --max_cluster_bias_DEL 1000 --diff_ratio_merging_DEL 0.5 -Ivcf giab/HG002_SVs_Tier1_v0.6.vcf -q 10
+cuteSV alns/HG002_all.bam ref/human_hs37d5.fasta tools/cutesv.call.vcf ./ --max_cluster_bias_INS 1000 --diff_ratio_merging_INS 0.9 --max_cluster_bias_DEL 1000 --diff_ratio_merging_DEL 0.5 -Ivcf giab/HG002_SVs_Tier1_v0.6.vcf -q 10 -L -1
 ```
 8b) Prepare for truvari:
 ```sh
@@ -121,17 +115,17 @@ python3 svjedi.py -v giab/HG002_SVs_Tier1_v0.6.vcf -r ref/human_hs37d5.fasta -i 
 ```sh
 grep '#' tools/svjedi.call.vcf > tools/svjedi.sort.vcf
 grep -v '#' tools/svjedi.call.vcf | sort -k 1,1 -k 2,2n | awk -F '\t' '{split($10,X,":"); if(X[1]!="0/0"&&X[1]!="./.") print $0}' >> tools/svjedi.sort.vcf
-bgzip -c tools/svjedi.vcf > tools/svjedi.vcf.gz
-tabix tools/svjedi.vcf.gz
+bgzip -c tools/svjedi.sort.vcf > tools/svjedi.sort.vcf.gz
+tabix tools/svjedi.sort.vcf.gz
 ```
 
 # Final comparison
 
-10) Compare to NIST ground truth (v3.5.0):
+10) Compare to NIST ground truth via truvari (v3.5.0):
 ```sh
 for tools in {sniffles1, sniffles2, cutesv, svjedi}
 do
-        truvari bench -b giab/HG002_SVs_Tier1_v0.6.filter.vcf.gz -c tools/$i.vcf.gz --includebed giab/HG002_SVs_Tier1_v0.6.bed -o cmp -p 0 -r 2 -P 1 --sizemax 1000000
+        truvari bench -b giab/HG002_SVs_Tier1_v0.6.filter.vcf.gz -c tools/$i.sort.vcf.gz --includebed giab/HG002_SVs_Tier1_v0.6.bed -o cmp -p 0 -r 2 -P 1 --sizemax 1000000
 done
 ```
 
