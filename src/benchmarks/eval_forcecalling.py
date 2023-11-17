@@ -114,37 +114,37 @@ def pre_cmrg(input_vcf, output_vcf):
     output.close()
 
 def main(argv):
-	args = parseArgs(argv)
-	setupLogging(False)
-	starttime = time.time()
-	if args.handle == 'POP':
-		population_statistic(args.input, args.output)
-	if args.handle == 'COMP':
-		compare_callsets(args.input, args.base_vcf, args.output)
+    args = parseArgs(argv)
+    setupLogging(False)
+    starttime = time.time()
+    if args.handle == 'POP':
+        population_statistic(args.input, args.output)
+    if args.handle == 'COMP':
+        compare_callsets(args.input, args.base_vcf, args.output)
     if args.handel == 'CMRG':
         pre_cmrg(args.input, args.output)
-	logging.info("Finished in %0.2f seconds."%(time.time() - starttime))
+    logging.info("Finished in %0.2f seconds."%(time.time() - starttime))
 
 USAGE="""\
-	Processing and evaluation of force calling.
-	Author: Shuqi Cao
-	Email: sqcao@stu.hit.edu.cn
+    Processing and evaluation of force calling.
+    Author: Shuqi Cao
+    Email: sqcao@stu.hit.edu.cn
 """
 
 def parseArgs(argv):
-	parser = argparse.ArgumentParser(prog="evaluation on population Statistics/callsets Compare worldwide cohort", description=USAGE, formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument("handle", type=str, help="The aspect of evaluation, contains CMRG/POP/COMP.")
-	parser.add_argument("--input", type=str, help="Input VCF, including vcf file to be preprocessed or merged population callsets from force calling methods.")
-	parser.add_argument("--base_vcf", type=str, help="Worldwide population callsets.")
-	parser.add_argument("--output", type=str, help="Output file.")
-	args = parser.parse_args(argv)
-	return args
+    parser = argparse.ArgumentParser(prog="evaluation on population Statistics/callsets Compare worldwide cohort", description=USAGE, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("handle", type=str, help="The aspect of evaluation, contains CMRG/POP/COMP.")
+    parser.add_argument("--input", type=str, help="Input VCF, including vcf file to be preprocessed or merged population callsets from force calling methods.")
+    parser.add_argument("--base_vcf", type=str, help="Worldwide population callsets.")
+    parser.add_argument("--output", type=str, help="Output file.")
+    args = parser.parse_args(argv)
+    return args
 
 def setupLogging(debug=False):
-	logLevel = logging.DEBUG if debug else logging.INFO
-	logFormat = "%(asctime)s [%(levelname)s] %(message)s"
-	logging.basicConfig( stream=sys.stderr, level=logLevel, format=logFormat )
-	logging.info("Running %s" % " ".join(sys.argv))
+    logLevel = logging.DEBUG if debug else logging.INFO
+    logFormat = "%(asctime)s [%(levelname)s] %(message)s"
+    logging.basicConfig( stream=sys.stderr, level=logLevel, format=logFormat )
+    logging.info("Running %s" % " ".join(sys.argv))
 
 if __name__ == '__main__':
-	main(sys.argv[1:])
+    main(sys.argv[1:])

@@ -21,5 +21,5 @@ setup(
     long_description = readme,
     long_description_content_type = 'text/markdown',
     zip_safe = False,
-    install_requires = ['pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf']
+    install_requires = ['scipy', 'Cython', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf', 'scikit-learn']
 )
