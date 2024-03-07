@@ -576,8 +576,11 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
     reads_info = dict() # [10000, 10468, 0, 'm54238_180901_011437/52298335/ccs']
     readsfile = open("%sreads.pickle"%(temporary_dir), 'rb')
     for chrom in chrom_list:
-        readsfile.seek(sigs_index["reads"][chrom])
-        reads_info[chrom]=pickle.load(readsfile)
+        try:
+            readsfile.seek(sigs_index["reads"][chrom])
+            reads_info[chrom]=pickle.load(readsfile)
+        except:
+            reads_info[chrom] = []
     readsfile.close()
     sv_dict = dict()
     for sv_type in ["DEL", "DUP", "INS", "INV", "TRA"]:

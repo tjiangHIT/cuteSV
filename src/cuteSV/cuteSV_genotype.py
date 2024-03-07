@@ -422,7 +422,10 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
 # def generate_pvcf(args, result, contigINFO, argv, ref_g):
 def generate_pvcf(args, result, reference, chrom):
     fa_file = pysam.FastaFile(reference)
-    ref_chrom=fa_file.fetch(chrom)
+    try:
+        ref_chrom=fa_file.fetch(chrom)
+    except:
+        raise Exception("No corresponding contig in reference with %s."%(chrom))
     fa_file.close()
     # file = open(args.output, 'w')
     # Generation_VCF_header(file, contigINFO, args.sample, argv)

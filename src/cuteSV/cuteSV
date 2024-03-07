@@ -1021,8 +1021,8 @@ def main_ctrl(args, argv):
             if pos < local_ref_len:
                 Task_list.append([i[0], pos, local_ref_len])
     bed_regions = load_bed(args.include_bed, Task_list)
-    #'''
     
+    #'''
     candidates={}
     candidates["DEL"]=list()
     candidates["INS"]=list()
@@ -1053,9 +1053,8 @@ def main_ctrl(args, argv):
     pids = [process.pid for process in analysis_pools._pool]
     analysis_pools.close()
     analysis_pools.join()
-    #'''
     logging.info("Rebuilding signatures of structural variants.")
-
+    #'''
     analysis_pools = Pool(processes=int(args.threads))
     paras=[]
     for sv_type in SVTYPES:
@@ -1077,7 +1076,7 @@ def main_ctrl(args, argv):
     del candidates
     gc.collect()
     logging.info("Rebuilding signatures completed.")
-    #'''
+
     result = list()
 
     if args.Ivcf != None:
