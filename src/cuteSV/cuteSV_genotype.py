@@ -246,10 +246,14 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
 
     # genotype_trigger = TriggerGT[args.genotype]
 
+    f=open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb")
     semi_result.sort(key = lambda x:int(x[2]))
     action = args.genotype
     fa_file = pysam.FastaFile(reference)
-    ref_chrom=fa_file.fetch(chrom)
+    try:
+        ref_chrom=fa_file.fetch(chrom)
+    except:
+        raise Exception("No corresponding contig in reference with %s."%(chrom))
     fa_file.close()
     lines=[]
     BATCH_SIZE=1000
