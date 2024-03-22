@@ -257,7 +257,6 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     fa_file.close()
     lines=[]
     BATCH_SIZE=1000
-    f=open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb")
     for i in semi_result:
         if i[1] in ["DEL", "INS"]:
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
