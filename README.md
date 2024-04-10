@@ -50,11 +50,13 @@ We provided a new document for applying **force calling** (or **regenotyping**) 
 ### Dependence
 	
 	1. python3
+ 	2. scipy
 	2. pysam
 	3. Biopython
 	4. cigar
 	5. numpy
-	6. pyvcf
+	6. pyvcf3
+ 	7. scikit-learn
 
 ---
 ### Usage
