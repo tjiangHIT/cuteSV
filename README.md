@@ -124,7 +124,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
-	cuteSV (v2.1.0)
+	cuteSV (v2.1.1)
+	1. fix bugs in resolving reference genomes
+ 	2. modify several dependencies and remove some useless dependencies
+  	3. update several evaluation scripts
+ 
+ 	cuteSV (v2.1.0)
  	1. Speed up both SV discovery calling and force calling comprehensively.
   	2. Upgrade the force calling module.
    	3. Modify the temporary files. The sigs file are only generated with the "write_old_sigs" parameter.
