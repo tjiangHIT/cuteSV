@@ -669,9 +669,11 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
                     SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, read.query_sequence)
     return candidate
 
-def init_reading_process(sam_path):
+def init_reading_process(sam_path, reference_path):
     global samfile
-    samfile=pysam.AlignmentFile(sam_path)
+    
+    samfile=pysam.AlignmentFile(sam_path, reference_filename=reference_path)
+
 
 def cleanup():
     global samfile
@@ -992,7 +994,10 @@ def main_ctrl(args, argv):
         if os.path.exists(temporary_dir + item + '.pickle'):
             raise FileExistsError("[Errno 2] File exists: '%s'"%(temporary_dir+item+'.pickle'))
 
-    samfile = pysam.AlignmentFile(args.input)
+
+    samfile=pysam.AlignmentFile(args.input, reference_filename=args.reference)
+
+        
     contig_num = len(samfile.get_index_statistics())
     logging.info("The total number of chromsomes: %d"%(contig_num))
 
@@ -1036,7 +1041,7 @@ def main_ctrl(args, argv):
     candidates["reads_info"]=reads_info_list
     
     atexit.register(cleanup)
-    analysis_pools = Pool(processes=int(args.threads), initializer=init_reading_process, initargs=(args.input,))
+    analysis_pools = Pool(processes=int(args.threads), initializer=init_reading_process, initargs=(args.input, args.reference))
     os.mkdir("%ssignatures"%temporary_dir)
     results=[]#use this is faster than make a long paras list
     for i in range(len(Task_list)):
