@@ -92,7 +92,7 @@ We provided a new document for applying **force calling** (or **regenotyping**) 
 |--retain_work_dir|Enable to retain temporary folder and files.|False|
 |--write_old_sigs|Enable to output temporary sig files.|False|
 |--report_readid|Enable to report supporting read ids for each SV.|False|
-|--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored. All split segments are considered when using -1. (Recommand -1 when applying assembly-based alignment.)|7|
+|--max_split_parts|Maximum number of split segments a read may be aligned before it is ignored. All split segments are considered when using -1. (Recommend -1 when applying assembly-based alignment.)|7|
 |--min_mapq|Minimum mapping quality value of alignment to be taken into account.|20|
 |--min_read_len|Ignores reads that only report alignments with not longer than bp.|500|
 |--merge_del_threshold|Maximum distance of deletion signals to be merged.|0|
