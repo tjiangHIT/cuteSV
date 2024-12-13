@@ -287,12 +287,18 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[11]) >= 5.0 else "q5"
+            if args.ignore_sequence:
+                ref_seq = 'N'
+                alt_seq = '<' + i[1] + '>'
+            else:
+                ref_seq = ref_chrom[max(int(i[2])-1, 0)] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0):int(i[2])-int(i[3])]
+                alt_seq = "%s"%(ref_chrom[max(int(i[2])-1, 0)]+i[13] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0)])    
             lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2])), 
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
-                REF = ref_chrom[max(int(i[2])-1, 0)] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0):int(i[2])-int(i[3])],
-                ALT = "%s"%(ref_chrom[max(int(i[2])-1, 0)]+i[13] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0)]), 
+                REF = ref_seq,
+                ALT = alt_seq, 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
                 GT = i[8],

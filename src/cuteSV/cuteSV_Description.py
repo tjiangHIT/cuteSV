@@ -100,6 +100,10 @@ def parseArgs(argv):
 	parser.add_argument('--report_readid',
 		help = "Enable to report supporting read ids for each SV.",
 		action="store_true")
+	
+	parser.add_argument('--ignore_sequence',
+		help = "Do not output sequences for SVs.",
+		action="store_true")
 
 	# **************Parameters in signatures collection******************
 	GroupSignaturesCollect = parser.add_argument_group('Collection of SV signatures')
