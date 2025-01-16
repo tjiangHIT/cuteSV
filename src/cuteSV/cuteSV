@@ -1091,18 +1091,7 @@ def main_ctrl(args, argv):
 
     if args.Ivcf != None:
         # force calling
-        max_cluster_bias_dict = dict()
-        max_cluster_bias_dict['INS'] = args.max_cluster_bias_INS
-        max_cluster_bias_dict['DEL'] = args.max_cluster_bias_DEL
-        max_cluster_bias_dict['DUP'] = args.max_cluster_bias_DUP
-        max_cluster_bias_dict['INV'] = args.max_cluster_bias_INV
-        max_cluster_bias_dict['TRA'] = args.max_cluster_bias_TRA
-        threshold_gloab_dict = dict()
-        threshold_gloab_dict['INS'] = args.diff_ratio_merging_INS
-        threshold_gloab_dict['DEL'] = args.diff_ratio_merging_DEL
-        
-        result = force_calling_chrom(args.Ivcf, temporary_dir,
-                         max_cluster_bias_dict, threshold_gloab_dict, args.gt_round, args.read_range, args.threads, sigs_index)
+        pass
 
     else:
 
@@ -1202,20 +1191,7 @@ def main_ctrl(args, argv):
     logging.info("Writing to your output file.")
 
     if args.Ivcf != None:
-        file = open(args.output, 'w')
-        Generation_VCF_header(file, contigINFO, args.sample, argv)
-        file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
-        analysis_pools = Pool(processes=int(args.threads))
-        paras=[]
-        for chrom in sorted(result.keys()):
-            paras.append((args, result[chrom], args.reference, chrom))
-        results=analysis_pools.starmap_async(generate_pvcf, paras)
-        analysis_pools.close()
-        analysis_pools.join()
-        for r in results.get():
-            for line in r:
-                file.write(line)
-        file.close()
+        pass
 
     else:
         svid = dict()

@@ -186,7 +186,7 @@ def parseArgs(argv):
 	# **************Parameters in force calling******************
 	GroupGenotype = parser.add_argument_group('Force calling')
 	GroupGenotype.add_argument('-Ivcf', #'--MERGED_VCF',
-		help = "Optional given vcf file. Enable to perform force calling. [NULL]",
+		help = "The force calling module was disabled in cuteSV, please install cuteFC (https://github.com/Meltpinkg/cuteFC) to achieve SV force calling/regenotyping.",
 		default = None,
         type = str)
 
