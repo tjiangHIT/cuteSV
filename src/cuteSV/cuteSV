@@ -984,6 +984,8 @@ def main_ctrl(args, argv):
     else:
         temporary_dir = args.work_dir+'/'
     # check the temporary files
+    if args.Ivcf != None:
+        raise ValueError("The force calling module has been disabled, please install cuteFC (https://github.com/Meltpinkg/cuteFC) to achieve SV force calling/regenotyping.")
     if not os.path.isfile(args.reference):
         raise FileNotFoundError("[Errno 2] No such file: '%s'"%args.reference)
     if not os.path.exists(args.work_dir):
