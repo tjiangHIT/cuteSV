@@ -9,6 +9,12 @@
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesv/badges/downloads.svg)](https://anaconda.org/bioconda/cutesv)
 
 ---
+### Notice
+The force calling module has been disabled in cuteSV, please install [cuteFC](https://github.com/Meltpinkg/cuteFC) to achieve SV force calling/regenotyping.
+
+A new wiki page about diploid-assembly-based SV detection using cuteSV has been established. More details please see [here](https://github.com/tjiangHIT/cuteSV/wiki/Diploid-assembly-based-SV-detection-using-cuteSV).
+
+---
 ### Getting Start
 	                                               __________    __       __
 	                                              |   ____   |  |  |     |  |
@@ -41,10 +47,6 @@ The benchmark results of cuteSV on the HG002 human sample are below:
 BTW, we used [Truvari](https://github.com/spiralgenetics/truvari) to calculate the recall, precision, and f-measure.
 For more detailed implementation of SV benchmarks, we show an example [here](https://github.com/tjiangHIT/sv-benchmark).
 
-## Notice
-A new wiki page about diploid-assembly-based SV detection using cuteSV has been established. More details please see [here](https://github.com/tjiangHIT/cuteSV/wiki/Diploid-assembly-based-SV-detection-using-cuteSV).
-
-We provided a new document for applying **force calling** (or **regenotyping**) benchmark [here](https://github.com/tjiangHIT/cuteSV/tree/master/src/documentation).
 
 ---
 ### Dependence
@@ -81,8 +83,7 @@ We provided a new document for applying **force calling** (or **regenotyping**) 
 		--diff_ratio_merging_INS	0.3
 		--max_cluster_bias_DEL	100
 		--diff_ratio_merging_DEL	0.3
-	> For force calling:
-		--min_mapq 			10
+
 	
 | Parameter | Description | Default |
 | :------------ |:---------------|-------------:|
@@ -103,7 +104,6 @@ We provided a new document for applying **force calling** (or **regenotyping**) 
 |--genotype|Enable to generate genotypes.|False|
 |--gt_round|Maximum round of iteration for alignments searching if perform genotyping.|500|
 |--read_range|The interval range for counting reads distribution.|1000|
-|-Ivcf|Optional given vcf file. Enable to perform force calling.|NULL|
 |--max_cluster_bias_INS|Maximum distance to cluster read together for insertion.|100|
 |--diff_ratio_merging_INS|Do not merge breakpoints with basepair identity more than the ratio of *default* for insertion.|0.3|
 |--max_cluster_bias_DEL|Maximum distance to cluster read together for deletion.|200|
@@ -126,7 +126,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
-	cuteSV (v2.1.1)
+	cuteSV (v2.1.2)
+ 	1. disable the force calling function, please install cuteFC (https://github.com/Meltpinkg/cuteFC) to achieve SV force calling
+  	2. add reference path for processing .cram files
+   	3. add parameter for excluding output sequences
+  
+ 	cuteSV (v2.1.1)
 	1. fix bugs in resolving reference genomes
  	2. modify several dependencies and remove some useless dependencies
   	3. update several evaluation scripts
