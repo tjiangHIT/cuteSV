@@ -109,7 +109,7 @@ def parseArgs(argv):
 	GroupSignaturesCollect = parser.add_argument_group('Collection of SV signatures')
 	GroupSignaturesCollect.add_argument('-p', '--max_split_parts', 
 		help = "Maximum number of split segments a read may be aligned before it is ignored. All split segments are considered when using -1. \
-			(Recommand -1 when applying assembly-based alignment.)[%(default)s]", 
+			(Recommend -1 when applying assembly-based alignment.)[%(default)s]", 
 		default = 7, 
 		type = int)
 	GroupSignaturesCollect.add_argument('-q', '--min_mapq', 
