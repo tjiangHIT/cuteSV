@@ -990,15 +990,15 @@ def main_ctrl(args, argv):
         raise FileNotFoundError("[Errno 2] No such file: '%s'"%args.reference)
     if not os.path.exists(args.work_dir):
         raise FileNotFoundError("[Errno 2] No such directory: '%s'"%args.work_dir)
+    if os.path.exists("%sresults"%temporary_dir) and os.path.isdir("%sresults"%temporary_dir):
+        raise FileExistsError("[Errno 2] Directory exists: '%sresults'"%(temporary_dir))
     for item in SVTYPES:
         if os.path.exists(temporary_dir + item + '.sigs'):
             raise FileExistsError("[Errno 2] File exists: '%s'"%(temporary_dir+item+'.sigs'))
         if os.path.exists(temporary_dir + item + '.pickle'):
             raise FileExistsError("[Errno 2] File exists: '%s'"%(temporary_dir+item+'.pickle'))
 
-
     samfile=pysam.AlignmentFile(args.input, reference_filename=args.reference)
-
         
     contig_num = len(samfile.get_index_statistics())
     logging.info("The total number of chromsomes: %d"%(contig_num))
@@ -1212,6 +1212,8 @@ def main_ctrl(args, argv):
         analysis_pools.close()
         analysis_pools.join()
         for chrom in chroms:
+            if not os.path.exists("%sresults/%s.pickle"%(temporary_dir,chrom)):
+                raise FileNotFoundError("[Errno 2] No such directory: %sresults/%s.pickle"%(temporary_dir,chrom))
             with open("%sresults/%s.pickle"%(temporary_dir,chrom), "rb") as f:
                 while True:
                     try:

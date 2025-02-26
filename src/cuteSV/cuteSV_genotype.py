@@ -3,6 +3,7 @@ from cuteSV.cuteSV_Description import Generation_VCF_header
 from math import log10
 import numpy as np
 import pysam
+import logging
 import pickle
 
 err = 0.1
@@ -424,7 +425,8 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     #     pickle.dump(lines,f)
     if len(lines)!=0:
         pickle.dump(lines,f)
-    # f.close()
+    f.close()
+    logging.info("Finished %s output."%(chrom))
     # return lines
 
 
