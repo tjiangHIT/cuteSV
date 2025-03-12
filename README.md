@@ -130,6 +130,7 @@ Please cite the manuscript of cuteSV before using these callsets.
  	1. disable the force calling function, please install cuteFC (https://github.com/Meltpinkg/cuteFC) to achieve SV force calling
   	2. add reference path for processing .cram files
    	3. add parameter for excluding output sequences
+    	4. fix bugs in resolving insertion sequences
   
  	cuteSV (v2.1.1)
 	1. fix bugs in resolving reference genomes
