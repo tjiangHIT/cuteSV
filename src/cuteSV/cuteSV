@@ -4,7 +4,7 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSV 
  * @author: tjiang & sqcao & zdzhang
- * @date: Jan. 16th 2025
+ * @date: Mar. 12th 2025
  * @version V2.1.2
 '''
 
@@ -18,8 +18,7 @@ from cuteSV.cuteSV_resolveINV import run_inv
 from cuteSV.cuteSV_resolveTRA import run_tra
 from cuteSV.cuteSV_resolveINDEL import run_ins, run_del
 from cuteSV.cuteSV_resolveDUP import run_dup
-from cuteSV.cuteSV_genotype import generate_output, generate_pvcf, load_valuable_chr, load_bed, Generation_VCF_header
-from cuteSV.cuteSV_forcecalling import force_calling_chrom
+from cuteSV.cuteSV_genotype import generate_output, load_bed, Generation_VCF_header
 import os
 import argparse
 import logging
@@ -28,6 +27,7 @@ import time
 import gc
 import pickle
 import atexit
+from Bio.Seq import Seq
 
 dic_starnd = {1: '+', 2: '-'}
 RefChangeOp=set([0,2,7,8])
@@ -219,7 +219,8 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                 if ele_1[5] == '-':
                     ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
                     ele_2 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
-                    query = query[::-1]
+                    # query = query[::-1]
+                    query = str(Seq(query).reverse_complement())
 
                 if ele_1[3] - ele_2[2] >= SV_size:
                     # if ele_2[1] - ele_1[1] >= ele_1[3] - ele_2[2]:
@@ -255,7 +256,6 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                             "DEL",
                                             ele_2[4]))
         else:
-            trigger_INS_TRA = 1
             analysis_bnd(ele_1, ele_2, read_name, candidate["TRA"])
 
     else:
@@ -336,7 +336,9 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                             ele_1 = [RLength-SP_list[a+2][1], RLength-SP_list[a+2][0]]+SP_list[a+2][2:]
                             ele_2 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
                             ele_3 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
-                            query = query[::-1]
+                            query_res = str(Seq(query).reverse_complement())
+                        else:
+                            query_res = query
 
                         if ele_2[3] - ele_3[2] >= SV_size and ele_2[2] < ele_3[3]:
                             candidate["DUP"].append((ele_3[2], 
@@ -360,7 +362,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                     candidate["INS"].append(((ele_2[2]+ele_1[3])/2, 
                                                         delta_length, 
                                                         read_name,
-                                                        str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
+                                                        str(query_res[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
                                                         "INS",
                                                         ele_2[4]))
                         delta_length = ele_2[2] - ele_2[0] + ele_1[1] - ele_1[3]
@@ -383,7 +385,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                     candidate["INS"].append(((ele_2[2]+ele_1[3])/2, 
                                                         delta_length, 
                                                         read_name,
-                                                        str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
+                                                        str(query_res[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
                                                         "INS",
                                                         ele_2[4]))
 
@@ -404,14 +406,16 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                         if ele_1[5] == '-':
                             ele_1 = [RLength-SP_list[a+1][1], RLength-SP_list[a+1][0]]+SP_list[a+1][2:]
                             ele_2 = [RLength-SP_list[a][1], RLength-SP_list[a][0]]+SP_list[a][2:]
-                            query = query[::-1]
+                            query_res = str(Seq(query).reverse_complement())
+                        else:
+                            query_res = query
                         delta_length = ele_2[0] + ele_1[3] - ele_2[2] - ele_1[1]
                         if ele_1[3] - ele_2[2] < max(SV_size, delta_length/5) and delta_length >= SV_size:
                             if ele_2[2] - ele_1[3] <= max(100, delta_length/5) and (delta_length <= MaxSize or MaxSize == -1):
                                 candidate["INS"].append(((ele_2[2]+ele_1[3])/2, 
                                                     delta_length, 
                                                     read_name,
-                                                    str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
+                                                    str(query_res[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
                                                     "INS",
                                                     ele_2[4]))
 
@@ -433,33 +437,31 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                         analysis_bnd(ele_2, ele_3, read_name, candidate["TRA"])
 
     if len(SP_list) >= 3 and trigger_INS_TRA == 1:
-        if SP_list[0][4] == SP_list[-1][4]:
-            if SP_list[0][5] != SP_list[-1][5]:
-                pass
+        if SP_list[0][4] == SP_list[-1][4] and SP_list[0][5] == SP_list[-1][5]:
+            if SP_list[0][5] == '+':
+                ele_1 = SP_list[0]
+                ele_2 = SP_list[-1]
+                query_res = query
             else:
-                if SP_list[0][5] == '+':
-                    ele_1 = SP_list[0]
-                    ele_2 = SP_list[-1]
-                else:
-                    ele_1 = [RLength-SP_list[-1][1], RLength-SP_list[-1][0]]+SP_list[-1][2:]
-                    ele_2 = [RLength-SP_list[0][1],RLength-SP_list[0][0]]+SP_list[0][2:]
-                    query = query[::-1]
-                dis_ref = ele_2[2] - ele_1[3]
-                dis_read = ele_2[0] - ele_1[1]
-                if dis_ref < 100 and dis_read - dis_ref >= SV_size and (dis_read - dis_ref <= MaxSize or MaxSize == -1):
-                    candidate["INS"].append((min(ele_2[2], ele_1[3]), 
-                                        dis_read - dis_ref, 
-                                        read_name,
-                                        str(query[ele_1[1]+int(dis_ref/2):ele_2[0]-int(dis_ref/2)]),
-                                        "INS",
-                                        ele_2[4]))	
+                ele_1 = [RLength-SP_list[-1][1], RLength-SP_list[-1][0]]+SP_list[-1][2:]
+                ele_2 = [RLength-SP_list[0][1],RLength-SP_list[0][0]]+SP_list[0][2:]
+                query_res = str(Seq(query).reverse_complement())
+            dis_ref = ele_2[2] - ele_1[3]
+            dis_read = ele_2[0] - ele_1[1]
+            if dis_ref < 100 and dis_read - dis_ref >= SV_size and (dis_read - dis_ref <= MaxSize or MaxSize == -1):
+                candidate["INS"].append((min(ele_2[2], ele_1[3]), 
+                                    dis_read - dis_ref, 
+                                    read_name,
+                                    str(query_res[ele_1[1]+int(dis_ref/2):ele_2[0]-int(dis_ref/2)]),
+                                    "INS",
+                                    ele_2[4]))
 
-                if dis_ref <= -SV_size:
-                    candidate["DUP"].append((ele_2[2], 
-                                        ele_1[3], 
-                                        read_name,
-                                        "DUP",
-                                        ele_2[4]))
+            if dis_ref <= -SV_size:
+                candidate["DUP"].append((ele_2[2], 
+                                    ele_1[3], 
+                                    read_name,
+                                    "DUP",
+                                    ele_2[4]))
 
 def acquire_clip_pos(deal_cigar):
     seq = list(cigar.Cigar(deal_cigar).items())
@@ -664,9 +666,13 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
 
         for i in Tags:
             if i[0] == 'SA':
+                if process_signal == 1:
+                    query_seq = read.query_sequence
+                else:
+                    query_seq = str(Seq(read.query_sequence).reverse_complement())
                 Supplementary_info = i[1].split(';')[:-1]
                 organize_split_signal(primary_info, Supplementary_info, read.query_length, 
-                    SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, read.query_sequence)
+                    SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, query_seq)
     return candidate
 
 def init_reading_process(sam_path, reference_path):
