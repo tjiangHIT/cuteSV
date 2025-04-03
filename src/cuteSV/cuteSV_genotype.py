@@ -403,12 +403,18 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 ref_bnd = ref_chrom[int(i[2])]
             except:
                 ref_bnd = 'N'
+            if i[1][0] == 'N':
+                alt_bnd = ref_bnd + i[1][1:]
+            elif i[1][-1] == 'N':
+                alt_bnd = i[1][:-1] + ref_bnd
+            else:
+                alt_bnd = i[1]
             lines.append(("BND","{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
                 ID = "cuteSV.%s.<SVID>"%("BND"), 
                 REF = ref_bnd,
-                ALT = i[1], 
+                ALT = alt_bnd, # i[1], 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
                 GT = i[7],
