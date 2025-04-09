@@ -575,7 +575,7 @@ def generate_pvcf(args, result, reference, chrom):
                 SVLEN = i[4] - i[1], 
                 END = i[4], 
                 RE = i[7][0],
-                RNAMES = ";RNAMES=" + i[8] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[8] if args.report_readid else "")
             if i[12] != '.':
                 info_list += ';STRAND=' + i[12]
             try:
