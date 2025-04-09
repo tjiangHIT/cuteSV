@@ -268,7 +268,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 cal_end = int(i[2])
             else:
                 cal_end = int(i[2]) + abs(int(float(i[3])))
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[8] == "0/0" else "PRECISE", 
                 SVTYPE = i[1], 
                 SVLEN = i[3], 
@@ -276,7 +276,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 CIPOS = i[5], 
                 CILEN = i[6], 
                 RE = i[4],
-                RNAMES = i[12] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[12] if args.report_readid else "")
             if action:
                 try:
                     info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[7])), 4))
@@ -313,13 +313,13 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
             cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND=-+;RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND=-+{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
                 SVTYPE = i[1], 
                 SVLEN = i[3], 
                 END = str(cal_end), 
                 RE = i[4],
-                RNAMES = i[10] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[10] if args.report_readid else "")
             if action:
                 try:
                     info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[5])), 4))
@@ -348,14 +348,14 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
             cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND};RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
                 SVTYPE = i[1], 
                 SVLEN = i[3], 
                 END = str(cal_end), 
                 RE = i[4],
                 STRAND = i[7],
-                RNAMES = i[11] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[11] if args.report_readid else "")
             if action:
                 try:
                     info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[5])), 4))
@@ -383,13 +383,13 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
         else:
             # BND
             # info_list = "{PRECISION};SVTYPE={SVTYPE};CHR2={CHR2};END={END};RE={RE};RNAMES={RNAMES}".format(
-            info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE};RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[7] == "0/0" else "PRECISE", 
                 SVTYPE = "BND", 
                 # CHR2 = i[3], 
                 # END = str(int(i[4]) + 1), 
                 RE = i[5],
-                RNAMES = i[11] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[11] if args.report_readid else "")
             if action:
                 try:
                     info_list += ";AF=" + str(round(int(i[5]) / (int(i[5]) + int(i[6])), 4))
@@ -469,7 +469,7 @@ def generate_pvcf(args, result, reference, chrom):
             '''
             ref = str(ref_chrom[max(i[1]-1, 0)])
             alt = i[11]
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                 SVTYPE = i[3], 
                 SVLEN = i[14], 
@@ -477,7 +477,7 @@ def generate_pvcf(args, result, reference, chrom):
                 CIPOS = i[5], 
                 CILEN = i[6], 
                 RE = i[7][0],
-                RNAMES = i[8] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[8] if args.report_readid else "")
             try:
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
@@ -507,7 +507,7 @@ def generate_pvcf(args, result, reference, chrom):
             else:
                 ref = i[10]
                 alt = i[11]
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES};STRAND=+-".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE}{RNAMES};STRAND=+-".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                 SVTYPE = i[3], 
                 SVLEN = -abs(i[14]), 
@@ -515,7 +515,7 @@ def generate_pvcf(args, result, reference, chrom):
                 CIPOS = i[5], 
                 CILEN = i[6], 
                 RE = i[7][0],
-                RNAMES = i[8] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[8] if args.report_readid else "")
             try:
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
@@ -539,13 +539,13 @@ def generate_pvcf(args, result, reference, chrom):
         elif i[3] == 'DUP':
             if abs(i[4] - i[1]) > args.max_size and args.max_size != -1:
                 continue
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES};STRAND=-+".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE}{RNAMES};STRAND=-+".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                 SVTYPE = i[3], 
                 SVLEN = abs(i[4] - i[1]), 
                 END = i[4], 
                 RE = i[7][0],
-                RNAMES = i[8] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[8] if args.report_readid else "")
             try:
                 info_list += ";AF=" + str(round(i[7][0] / (i[7][0] + i[7][1]), 4))
             except:
@@ -569,13 +569,13 @@ def generate_pvcf(args, result, reference, chrom):
         elif i[3] == 'INV':
             if abs(i[4] - i[1]) > args.max_size and args.max_size != -1:
                 continue
-            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                 SVTYPE = i[3], 
                 SVLEN = i[4] - i[1], 
                 END = i[4], 
                 RE = i[7][0],
-                RNAMES = i[8] if args.report_readid else "NULL")
+                RNAMES = ";RNAMES=" + i[8] if args.report_readid else "NULL")
             if i[12] != '.':
                 info_list += ';STRAND=' + i[12]
             try:
@@ -600,11 +600,11 @@ def generate_pvcf(args, result, reference, chrom):
                 ))
         else:
             # BND
-            info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE};RNAMES={RNAMES}".format(
+            info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE}{RNAMES}".format(
                     PRECISION = "IMPRECISE" if i[2] == "0/0" else "PRECISE", 
                     SVTYPE = i[3], 
                     RE = i[7][0],
-                    RNAMES = i[8] if args.report_readid else "NULL")
+                    RNAMES = ";RNAMES=" + i[8] if args.report_readid else "")
             if i[14] != 0:
                 info_list += ';SVLEN=%d'%(i[14])
             try:

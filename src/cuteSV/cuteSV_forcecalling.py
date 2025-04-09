@@ -664,7 +664,7 @@ def solve_fc(chrom_list, svs_dict, temporary_dir, max_cluster_bias_dict, thresho
             record = svs_dict[chrom][i]
             rname = ','.join(read_id_dict[i])
             if rname == '':
-                rname = 'NULL'
+                rname = 'Unknown'
             if record[7] == '<TRA>' or record[7] == '<BND>':
                 seq = str(record[1]) + ':' + str(record[3])
             else:
