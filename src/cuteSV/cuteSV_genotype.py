@@ -246,7 +246,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     '''
 
     # genotype_trigger = TriggerGT[args.genotype]
-
+    
     f=open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb")
     semi_result.sort(key = lambda x:int(x[2]))
     action = args.genotype
