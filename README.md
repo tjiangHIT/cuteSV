@@ -126,6 +126,11 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+	cuteSV (v2.1.3)
+	1. fix RNAMES field in INFO to remove "NULL"
+	2. fix the alternative allele in translocations
+	3. optimize the output logs
+	
 	cuteSV (v2.1.2)
  	1. disable the force calling function, please install cuteFC (https://github.com/Meltpinkg/cuteFC) to achieve SV force calling
   	2. add reference path for processing .cram files
