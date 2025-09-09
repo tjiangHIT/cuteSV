@@ -448,7 +448,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                 query_res = str(Seq(query).reverse_complement())
             dis_ref = ele_2[2] - ele_1[3]
             dis_read = ele_2[0] - ele_1[1]
-            if abs(dis_ref) < 100 and dis_read - dis_ref >= SV_size and (dis_read - dis_ref <= MaxSize or MaxSize == -1):
+            if abs(dis_ref) < max(SV_size, (dis_read - dis_ref)/5) and dis_read - dis_ref >= SV_size and (dis_read - dis_ref <= MaxSize or MaxSize == -1):
                 candidate["INS"].append((min(ele_2[2], ele_1[3]), 
                                     dis_read - dis_ref, 
                                     read_name,
@@ -1222,10 +1222,7 @@ def main_ctrl(args, argv):
         results=analysis_pools.starmap_async(generate_output, paras)
         analysis_pools.close()
         analysis_pools.join()
-        try:
-            results.get()
-        except Exception as e:
-            logging.info(f"LocalError: {e}")
+        results.get()
         for chrom in chroms:
             if not os.path.exists("%sresults/%s.pickle"%(temporary_dir,chrom)):
                 raise FileNotFoundError("[Errno 2] No such directory: %sresults/%s.pickle"%(temporary_dir,chrom))
