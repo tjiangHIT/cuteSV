@@ -5,6 +5,7 @@ import numpy as np
 import pysam
 import logging
 import pickle
+import string
 
 err = 0.1
 prior = float(1/3)
@@ -258,6 +259,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     fa_file.close()
     lines=[]
     BATCH_SIZE=1000
+    trans_table = str.maketrans('RYSWKMBDHV', 'ACCAGACAAA')
     for i in semi_result:
         if i[1] in ["DEL", "INS"]:
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
@@ -298,7 +300,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 CHR = i[0], 
                 POS = str(int(i[2])), 
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
-                REF = ref_seq,
+                REF = ref_seq.translate(trans_table),
                 ALT = alt_seq, 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
@@ -329,11 +331,12 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[9]) >= 5.0 else "q5"
+            ref_seq = ref_chrom[int(i[2])]
             lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
-                REF = ref_chrom[int(i[2])],
+                REF = ref_seq.translate(trans_table),
                 ALT = "<%s>"%(i[1]), 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
@@ -365,11 +368,12 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
+            ref_seq = ref_chrom[int(i[2])]
             lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
-                REF = ref_chrom[int(i[2])],
+                REF = ref_seq.translate(trans_table),
                 ALT = "<%s>"%(i[1]), 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
@@ -413,7 +417,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 CHR = i[0], 
                 POS = str(int(i[2]) + 1), 
                 ID = "cuteSV.%s.<SVID>"%("BND"), 
-                REF = ref_bnd,
+                REF = ref_bnd.translate(trans_table),
                 ALT = alt_bnd, # i[1], 
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
