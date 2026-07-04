@@ -134,8 +134,11 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 		if len(set(temp[0][2]))+len(set(temp[1][2])) >= len(semi_tra_cluster)*overlap_size:
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))
-			BND_pos_1 = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])))
-			BND_pos_2 = "%s:%s"%(chr_2, int(temp[1][1]/len(temp[1][2])))
+			# BND types A/C encode the mate breakpoint from a 0-based reference_start-derived
+			# coordinate, so it needs +1 to become a valid 1-based VCF position (unlike B/D,
+			# which are already derived from a 1-based-equivalent reference_end coordinate).
+			BND_pos_1 = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])) + (1 if BND_type in ('A', 'C') else 0))
+			BND_pos_2 = "%s:%s"%(chr_2, int(temp[1][1]/len(temp[1][2])) + (1 if BND_type in ('A', 'C') else 0))
 			if BND_type == 'A':
 				TRA_1 = "N[%s["%(BND_pos_1)
 				TRA_2 = "N[%s["%(BND_pos_2)
@@ -208,7 +211,10 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 		if len(set(temp[0][2])) >= len(semi_tra_cluster)*overlap_size:
 			# print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
 			# candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
-			BND_pos = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])))
+			# BND types A/C encode the mate breakpoint from a 0-based reference_start-derived
+			# coordinate, so it needs +1 to become a valid 1-based VCF position (unlike B/D,
+			# which are already derived from a 1-based-equivalent reference_end coordinate).
+			BND_pos = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])) + (1 if BND_type in ('A', 'C') else 0))
 			if BND_type == 'A':
 				TRA = "N[%s["%(BND_pos)
 			elif BND_type == 'B':
