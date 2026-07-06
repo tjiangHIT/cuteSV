@@ -350,12 +350,25 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
         elif i[1] == "INV":
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
-            cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
+            # i[2] (breakpoint_1) originates in analysis_inv() (src/cuteSV/cuteSV) and is
+            # an end-type ref_end coordinate (already a valid 1-based position, since
+            # pysam's reference_end is 0-based-exclusive) for head-to-head ("++")
+            # inversions, but a start-type ref_start coordinate (0-based, needs +1) for
+            # tail-to-tail ("--") inversions. i[7] (the "++"/"--" tag, already carried
+            # through for the INFO STRAND field) tells us which. Compare the equivalent
+            # BND fix above for the mate coordinate and the primary POS column.
+            if i[7] == "++":
+                pos_inv = int(i[2])
+                ref_idx = max(pos_inv - 1, 0)
+            else:
+                pos_inv = int(i[2]) + 1
+                ref_idx = int(i[2])
+            cal_end = pos_inv + abs(int(float(i[3])))
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND}{RNAMES}".format(
-                PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
-                SVTYPE = i[1], 
-                SVLEN = i[3], 
-                END = str(cal_end), 
+                PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE",
+                SVTYPE = i[1],
+                SVLEN = i[3],
+                END = str(cal_end),
                 RE = i[4],
                 STRAND = i[7],
                 RNAMES = ";RNAMES=" + i[11] if args.report_readid else "")
@@ -368,13 +381,13 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
-            ref_seq = ref_chrom[int(i[2])]
+            ref_seq = ref_chrom[ref_idx]
             lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
-                CHR = i[0], 
-                POS = str(int(i[2]) + 1), 
+                CHR = i[0],
+                POS = str(pos_inv),
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
                 REF = ref_seq.translate(trans_table),
-                ALT = "<%s>"%(i[1]), 
+                ALT = "<%s>"%(i[1]),
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
                 GT = i[6],
@@ -403,22 +416,37 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[10]) >= 5.0 else "q5"
-            try:
-                ref_bnd = ref_chrom[int(i[2])]
-            except:
-                ref_bnd = 'N'
+            # i[2] originates in analysis_bnd() (src/cuteSV/cuteSV) and is a
+            # 0-based ref_start-type coordinate for BND types C/D, but a
+            # ref_end-type coordinate (already a valid 1-based position, since
+            # pysam's reference_end is 0-based-exclusive) for types A/B. Only
+            # the former needs +1 to become a valid 1-based VCF POS; applying
+            # it unconditionally over-counts types A/B by one base, and shifts
+            # the paired REF-base lookup by one base too. Compare the
+            # equivalent BND_pos_1/BND_pos_2 fix in cuteSV_resolveTRA.py for
+            # the mate coordinate embedded in the ALT string.
             if i[1][0] == 'N':
+                # Types A/B
+                pos_bnd = int(i[2])
+                try:
+                    ref_bnd = ref_chrom[max(pos_bnd - 1, 0)]
+                except:
+                    ref_bnd = 'N'
                 alt_bnd = ref_bnd + i[1][1:]
-            elif i[1][-1] == 'N':
-                alt_bnd = i[1][:-1] + ref_bnd
             else:
-                alt_bnd = i[1]
+                # Types C/D (i[1][-1] == 'N'); no other BND_type reaches here
+                pos_bnd = int(i[2]) + 1
+                try:
+                    ref_bnd = ref_chrom[int(i[2])]
+                except:
+                    ref_bnd = 'N'
+                alt_bnd = i[1][:-1] + ref_bnd
             lines.append(("BND","{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
-                CHR = i[0], 
-                POS = str(int(i[2]) + 1), 
-                ID = "cuteSV.%s.<SVID>"%("BND"), 
+                CHR = i[0],
+                POS = str(pos_bnd),
+                ID = "cuteSV.%s.<SVID>"%("BND"),
                 REF = ref_bnd.translate(trans_table),
-                ALT = alt_bnd, # i[1], 
+                ALT = alt_bnd, # i[1],
                 INFO = info_list, 
                 FORMAT = "GT:DR:DV:PL:GQ", 
                 GT = i[7],
