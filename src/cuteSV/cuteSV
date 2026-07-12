@@ -228,7 +228,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                         candidate["INS"].append(((ele_1[3]+ele_2[2])/2, 
                                         ele_2[0]+ele_1[3]-ele_2[2]-ele_1[1], 
                                         read_name,
-                                        str(query[ele_1[1]+int((ele_1[3]-ele_2[2])/2):ele_2[0]-int((ele_1[3]-ele_2[2])/2)]),
+                                        str(query[ele_1[1]+int((ele_2[2]-ele_1[3])/2):ele_2[0]-int((ele_2[2]-ele_1[3])/2)]),
                                         "INS",
                                         ele_2[4]))
                     else:
