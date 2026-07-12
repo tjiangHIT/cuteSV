@@ -126,6 +126,12 @@ Please cite the manuscript of cuteSV before using these callsets.
 
 ---
 ### Changelog
+	cuteSV (v2.1.4)
+	1. adjust the breakpoints influenced by 0-based/1-based
+	2. fix the bugs in the multi-processing pools that causes the missing pickle files
+	3. modify the insertion sequence extraction between two supplementary alignments
+	4. modify IUPAC ambiguity codes in REF field
+	
 	cuteSV (v2.1.3)
 	1. fix RNAMES field in INFO to remove "NULL"
 	2. fix the alternative allele in translocations
