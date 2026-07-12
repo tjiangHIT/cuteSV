@@ -489,7 +489,12 @@ def organize_split_signal(primary_info, Supplementary_info, total_L, SV_size,
     for i in Supplementary_info:
         seq = i.split(',')
         local_chr = seq[0]
-        local_start = int(seq[1])
+        # SA-tag pos is 1-based (SAM spec), same as the raw POS column of a SAM
+        # record. Convert to 0-based here so it matches read.reference_start,
+        # which is what primary-alignment segments use below. Without this,
+        # a segment's start/end differ by 1 depending on whether it came from
+        # the read's primary record or one of its supplementary records.
+        local_start = int(seq[1]) - 1
         local_cigar = seq[3]
         local_strand = seq[2]
         local_mapq = int(seq[4])
