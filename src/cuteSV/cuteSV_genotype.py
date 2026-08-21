@@ -239,6 +239,38 @@ def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, 
         idx += 1
     print('Correct iteration cover %d; overlap %d'%(correct_cover, correct_overlap))
 
+def vcf_pos(cut_point):
+    # A cut point of 0 sits before the first base of the contig, so it has no base
+    # to its left to anchor on. VCF asks for the base after the event in that case,
+    # which makes the record anchor on base 1. Every other cut point anchors on the
+    # base to its left, as described in emitted_vcf_pos() below.
+    #
+    # 0 is as low as a cut point goes. A negative one is not a boundary case, so
+    # report it rather than let the clamp hide it.
+    if cut_point < 0:
+        logging.warning("Breakpoint %d is before the start of the contig. "
+                        "Reported at POS=1."%(cut_point))
+    return max(cut_point, 1)
+
+def emitted_vcf_pos(record):
+    # All signature coordinates are 0-based cut points, which name the base to the
+    # left of a breakpoint when they are read as 1-based positions. That is the
+    # base VCF anchors on for DEL, INS, DUP and INV, and for BND types A/B, whose
+    # ALT carries the anchor base in front of the bracket pair. Types C/D carry it
+    # behind, so they anchor on the base to the right of the cut and are the only
+    # records written one base further on.
+    #
+    # record[1] is still the ALT template built in resolution_TRA(), where that
+    # anchor base is the placeholder "N". The real reference base is substituted
+    # into it further down, when the record is written.
+    #
+    # Sort on the position each record is written with, so that the output file
+    # stays in POS order.
+    pos = int(record[2])
+    if record[1] in ["DEL", "INS", "DUP", "INV"] or record[1][0] == 'N':
+        return vcf_pos(pos)
+    return pos + 1 # types C/D
+
 def generate_output(args, semi_result, reference, chrom, temporary_dir):
     
     '''
@@ -249,7 +281,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     # genotype_trigger = TriggerGT[args.genotype]
     
     f=open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb")
-    semi_result.sort(key = lambda x:int(x[2]))
+    semi_result.sort(key = emitted_vcf_pos)
     action = args.genotype
     fa_file = pysam.FastaFile(reference)
     try:
@@ -266,10 +298,18 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 continue
             if abs(int(float(i[3]))) < args.min_size:
                 continue
+            # i[2] (breakpoint_1) is a 0-based cut point, so read as a 1-based
+            # position it names the base before the event - the padding base VCF
+            # asks for - except at cut point 0, where that base does not exist and
+            # the record anchors on the base after the event instead. END still
+            # names the last deleted base, and still equals POS for an insertion.
+            cut = int(i[2])
+            sv_len = abs(int(float(i[3])))
+            pos_var = vcf_pos(cut)
             if i[1] == "INS":
-                cal_end = int(i[2])
+                cal_end = pos_var
             else:
-                cal_end = int(i[2]) + abs(int(float(i[3])))
+                cal_end = cut + sv_len
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[8] == "0/0" else "PRECISE", 
                 SVTYPE = i[1], 
@@ -293,12 +333,20 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
             if args.ignore_sequence:
                 ref_seq = 'N'
                 alt_seq = '<' + i[1] + '>'
+            elif cut >= 1:
+                # Left-anchored on the base before the event.
+                ref_seq = ref_chrom[cut-1] if i[1] == 'INS' else ref_chrom[cut-1:cut+sv_len]
+                alt_seq = "%s"%(ref_chrom[cut-1]+i[13] if i[1] == 'INS' else ref_chrom[cut-1])
             else:
-                ref_seq = ref_chrom[max(int(i[2])-1, 0)] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0):int(i[2])-int(i[3])]
-                alt_seq = "%s"%(ref_chrom[max(int(i[2])-1, 0)]+i[13] if i[1] == 'INS' else ref_chrom[max(int(i[2])-1, 0)])    
+                # Right-anchored on the base after the event, which is base 1 for an
+                # insertion, and the first base kept by a deletion.
+                ref_seq = ref_chrom[0] if i[1] == 'INS' else ref_chrom[0:sv_len+1]
+                # ref_seq[-1] is that base for a deletion, and stays in range if the
+                # contig ends inside the slice.
+                alt_seq = "%s"%(i[13]+ref_chrom[0] if i[1] == 'INS' else ref_seq[-1])
             lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
-                POS = str(int(i[2])), 
+                POS = str(pos_var),
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
                 REF = ref_seq.translate(trans_table),
                 ALT = alt_seq, 
@@ -314,7 +362,15 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
         elif i[1] == "DUP":
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
-            cal_end = int(i[2]) + 1 + abs(int(float(i[3])))
+            # i[2] (breakpoint_1) originates in analysis_split_read()
+            # (src/cuteSV/cuteSV) and is a 0-based cut-point coordinate, so read as a
+            # 1-based position it already names the base before the duplicated
+            # segment - the padding base VCF asks for - and breakpoint_2
+            # (breakpoint_1 + SVLEN) names its last base. Compare the DEL branch
+            # above, which anchors the same way. The one cut point without a base to
+            # its left is 0, which vcf_pos() anchors on base 1 instead.
+            pos_dup = vcf_pos(int(i[2]))
+            cal_end = int(i[2]) + abs(int(float(i[3])))
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND=-+{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE", 
                 SVTYPE = i[1], 
@@ -331,10 +387,10 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
                 filter_lable = "PASS"
             else:
                 filter_lable = "PASS" if float(i[9]) >= 5.0 else "q5"
-            ref_seq = ref_chrom[int(i[2])]
+            ref_seq = ref_chrom[pos_dup - 1]
             lines.append((i[1],"{CHR}\t{POS}\t{ID}\t{REF}\t{ALT}\t{QUAL}\t{PASS}\t{INFO}\t{FORMAT}\t{GT}:{DR}:{RE}:{PL}:{GQ}\n".format(
                 CHR = i[0], 
-                POS = str(int(i[2]) + 1), 
+                POS = str(pos_dup), 
                 ID = "cuteSV.%s.<SVID>"%(i[1]),
                 REF = ref_seq.translate(trans_table),
                 ALT = "<%s>"%(i[1]), 
@@ -350,20 +406,17 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
         elif i[1] == "INV":
             if abs(int(float(i[3]))) > args.max_size and args.max_size != -1:
                 continue
-            # i[2] (breakpoint_1) originates in analysis_inv() (src/cuteSV/cuteSV) and is
-            # an end-type ref_end coordinate (already a valid 1-based position, since
-            # pysam's reference_end is 0-based-exclusive) for head-to-head ("++")
-            # inversions, but a start-type ref_start coordinate (0-based, needs +1) for
-            # tail-to-tail ("--") inversions. i[7] (the "++"/"--" tag, already carried
-            # through for the INFO STRAND field) tells us which. Compare the equivalent
-            # BND fix above for the mate coordinate and the primary POS column.
-            if i[7] == "++":
-                pos_inv = int(i[2])
-                ref_idx = max(pos_inv - 1, 0)
-            else:
-                pos_inv = int(i[2]) + 1
-                ref_idx = int(i[2])
-            cal_end = pos_inv + abs(int(float(i[3])))
+            # i[2] (breakpoint_1) originates in analysis_inv() (src/cuteSV/cuteSV).
+            # Both inversion breakpoints are 0-based cut-point coordinates - taken
+            # from ref_end for head-to-head ("++") signatures and from ref_start for
+            # tail-to-tail ("--") ones - so in either orientation breakpoint_1 read
+            # as a 1-based position names the base before the inverted segment, and
+            # breakpoint_2 (breakpoint_1 + SVLEN) names its last base. The one cut
+            # point without a base to its left is 0, which vcf_pos() anchors on
+            # base 1 instead.
+            pos_inv = vcf_pos(int(i[2]))
+            ref_idx = pos_inv - 1
+            cal_end = int(i[2]) + abs(int(float(i[3])))
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};RE={RE};STRAND={STRAND}{RNAMES}".format(
                 PRECISION = "IMPRECISE" if i[6] == "0/0" else "PRECISE",
                 SVTYPE = i[1],
@@ -427,9 +480,9 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
             # the mate coordinate embedded in the ALT string.
             if i[1][0] == 'N':
                 # Types A/B
-                pos_bnd = int(i[2])
+                pos_bnd = vcf_pos(int(i[2]))
                 try:
-                    ref_bnd = ref_chrom[max(pos_bnd - 1, 0)]
+                    ref_bnd = ref_chrom[pos_bnd - 1]
                 except:
                     ref_bnd = 'N'
                 alt_bnd = ref_bnd + i[1][1:]
