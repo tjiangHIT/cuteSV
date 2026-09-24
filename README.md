@@ -17,13 +17,13 @@ A new wiki page about diploid-assembly-based SV detection using cuteSV has been 
 
 #### You can also try our latest SV detection tools:
 
-Real‑time SV calling for nanopore devices -> [cuteSV-OL](https://github.com/gwmHIT/cuteSV-OL)  [[paper](https://academic.oup.com/bioinformatics/article/42/1/btaf668/8382785?login=false)]
+Real‑time SV calling for nanopore devices -> [cuteSV-OL](https://github.com/gwmHIT/cuteSV-OL)  [[Bioinformatics](https://academic.oup.com/bioinformatics/article/42/1/btaf668/8382785?login=false)]
 
-Haplotype‑aware SV detection -> [cuteHap](https://github.com/Meltpinkg/cuteHap)  [[paper](https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202519314)]
+Haplotype‑aware SV detection -> [cuteHap](https://github.com/Meltpinkg/cuteHap)  [[Advanced Science](https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202519314)]
 
-Pangenome-based SV calling -> [SVPG](https://github.com/coopsor/SVPG)  [[paper](https://www.biorxiv.org/content/10.1101/2025.07.11.664486v4)]
+Pangenome-based SV calling -> [SVPG](https://github.com/coopsor/SVPG)  [[Nature Methods](https://www.nature.com/articles/s41592-026-03219-2)]
 
-Somatic SV discovery -> [SomaSV](https://github.com/eioyuou/SomaSV)  [[paper](https://www.biorxiv.org/content/10.64898/2026.02.16.706063v1)]
+Somatic SV discovery -> [SomaSV](https://github.com/eioyuou/SomaSV)  [[bioRxiv](https://www.biorxiv.org/content/10.64898/2026.02.16.706063v1)]
 
 ---
 ### Getting Start
