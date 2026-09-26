@@ -93,70 +93,29 @@ def count_coverage(chr, s, e, f, read_count, up_bound, itround):
     return status
 
 def overlap_cover(svs_list, reads_list):
-    # [(10024, 12024), (89258, 91258), ...]
-    # [[10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'], [10000, 17490, 1, 'm54238_180901_011437/44762027/ccs'], ...]
-    sort_list = list()
-    idx = 0
-    for i in reads_list:
-        sort_list.append([i[0], 1, idx, i[2], i[3]])
-        sort_list.append([i[1], 2, idx, i[2], i[3]])
-        idx += 1
-    idx = 0
-    for i in svs_list:
-        sort_list.append([i[0], 3, idx])
-        sort_list.append([i[1], 0, idx])
-        idx += 1
-    sort_list = sorted(sort_list, key = lambda x:(x[0], x[1]))
-    svs_set = set()
-    read_set = set()
-    overlap_dict = dict()
-    cover_dict = dict()
-    for node in sort_list:
-        if node[1] == 1: # set2(read) left
-            read_set.add(node[2])
-            for x in svs_set:
-                if svs_list[x][1] == node[0]:
-                    continue
-                if x not in overlap_dict:
-                    overlap_dict[x] = set()
-                overlap_dict[x].add(node[2])
-        elif node[1] == 2: # set2(read) right
-            read_set.remove(node[2])
-        elif node[1] == 3: # set1(sv) left
-            svs_set.add(node[2])
-            overlap_dict[node[2]] = set()
-            for x in read_set:
-                overlap_dict[node[2]].add(x)
-            cover_dict[node[2]] = set()
-            for x in read_set:
-                cover_dict[node[2]].add(x)
-        elif node[1] == 0: # set1(sv) right
-            svs_set.remove(node[2])
-            temp_set = set()
-            for x in read_set:
-                temp_set.add(x)
-            cover_dict[node[2]] = cover_dict[node[2]] & temp_set
-    overlap2_dict = dict()
-    cover2_dict = dict()
-    iteration_dict = dict()
-    primary_num_dict = dict()
-    for idx in cover_dict:
-        iteration_dict[idx] = len(overlap_dict[idx])
-        primary_num_dict[idx] = 0
-        for x in overlap_dict[idx]:
-            if reads_list[x][2] == 1:
-                primary_num_dict[idx] += 1
-        cover2_dict[idx] = set()
-        for x in cover_dict[idx]:
-            if reads_list[x][2] == 1:
-                cover2_dict[idx].add(reads_list[x][3])
-        overlap2_dict[idx] = set()
-        for x in overlap_dict[idx]:
-            if reads_list[x][2] == 1:
-                overlap2_dict[idx].add(reads_list[x][3])
-    # duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, overlap2_dict)
-    # return iteration_dict, primary_num_dict, cover2_dict
-    return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict
+    reads = sorted(reads_list, key=lambda r: r[0])
+    starts = np.array([r[0] for r in reads], dtype=np.int64)
+    ends = np.array([r[1] for r in reads], dtype=np.int64)
+    primary = np.array([r[2] == 1 for r in reads], dtype=bool)
+    # Skip blocks whose reads all end before the variant.
+    block_size = 128
+    block_ends = np.maximum.reduceat(ends, np.arange(0, len(ends), block_size)) if reads else np.array([])
+    offsets = np.arange(block_size)
+    iterations, primary_counts, covers, overlaps = {}, {}, {}, {}
+    for i in sorted(range(len(svs_list)), key=lambda i: svs_list[i][0]):
+        start, end = svs_list[i]
+        limit = np.searchsorted(starts, end, side='left')
+        blocks = np.flatnonzero(block_ends[:(limit + block_size - 1)//block_size] > start)
+        indices = (blocks[:, None] * block_size + offsets).ravel()
+        indices = indices[indices < limit]
+        indices = indices[ends[indices] > start]
+        iterations[i] = len(indices)
+        indices = indices[primary[indices]]
+        primary_counts[i] = len(indices)
+        overlaps[i] = {reads[j][3] for j in indices}
+        indices = indices[(starts[indices] <= start) & (ends[indices] >= end)]
+        covers[i] = {reads[j][3] for j in indices}
+    return iterations, primary_counts, covers, overlaps
 
 def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict):
     assign_list = list()
@@ -271,6 +230,36 @@ def emitted_vcf_pos(record):
         return vcf_pos(pos)
     return pos + 1 # types C/D
 
+class ReferenceSequence:
+    """Read nearby reference bases without loading the whole chromosome."""
+    def __init__(self, fasta, chrom):
+        self.fasta = fasta
+        self.chrom = chrom
+        self.length = fasta.get_reference_length(chrom)
+        self.start = self.end = 0
+        self.sequence = ''
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            start, end, step = key.indices(self.length)
+            if step != 1:
+                return self.fasta.fetch(self.chrom)[key]
+        else:
+            start = key if key >= 0 else self.length + key
+            if not 0 <= start < self.length:
+                raise IndexError('reference index out of range')
+            end = start + 1
+        if start >= end:
+            return ''
+        if start < self.start or end > self.end:
+            cache_end = min(self.length, max(end, start + 65536))
+            sequence = self.fasta.fetch(self.chrom, start, cache_end)
+            self.start = start
+            self.end = cache_end
+            self.sequence = sequence
+        return self.sequence[start-self.start:end-self.start]
+
+
 def generate_output(args, semi_result, reference, chrom, temporary_dir):
     
     '''
@@ -285,10 +274,9 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     action = args.genotype
     fa_file = pysam.FastaFile(reference)
     try:
-        ref_chrom=fa_file.fetch(chrom)
+        ref_chrom = ReferenceSequence(fa_file, chrom)
     except:
         raise Exception("No corresponding contig in reference with %s."%(chrom))
-    fa_file.close()
     lines=[]
     BATCH_SIZE=1000
     trans_table = str.maketrans('RYSWKMBDHV', 'ACCAGACAAA')
@@ -517,6 +505,7 @@ def generate_output(args, semi_result, reference, chrom, temporary_dir):
     if len(lines)!=0:
         pickle.dump(lines,f)
     f.close()
+    fa_file.close()
     logging.info("Finished %s output."%(chrom))
     # return lines
 
