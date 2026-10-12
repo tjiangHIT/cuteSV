@@ -9,7 +9,8 @@
 '''
 
 import pysam
-import cigar
+import re
+from math import ceil
 from cuteSV.cuteSV_Description import parseArgs
 from multiprocessing import Pool,Manager,Queue, current_process
 from cuteSV.CommandRunner import *
@@ -464,7 +465,7 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                     ele_2[4]))
 
 def acquire_clip_pos(deal_cigar):
-    seq = list(cigar.Cigar(deal_cigar).items())
+    seq = [(int(length), op) for length, op in re.findall(r'(\d+)(\D+)', deal_cigar)]
     if seq[0][1] == 'S':
         first_pos = seq[0][0]
     else:
@@ -612,6 +613,7 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
     #new start
     process_signal = detect_flag(read.flag)
     if read.mapq >= min_mapq:
+        cigar = read.cigartuples
         pos_start = read.reference_start # 0-based
         pos_end = read.reference_end
         sig_start=pos_start
@@ -620,13 +622,13 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
         hardclip_left = 0
         hardclip_right = 0
         shift_ins_read = 0
-        if read.cigar[0][0] == 4:
-            softclip_left = read.cigar[0][1]
-        elif read.cigar[0][0] == 5:
-            hardclip_left = read.cigar[0][1]
+        if cigar[0][0] == 4:
+            softclip_left = cigar[0][1]
+        elif cigar[0][0] == 5:
+            hardclip_left = cigar[0][1]
         
         shift_ins_read=-hardclip_left
-        for op, oplen in read.cigartuples:
+        for op, oplen in cigar:
             # calculate offset of an ins sig in read
             if op != 2:#might be fixed later
                 shift_ins_read += oplen
@@ -643,10 +645,10 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
                     sig_start += oplen
 
         
-        if read.cigar[-1][0] == 4:
-            softclip_right = read.cigar[-1][1]
-        elif read.cigar[-1][0] == 5:
-            hardclip_right = read.cigar[-1][1]
+        if cigar[-1][0] == 4:
+            softclip_right = cigar[-1][1]
+        elif cigar[-1][0] == 5:
+            hardclip_right = cigar[-1][1]
 
         if hardclip_left != 0:
             softclip_left = hardclip_left
@@ -657,8 +659,7 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
     generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, read.query_name, "INS", candidate["INS"], merge_ins_threshold)
     generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, read.query_name, "DEL", candidate["DEL"], merge_del_threshold)
 
-    if process_signal == 1 or process_signal == 2: # 0 / 16
-        Tags = read.get_tags()
+    if process_signal in (1, 2) and read.has_tag('SA'): # 0 / 16
         if read.mapq >= min_mapq:
             if process_signal == 1:
                 primary_info = [softclip_left, read.query_length-softclip_right, pos_start, 
@@ -669,15 +670,13 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
         else:
             primary_info = []
 
-        for i in Tags:
-            if i[0] == 'SA':
-                if process_signal == 1:
-                    query_seq = read.query_sequence
-                else:
-                    query_seq = str(Seq(read.query_sequence).reverse_complement())
-                Supplementary_info = i[1].split(';')[:-1]
-                organize_split_signal(primary_info, Supplementary_info, read.query_length, 
-                    SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, query_seq)
+        if process_signal == 1:
+            query_seq = read.query_sequence
+        else:
+            query_seq = str(Seq(read.query_sequence).reverse_complement())
+        Supplementary_info = read.get_tag('SA').split(';')[:-1]
+        organize_split_signal(primary_info, Supplementary_info, read.query_length,
+            SV_size, min_mapq, max_split_parts, read.query_name, candidate, MaxSize, query_seq)
     return candidate
 
 def init_reading_process(sam_path, reference_path):
@@ -694,6 +693,33 @@ def cleanup():
 
 SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
 samfile=None
+def fetch_reads(samfile, task, bed_regions):
+    if bed_regions is None:
+        yield from samfile.fetch(task[0], task[1], task[2])
+        return
+    windows = []
+    task_end = int(task[2])
+    fetch_end = min(ceil(task[2]), samfile.get_reference_length(task[0]))
+    for start, end in sorted(bed_regions):
+        start = max(0, int(task[1]), start)
+        # Include reads crossing a fractional task boundary, then filter their starts.
+        end = min(fetch_end, end)
+        if start >= end:
+            continue
+        # Avoid repeatedly decoding nearby long alignments.
+        if windows and start <= windows[-1][1] + 100000:
+            windows[-1][1] = max(windows[-1][1], end)
+        else:
+            windows.append([start, end])
+    previous_end = -1
+    for start, end in windows:
+        for read in samfile.fetch(task[0], start, end):
+            # Long alignments can overlap more than one BED interval.
+            if previous_end <= read.reference_start < task_end:
+                yield read
+        previous_end = end
+
+
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
                 task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions):
     candidate = {}
@@ -706,7 +732,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     Chr_name = task[0]
     global samfile
 
-    for read in samfile.fetch(Chr_name, task[1], task[2]):
+    for read in fetch_reads(samfile, task, bed_regions):
         # handle_read(read, task[1], bed_regions, candidate, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize)
         if read.flag == 256 or read.flag == 272:
             continue
